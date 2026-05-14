@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/http/problem-details.json",
+  "title": "RFC 7807 Problem Details",
+  "description": "Error response body served with Content-Type: application/problem+json.",
+  "type": "object",
+  "required": ["type", "title", "status"],
+  "properties": {
+    "type":     { "type": "string", "format": "uri" },
+    "title":    { "type": "string" },
+    "status":   { "type": "integer", "minimum": 100, "maximum": 599 },
+    "detail":   { "type": ["string", "null"] },
+    "instance": { "type": ["string", "null"] },
+    "errors": {
+      "type": "object",
+      "description": "Field-level validation errors (typically for status 422).",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": true
+}

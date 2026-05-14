@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/app-descriptor.json",
+  "title": "Abeon App Descriptor",
+  "description": "Self-registration metadata POSTed by each service to Auth on bootstrap (M4).",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name":        { "type": "string" },
+    "label":       { "type": ["string", "null"] },
+    "path":        { "type": ["string", "null"] },
+    "icon":        { "type": ["string", "null"] },
+    "version":     { "type": ["string", "null"] },
+    "permissions": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

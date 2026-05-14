@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/user.json",
+  "title": "Abeon User DTO",
+  "type": "object",
+  "required": ["id", "email", "roles", "permissions"],
+  "properties": {
+    "id":          { "type": "string" },
+    "email":       { "type": "string", "format": "email" },
+    "name":        { "type": ["string", "null"] },
+    "roles":       { "type": "array", "items": { "type": "string" } },
+    "permissions": { "type": "array", "items": { "type": "string" } },
+    "org_id":      { "type": ["integer", "null"] }
+  },
+  "additionalProperties": false
+}

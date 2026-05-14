@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/auth/jwt-user.json",
+  "title": "Abeon User JWT Payload",
+  "description": "Access token issued by Auth service for authenticated users.",
+  "type": "object",
+  "required": ["sub", "exp", "iat", "iss", "aud", "type", "roles", "permissions", "jti"],
+  "properties": {
+    "sub":         { "type": "string", "description": "Subject — user ID." },
+    "exp":         { "type": "integer", "description": "Expiration (unix timestamp)." },
+    "iat":         { "type": "integer", "description": "Issued at (unix timestamp)." },
+    "iss":         { "type": "string", "const": "abeon-auth" },
+    "aud":         { "type": "string", "const": "abeon" },
+    "type":        { "type": "string", "const": "user" },
+    "email":       { "type": "string", "format": "email" },
+    "name":        { "type": ["string", "null"] },
+    "roles":       { "type": "array", "items": { "type": "string" } },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
+        "description": "{app}.{resource}.{action}"
+      }
+    },
+    "org_id":      { "type": ["integer", "null"] },
+    "jti":         { "type": "string", "description": "Unique token ID (for revocation)." }
+  },
+  "additionalProperties": true
+}

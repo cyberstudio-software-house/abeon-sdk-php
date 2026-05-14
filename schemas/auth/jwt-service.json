@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/auth/jwt-service.json",
+  "title": "Abeon Service-to-Service JWT Payload",
+  "description": "Short-lived (≤5 min) token signed by the calling service's RS256 key.",
+  "type": "object",
+  "required": ["sub", "exp", "iat", "iss", "aud", "type", "service_name", "jti"],
+  "properties": {
+    "sub":          { "type": "string", "description": "Subject — service identifier." },
+    "exp":          { "type": "integer" },
+    "iat":          { "type": "integer" },
+    "iss":          { "type": "string", "description": "Issuing service name." },
+    "aud":          { "type": "string", "const": "abeon" },
+    "type":         { "type": "string", "const": "service" },
+    "service_name": { "type": "string" },
+    "jti":          { "type": "string" }
+  },
+  "additionalProperties": true
+}

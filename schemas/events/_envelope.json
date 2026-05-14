@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/_envelope.json",
+  "title": "Abeon Event Envelope",
+  "description": "Generic envelope wrapping every event on RabbitMQ exchange `abeon.events`. Per-event payload schemas (the contents of `data`) live in each service's own repo and are discovered via composer extra.abeon.event-schemas.",
+  "type": "object",
+  "required": ["event_id", "event_type", "timestamp", "source", "version", "actor", "data", "metadata"],
+  "properties": {
+    "event_id":   { "type": "string", "format": "uuid" },
+    "event_type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
+      "description": "Routing key in the form {service}.{entity}.{action}."
+    },
+    "timestamp":  { "type": "string", "format": "date-time" },
+    "source":     { "type": "string", "description": "Publishing service name." },
+    "version":    { "type": "string", "default": "1.0" },
+    "actor": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type":         { "type": "string", "enum": ["user", "service", "system"] },
+        "user_id":      { "type": ["string", "null"] },
+        "service_name": { "type": ["string", "null"] }
+      }
+    },
+    "data": {
+      "type": "object",
+      "description": "Event-specific payload. v1: loose. v0.2+: strict against per-service schema."
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "correlation_id": { "type": "string" },
+        "causation_id":   { "type": ["string", "null"] }
+      }
+    }
+  },
+  "additionalProperties": false
+}

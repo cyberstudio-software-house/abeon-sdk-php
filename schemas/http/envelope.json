@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/http/envelope.json",
+  "title": "Abeon REST Response Envelope",
+  "type": "object",
+  "required": ["data"],
+  "properties": {
+    "data": { "description": "Payload — object or array of objects." },
+    "meta": {
+      "type": "object",
+      "description": "Optional pagination / aggregate metadata."
+    }
+  }
+}

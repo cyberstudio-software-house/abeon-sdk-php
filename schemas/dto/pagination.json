@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/pagination.json",
+  "title": "Abeon Pagination Meta",
+  "type": "object",
+  "required": ["current_page", "per_page", "total", "last_page"],
+  "properties": {
+    "current_page": { "type": "integer", "minimum": 1 },
+    "per_page":     { "type": "integer", "minimum": 1 },
+    "total":        { "type": "integer", "minimum": 0 },
+    "last_page":    { "type": "integer", "minimum": 1 }
+  },
+  "additionalProperties": false
+}
