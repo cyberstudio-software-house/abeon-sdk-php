@@ -12,6 +12,14 @@ return [
         'jwks_url' => env('ABEON_AUTH_JWKS_URL'),
         'issuer'   => env('ABEON_AUTH_ISSUER', 'abeon-auth'),
         'audience' => env('ABEON_AUTH_AUDIENCE', 'abeon'),
+        // Canonical cookie names — Auth service issues them, frontends (Inertia + Next.js
+        // via @abeon/shared) read them. Frontends MUST swap from cookie → Authorization
+        // Bearer header before calling downstream services, since AuthMiddleware only
+        // reads the header (not cookies).
+        'cookies' => [
+            'access'  => env('ABEON_JWT_COOKIE_NAME', 'abeon_token'),
+            'refresh' => env('ABEON_REFRESH_COOKIE_NAME', 'abeon_refresh'),
+        ],
         'service_jwt' => [
             'private_key' => env('ABEON_SERVICE_JWT_PRIVATE_KEY'),
             'kid'         => env('ABEON_SERVICE_JWT_KID'),

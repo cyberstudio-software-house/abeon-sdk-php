@@ -48,6 +48,16 @@ class AbeonConfig
         return (string) $this->config->get('abeon.auth.audience', 'abeon');
     }
 
+    public function authAccessCookieName(): string
+    {
+        return (string) $this->config->get('abeon.auth.cookies.access', 'abeon_token');
+    }
+
+    public function authRefreshCookieName(): string
+    {
+        return (string) $this->config->get('abeon.auth.cookies.refresh', 'abeon_refresh');
+    }
+
     public function serviceJwtPrivateKey(): string
     {
         $key = (string) $this->config->get('abeon.auth.service_jwt.private_key', '');
