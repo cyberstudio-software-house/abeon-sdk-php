@@ -1,0 +1,69 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Abeon\SDK\Events;
+
+use Abeon\SDK\Auth\AuthContext;
+use Abeon\SDK\Config\AbeonConfig;
+use Abeon\SDK\DTO\Actor;
+use Abeon\SDK\Logging\CorrelationContext;
+use DateTimeImmutable;
+use DateTimeZone;
+
+class EnvelopeBuilder
+{
+    public function __construct(
+        private readonly AbeonConfig $config,
+        private readonly CorrelationContext $correlation,
+        private readonly AuthContext $auth,
+    ) {
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function build(
+        string $routingKey,
+        array $data,
+        ?Actor $actor = null,
+        ?string $causationId = null,
+        string $version = '1.0',
+    ): array {
+        RoutingKey::assertValid($routingKey);
+
+        return [
+            'event_id'   => $this->uuid(),
+            'event_type' => $routingKey,
+            'timestamp'  => (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.v\Z'),
+            'source'     => $this->config->serviceName(),
+            'version'    => $version,
+            'actor'      => ($actor ?? $this->defaultActor())->toArray(),
+            'data'       => $data,
+            'metadata'   => array_filter([
+                'correlation_id' => $this->correlation->ensure(),
+                'causation_id'   => $causationId,
+            ], fn ($v) => $v !== null),
+        ];
+    }
+
+    private function defaultActor(): Actor
+    {
+        $user = $this->auth->user();
+        if ($user !== null) {
+            return Actor::user($user->id);
+        }
+
+        return Actor::service($this->config->serviceName());
+    }
+
+    private function uuid(): string
+    {
+        $bytes    = random_bytes(16);
+        $bytes[6] = chr(ord($bytes[6]) & 0x0f | 0x40);
+        $bytes[8] = chr(ord($bytes[8]) & 0x3f | 0x80);
+
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
+    }
+}

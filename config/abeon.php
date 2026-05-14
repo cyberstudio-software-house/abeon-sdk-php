@@ -19,8 +19,25 @@ return [
     ],
 
     'events' => [
-        'dsn'      => env('ABEON_RABBITMQ_DSN'),
-        'exchange' => env('ABEON_RABBITMQ_EXCHANGE', 'abeon.events'),
+        'dsn'           => env('ABEON_RABBITMQ_DSN'),
+        'exchange'      => env('ABEON_RABBITMQ_EXCHANGE', 'abeon.events'),
+        'dlx_exchange'  => env('ABEON_RABBITMQ_DLX', 'abeon.events.dlx'),
+        'outbox' => [
+            'connection'    => env('ABEON_OUTBOX_CONNECTION'), // default DB connection if null
+            'batch_size'    => (int) env('ABEON_OUTBOX_BATCH_SIZE', 100),
+            'poll_interval' => (int) env('ABEON_OUTBOX_POLL_INTERVAL', 1),
+            'max_attempts'  => (int) env('ABEON_OUTBOX_MAX_ATTEMPTS', 5),
+            'lag_threshold' => (int) env('ABEON_OUTBOX_LAG_THRESHOLD', 60),
+        ],
+        'consumer' => [
+            'queue_prefix' => env('ABEON_QUEUE_PREFIX'), // defaults to service.name
+            // Routing keys this service subscribes to. Each entry becomes a queue
+            // {queue_prefix}.{routing_key} bound to the main exchange.
+            'subscriptions' => [
+                // 'crm.contact.created',
+            ],
+            'prefetch_count' => (int) env('ABEON_CONSUMER_PREFETCH', 10),
+        ],
     ],
 
     'health' => [

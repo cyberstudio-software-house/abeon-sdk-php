@@ -84,6 +84,63 @@ class AbeonConfig
         return (string) $this->config->get('abeon.events.exchange', 'abeon.events');
     }
 
+    public function rabbitMqDeadLetterExchange(): string
+    {
+        return (string) $this->config->get('abeon.events.dlx_exchange', 'abeon.events.dlx');
+    }
+
+    public function outboxConnection(): ?string
+    {
+        $name = $this->config->get('abeon.events.outbox.connection');
+
+        return is_string($name) && $name !== '' ? $name : null;
+    }
+
+    public function outboxBatchSize(): int
+    {
+        return max(1, (int) $this->config->get('abeon.events.outbox.batch_size', 100));
+    }
+
+    public function outboxPollInterval(): int
+    {
+        return max(1, (int) $this->config->get('abeon.events.outbox.poll_interval', 1));
+    }
+
+    public function outboxMaxAttempts(): int
+    {
+        return max(1, (int) $this->config->get('abeon.events.outbox.max_attempts', 5));
+    }
+
+    public function outboxLagThreshold(): int
+    {
+        return max(1, (int) $this->config->get('abeon.events.outbox.lag_threshold', 60));
+    }
+
+    public function consumerQueuePrefix(): string
+    {
+        $prefix = $this->config->get('abeon.events.consumer.queue_prefix');
+
+        return is_string($prefix) && $prefix !== '' ? $prefix : $this->serviceName();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function consumerSubscriptions(): array
+    {
+        $subs = $this->config->get('abeon.events.consumer.subscriptions', []);
+        if (! is_array($subs)) {
+            return [];
+        }
+
+        return array_values(array_filter($subs, 'is_string'));
+    }
+
+    public function consumerPrefetchCount(): int
+    {
+        return max(1, (int) $this->config->get('abeon.events.consumer.prefetch_count', 10));
+    }
+
     /**
      * @return list<string>
      */
