@@ -13,8 +13,22 @@ use Abeon\SDK\Auth\PermissionsServiceProvider as PermissionsBridge;
 use Abeon\SDK\Client\ServiceClient;
 use Abeon\SDK\Client\ServiceTokenProvider;
 use Abeon\SDK\Config\AbeonConfig;
+use Abeon\SDK\Events\Commands\ConsumeCommand;
+use Abeon\SDK\Events\Commands\DeclarePermissionsCommand;
+use Abeon\SDK\Events\Commands\OutboxDrainCommand;
+use Abeon\SDK\Events\EnvelopeBuilder;
+use Abeon\SDK\Events\EventCatalog;
+use Abeon\SDK\Events\EventConsumer;
+use Abeon\SDK\Events\EventPublisher;
+use Abeon\SDK\Events\OutboxDrainer;
+use Abeon\SDK\Events\OutboxPublisher;
+use Abeon\SDK\Events\ProcessedEvents;
+use Abeon\SDK\Events\RabbitMq;
+use Abeon\SDK\Events\SchemaDiscovery;
 use Abeon\SDK\Health\DbCheck;
 use Abeon\SDK\Health\HealthController;
+use Abeon\SDK\Health\OutboxLagCheck;
+use Abeon\SDK\Health\RabbitMqCheck;
 use Abeon\SDK\Http\CorrelationIdMiddleware;
 use Abeon\SDK\Http\ProblemDetailsRenderer;
 use Abeon\SDK\Logging\CorrelationContext;
@@ -25,6 +39,7 @@ use Illuminate\Contracts\Auth\Access\Gate as GateContract;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\DatabaseManager;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
@@ -39,6 +54,7 @@ class AbeonServiceProvider extends ServiceProvider
         $this->registerAuth();
         $this->registerClient();
         $this->registerServices();
+        $this->registerEvents();
         $this->registerHealth();
     }
 
@@ -47,6 +63,12 @@ class AbeonServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/abeon.php' => $this->configPath('abeon.php'),
         ], 'abeon-config');
+
+        $this->publishes([
+            __DIR__.'/../database/migrations/' => $this->databasePath('migrations'),
+        ], 'abeon-migrations');
+
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         $this->loadRoutesFrom(__DIR__.'/../routes/health.php');
 
@@ -60,6 +82,9 @@ class AbeonServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 RegisterCommand::class,
+                OutboxDrainCommand::class,
+                ConsumeCommand::class,
+                DeclarePermissionsCommand::class,
             ]);
         }
     }
@@ -125,6 +150,52 @@ class AbeonServiceProvider extends ServiceProvider
         $this->app->singleton(ServiceRegistry::class);
     }
 
+    private function registerEvents(): void
+    {
+        $this->app->singleton(EnvelopeBuilder::class);
+
+        $this->app->singleton(OutboxPublisher::class, function ($app) {
+            return new OutboxPublisher(
+                builder: $app->make(EnvelopeBuilder::class),
+                db:      $app->make(DatabaseManager::class),
+                config:  $app->make(AbeonConfig::class),
+            );
+        });
+        $this->app->alias(OutboxPublisher::class, EventPublisher::class);
+
+        $this->app->singleton(ProcessedEvents::class);
+        $this->app->singleton(RabbitMq::class);
+
+        $this->app->singleton(OutboxDrainer::class, function ($app) {
+            return new OutboxDrainer(
+                db:     $app->make(DatabaseManager::class),
+                rabbit: $app->make(RabbitMq::class),
+                config: $app->make(AbeonConfig::class),
+                logger: $app->bound(\Psr\Log\LoggerInterface::class)
+                    ? $app->make(\Psr\Log\LoggerInterface::class)
+                    : null,
+            );
+        });
+
+        $this->app->singleton(EventConsumer::class, function ($app) {
+            return new EventConsumer(
+                rabbit:      $app->make(RabbitMq::class),
+                processed:   $app->make(ProcessedEvents::class),
+                correlation: $app->make(CorrelationContext::class),
+                container:   $app,
+                config:      $app->make(AbeonConfig::class),
+                logger:      $app->bound(\Psr\Log\LoggerInterface::class)
+                    ? $app->make(\Psr\Log\LoggerInterface::class)
+                    : null,
+            );
+        });
+
+        $this->app->singleton(SchemaDiscovery::class, function ($app) {
+            return new SchemaDiscovery(vendorPath: $app->basePath('vendor'));
+        });
+        $this->app->singleton(EventCatalog::class);
+    }
+
     private function registerHealth(): void
     {
         $this->app->bind(HealthController::class, function ($app) {
@@ -144,6 +215,17 @@ class AbeonServiceProvider extends ServiceProvider
         $this->app->bind('abeon.health.check.db', function ($app) {
             return new DbCheck($app->make(ConnectionInterface::class));
         });
+
+        $this->app->bind('abeon.health.check.rabbitmq', function ($app) {
+            return new RabbitMqCheck($app->make(RabbitMq::class));
+        });
+
+        $this->app->bind('abeon.health.check.outbox_lag', function ($app) {
+            return new OutboxLagCheck(
+                db:     $app->make(DatabaseManager::class),
+                config: $app->make(AbeonConfig::class),
+            );
+        });
     }
 
     private function attachPermissionsBridge(): void
@@ -160,5 +242,14 @@ class AbeonServiceProvider extends ServiceProvider
         }
 
         return $this->app->basePath('config/'.$file);
+    }
+
+    private function databasePath(string $folder): string
+    {
+        if (function_exists('database_path')) {
+            return database_path($folder);
+        }
+
+        return $this->app->basePath('database/'.$folder);
     }
 }
