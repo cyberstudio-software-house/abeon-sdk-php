@@ -48,6 +48,30 @@ class AbeonConfig
         return (string) $this->config->get('abeon.auth.audience', 'abeon');
     }
 
+    public function serviceJwtPrivateKey(): string
+    {
+        $key = (string) $this->config->get('abeon.auth.service_jwt.private_key', '');
+        if ($key === '') {
+            throw new \RuntimeException(
+                'abeon.auth.service_jwt.private_key is required for outbound service calls (set ABEON_SERVICE_JWT_PRIVATE_KEY).',
+            );
+        }
+
+        return $key;
+    }
+
+    public function serviceJwtKid(): string
+    {
+        $kid = (string) $this->config->get('abeon.auth.service_jwt.kid', '');
+        if ($kid === '') {
+            throw new \RuntimeException(
+                'abeon.auth.service_jwt.kid is required (set ABEON_SERVICE_JWT_KID).',
+            );
+        }
+
+        return $kid;
+    }
+
     public function rabbitMqDsn(): ?string
     {
         $dsn = $this->config->get('abeon.events.dsn');
