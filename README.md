@@ -115,6 +115,8 @@ $this->app->tag([OnContactCreated::class], 'abeon.event_handler');
 
 Run: `php artisan abeon:events:outbox-drain` and `php artisan abeon:events:consume`.
 
+> **`EventHandler` implementations must be idempotent.** Replaying a handler with the same `Event` must produce the same state — no double emails, no double-charged invoices, no incremented counters that move twice. See [ADR-0002](docs/adr/0002-event-envelope.md#consume-flow--idempotency) for the rationale and concrete patterns.
+
 ---
 
 ## Architecture — internal layering

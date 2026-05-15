@@ -32,6 +32,12 @@ class ProcessedEvents
     /**
      * Record that an event was processed. Returns true if newly inserted,
      * false if already present (duplicate delivery).
+     *
+     * HI-3 fix (code review 2026-05-15): only catches integrity-constraint
+     * violations (SQLSTATE 23000) as duplicate; all other QueryExceptions
+     * (connection refused, deadlock, syntax error, permission denied) rethrow
+     * so the EventConsumer can nack the message instead of silently acking
+     * a "phantom processed" row.
      */
     public function markProcessed(string $eventId, string $routingKey): bool
     {
@@ -43,10 +49,25 @@ class ProcessedEvents
             ]);
 
             return true;
-        } catch (QueryException) {
-            // Unique-constraint violation on event_id → already processed.
-            return false;
+        } catch (QueryException $e) {
+            if ($this->isDuplicateKeyViolation($e)) {
+                return false;
+            }
+            throw $e;
         }
+    }
+
+    private function isDuplicateKeyViolation(QueryException $e): bool
+    {
+        if ($e->getCode() === '23000') {
+            return true;
+        }
+
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'duplicate')
+            || str_contains($message, 'unique constraint')
+            || str_contains($message, 'unique violation');
     }
 
     private function table(): Builder

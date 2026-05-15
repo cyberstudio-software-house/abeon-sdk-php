@@ -6,6 +6,7 @@ namespace Abeon\SDK\Events;
 
 use Abeon\SDK\Config\AbeonConfig;
 use Abeon\SDK\DTO\Actor;
+use Abeon\SDK\Exceptions\ContractViolationException;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Query\Builder;
 
@@ -22,6 +23,8 @@ class OutboxPublisher implements EventPublisher
         private readonly EnvelopeBuilder $builder,
         private readonly DatabaseManager $db,
         private readonly AbeonConfig $config,
+        /** Enforce that publish() is called inside a DB transaction. Default true. */
+        private readonly bool $enforceTransaction = true,
     ) {
     }
 
@@ -31,9 +34,18 @@ class OutboxPublisher implements EventPublisher
         ?Actor $actor = null,
         ?string $causationId = null,
     ): string {
+        $connection = $this->db->connection($this->config->outboxConnection());
+
+        // HI-1 fix (code review 2026-05-15): without an enclosing transaction,
+        // the outbox row commits independently of the caller's business write,
+        // breaking the atomicity guarantee that motivated the outbox pattern.
+        if ($this->enforceTransaction && $connection->transactionLevel() === 0) {
+            throw ContractViolationException::publishOutsideTransaction($routingKey);
+        }
+
         $envelope = $this->builder->build($routingKey, $data, $actor, $causationId);
 
-        $this->table()->insert([
+        $connection->table(self::TABLE)->insert([
             'event_id'    => $envelope['event_id'],
             'routing_key' => $envelope['event_type'],
             'envelope'    => json_encode($envelope, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
@@ -41,10 +53,5 @@ class OutboxPublisher implements EventPublisher
         ]);
 
         return $envelope['event_id'];
-    }
-
-    private function table(): Builder
-    {
-        return $this->db->connection($this->config->outboxConnection())->table(self::TABLE);
     }
 }

@@ -4,34 +4,63 @@ declare(strict_types=1);
 
 namespace Abeon\SDK\Logging;
 
+use Monolog\Formatter\JsonFormatter as MonologJsonFormatter;
+use Monolog\LogRecord;
+
 /**
- * Loki-friendly JSON log formatter.
+ * Loki-friendly JSON log formatter for Monolog 3.
  *
- * Wires `correlation_id` (from CorrelationContext) and `service` into
- * every log record's structured fields.
+ * Injects two extra fields into every log record so structured log queries
+ * across services work uniformly:
  *
- * Sprint 0 scaffold: holds collaborators only. Full Monolog integration
- * (extending Monolog\Formatter\JsonFormatter with format(LogRecord)) lands
- * in Sprint 0 step 6 once `composer install` has resolved monolog/monolog
- * via the consumer service's Laravel install.
+ *   - `correlation_id` (or whatever name `$correlationField` is set to) —
+ *     pulled from CorrelationContext so logs emitted inside a request
+ *     share the inbound `X-Correlation-ID`.
+ *   - `service` — pulled from `abeon.service.name` so a Loki query like
+ *     `{service="crm"} |~ "error"` works without per-service log labels.
+ *
+ * Wire-up (consumer service):
+ *
+ *     // config/logging.php
+ *     'channels' => [
+ *         'abeon-stdout' => [
+ *             'driver' => 'monolog',
+ *             'handler' => Monolog\Handler\StreamHandler::class,
+ *             'with' => ['stream' => 'php://stdout'],
+ *             'formatter' => Abeon\SDK\Logging\JsonFormatter::class,
+ *             'formatter_with' => [
+ *                 'context'     => app(Abeon\SDK\Logging\CorrelationContext::class),
+ *                 'serviceName' => env('ABEON_SERVICE_NAME'),
+ *             ],
+ *         ],
+ *     ],
  */
-class JsonFormatter
+class JsonFormatter extends MonologJsonFormatter
 {
     public function __construct(
         public readonly CorrelationContext $context,
         public readonly string $serviceName,
         public readonly string $correlationField = 'correlation_id',
     ) {
+        parent::__construct(
+            batchMode: self::BATCH_MODE_JSON,
+            appendNewline: true,
+            ignoreEmptyContextAndExtra: true,
+            includeStacktraces: false,
+        );
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function contextFields(): array
+    public function format(LogRecord $record): string
     {
-        return [
-            $this->correlationField => $this->context->current(),
-            'service'               => $this->serviceName,
-        ];
+        $extra = $record->extra;
+        $correlation = $this->context->current();
+        if ($correlation !== null && ! isset($extra[$this->correlationField])) {
+            $extra[$this->correlationField] = $correlation;
+        }
+        if (! isset($extra['service'])) {
+            $extra['service'] = $this->serviceName;
+        }
+
+        return parent::format($record->with(extra: $extra));
     }
 }

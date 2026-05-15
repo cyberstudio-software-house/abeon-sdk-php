@@ -189,7 +189,13 @@ class EventConsumer
     }
 
     /**
-     * Topic-style wildcard match: `*` matches one segment, `#` matches one+.
+     * AMQP topic wildcard match.
+     *   `*` — exactly one segment (e.g. `crm.*.created` matches `crm.contact.created`).
+     *   `#` — zero or more segments (e.g. `crm.#` matches `crm`, `crm.contact`, `crm.contact.created`).
+     *
+     * HI-4 fix (code review 2026-05-15): `#` was previously `.+` (one+ chars) which
+     * (a) treated it as "one+ segments" (off-by-one vs AMQP spec) and (b) failed
+     * to match the empty suffix case. Now uses `.*` to allow zero+.
      */
     private function matches(string $routingKey, string $pattern): bool
     {
@@ -197,7 +203,7 @@ class EventConsumer
             return true;
         }
 
-        $regex = '/^'.str_replace(['\.', '\*', '\#'], ['\.', '[^.]+', '.+'], preg_quote($pattern, '/')).'$/';
+        $regex = '/^'.str_replace(['\.', '\*', '\#'], ['\.', '[^.]+', '.*'], preg_quote($pattern, '/')).'$/';
 
         return (bool) preg_match($regex, $routingKey);
     }

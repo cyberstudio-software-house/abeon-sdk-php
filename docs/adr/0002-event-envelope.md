@@ -77,14 +77,41 @@ This trades a small delivery latency (default 1s poll + RabbitMQ roundtrip) for 
 
 ### Consume flow — idempotency
 
+**`EventHandler` implementations MUST be idempotent.** This is a hard contract requirement, not a defence-in-depth nice-to-have. Re-running a handler with the same `Event` must produce the same state — no duplicate emails, no double-charged invoices, no incremented counters that move twice.
+
 `EventConsumer` deduplicates by `event_id` via `abeon_processed_events` table:
 
 1. Receive message.
 2. If `event_id` already in `processed_events` → ack and skip.
 3. Hydrate `CorrelationContext` from `metadata.correlation_id`.
-4. Dispatch to handlers tagged `abeon.event_handler` whose `subscribesTo()` matches the routing key (topic wildcards `*` and `#` supported).
-5. On success: insert into `processed_events`, ack. (Unique-constraint violation on duplicate is caught and treated as success.)
+4. Dispatch to handlers tagged `abeon.event_handler` whose `subscribesTo()` matches the routing key (topic wildcards `*` and `#` supported per AMQP spec).
+5. On success: insert into `processed_events`, ack. (SQLSTATE 23000 unique-constraint violation is caught and treated as success; all other DB errors rethrow so the message is nacked instead of being silently acked.)
 6. On handler exception: nack with `requeue=false` → message routed via DLX to DLQ.
+
+#### Why idempotency is mandatory
+
+The dedup table is the **second** line of defense. It does NOT prevent concurrent duplicate handler execution because step 1 (`isProcessed`) and step 5 (`markProcessed`) are not atomic. Concrete race:
+
+- Drainer publishes the same event twice (e.g., outbox row picked up by two replicas without `SKIP LOCKED`).
+- Broker delivers both messages.
+- Worker A: `isProcessed=false` → starts handler.
+- Worker B (or A again, after restart): `isProcessed=false` → starts handler.
+- Both handlers run side effects.
+- Worker A marks processed; Worker B's `markProcessed` hits unique-constraint, ack.
+
+If the handler is non-idempotent, this is a real production bug. If the handler is idempotent, the duplicate execution is harmless.
+
+#### Idempotency patterns
+
+- **Inline upsert.** `Invoice::updateOrCreate(['id' => $event->data['invoice_id']], [...])` — replaying yields the same row.
+- **Event-id-keyed external state.** Use `event_id` as idempotency key in downstream POST (e.g., Stripe `Idempotency-Key: $event_id`). Provider deduplicates.
+- **Mark-then-act with own table.** Insert a row into `your_event_log` with unique `event_id` BEFORE side effects; if INSERT fails, skip. Stronger than `abeon_processed_events` because it's inside YOUR transaction.
+
+#### Anti-patterns
+
+- `$user->credit_balance += $event->data['amount']` — replays double-credit.
+- `Mail::send($welcome)` without an idempotency check — double email.
+- `Http::post('https://api.partner.io/charge', ...)` without idempotency key — double charge.
 
 ### Payload schemas — federation (M2/M3)
 
