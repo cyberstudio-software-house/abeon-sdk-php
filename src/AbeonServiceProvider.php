@@ -6,10 +6,14 @@ namespace Abeon\SDK;
 
 use Abeon\SDK\Auth\AuthContext;
 use Abeon\SDK\Auth\AuthMiddleware;
+use Abeon\SDK\Auth\Endpoints\AppsController as AuthAppsController;
+use Abeon\SDK\Auth\Endpoints\PreferencesController as AuthPreferencesController;
+use Abeon\SDK\Auth\Endpoints\UserController as AuthUserController;
 use Abeon\SDK\Auth\JwksClient;
 use Abeon\SDK\Auth\JwtValidator;
 use Abeon\SDK\Auth\PermissionsDeclarator;
 use Abeon\SDK\Auth\PermissionsServiceProvider as PermissionsBridge;
+use Abeon\SDK\Broadcasting\BroadcastingAuthController;
 use Abeon\SDK\Client\ServiceClient;
 use Abeon\SDK\Client\ServiceTokenProvider;
 use Abeon\SDK\Config\AbeonConfig;
@@ -31,12 +35,14 @@ use Abeon\SDK\Health\HealthController;
 use Abeon\SDK\Health\OutboxLagCheck;
 use Abeon\SDK\Health\RabbitMqCheck;
 use Abeon\SDK\Http\CorrelationIdMiddleware;
+use Abeon\SDK\Http\Cors;
 use Abeon\SDK\Http\ProblemDetailsRenderer;
 use Abeon\SDK\Http\VersionHeadersMiddleware;
 use Abeon\SDK\Logging\CorrelationContext;
 use Abeon\SDK\Logging\JsonFormatter;
 use Abeon\SDK\Services\Commands\RegisterCommand;
 use Abeon\SDK\Services\ServiceRegistry;
+use Abeon\SDK\Support\PathPrefix;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
@@ -79,6 +85,7 @@ class AbeonServiceProvider extends ServiceProvider
         $router->aliasMiddleware('abeon.correlation', CorrelationIdMiddleware::class);
         $router->aliasMiddleware('abeon.auth', AuthMiddleware::class);
         $router->aliasMiddleware('abeon.version', VersionHeadersMiddleware::class);
+        $router->aliasMiddleware('abeon.cors', Cors::class);
 
         $this->attachPermissionsBridge();
 
@@ -133,6 +140,26 @@ class AbeonServiceProvider extends ServiceProvider
         $this->app->singleton(JwtValidator::class);
         $this->app->singleton(PermissionsBridge::class);
         $this->app->singleton(PermissionsDeclarator::class);
+
+        // Endpoint base controllers — used directly by Auth service and as
+        // reference implementations elsewhere.
+        $this->app->singleton(AuthUserController::class);
+        $this->app->singleton(AuthAppsController::class);
+        $this->app->singleton(AuthPreferencesController::class);
+
+        // BroadcastingAuthController needs the active Broadcaster driver.
+        // We resolve lazily through BroadcastManager so services that don't
+        // configure broadcasting never pay the cost.
+        $this->app->singleton(BroadcastingAuthController::class, function ($app) {
+            $manager = $app->make(\Illuminate\Broadcasting\BroadcastManager::class);
+
+            return new BroadcastingAuthController(
+                jwt:         $app->make(JwtValidator::class),
+                authContext: $app->make(AuthContext::class),
+                config:      $app->make(AbeonConfig::class),
+                broadcaster: $manager->connection(),
+            );
+        });
     }
 
     private function registerClient(): void
@@ -152,6 +179,7 @@ class AbeonServiceProvider extends ServiceProvider
     private function registerServices(): void
     {
         $this->app->singleton(ServiceRegistry::class);
+        $this->app->singleton(PathPrefix::class);
     }
 
     private function registerEvents(): void

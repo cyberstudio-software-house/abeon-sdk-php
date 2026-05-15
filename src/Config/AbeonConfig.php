@@ -208,6 +208,25 @@ class AbeonConfig
     }
 
     /**
+     * @return list<string>
+     */
+    public function corsAllowedOrigins(): array
+    {
+        $raw = $this->config->get('abeon.cors.allowed_origins', []);
+        if (is_string($raw)) {
+            $raw = array_map('trim', explode(',', $raw));
+        }
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $raw,
+            fn ($v) => is_string($v) && $v !== '',
+        ));
+    }
+
+    /**
      * @return array<string, array{url: string}>
      */
     public function services(): array

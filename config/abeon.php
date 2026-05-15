@@ -66,6 +66,17 @@ return [
         'correlation_field' => env('ABEON_LOG_CORRELATION_FIELD', 'correlation_id'),
     ],
 
+    // CORS allow-list for cross-origin chrome requests (e.g. Inertia / Next.js
+    // running on app.abeon.pl calling internal service APIs). CSV in env.
+    // Use `*` (development only) to allow any origin; production should list
+    // exact origins because credentials cookies are involved.
+    'cors' => [
+        'allowed_origins' => array_filter(array_map(
+            'trim',
+            explode(',', (string) env('ABEON_CORS_ALLOWED_ORIGINS', '')),
+        )),
+    ],
+
     // Services this consumer talks to. SDK does NOT know about specific services (M1).
     'services' => [
         // 'auth' => ['url' => 'http://auth-service.abeon.svc.cluster.local'],
