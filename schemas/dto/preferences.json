@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/preferences.json",
+  "title": "Abeon User Preferences",
+  "description": "Versioned preferences blob stored per user in Auth service. Namespaced top-level keys; `chrome` is owned by the federated chrome. Per ADR-0009.",
+  "type": "object",
+  "required": ["version"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version. Server-controlled; incremented on breaking changes."
+    },
+    "chrome": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "appOrder": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered list of app names. Empty = falls back to AppDescriptor declaration order."
+        },
+        "pinned": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["app", "path", "label"],
+            "additionalProperties": false,
+            "properties": {
+              "app":   { "type": "string" },
+              "path":  { "type": "string" },
+              "label": { "type": "string" }
+            }
+          }
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["light", "dark", "system"]
+        },
+        "sidebarCollapsed": { "type": "boolean" },
+        "recents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "ts"],
+            "additionalProperties": true,
+            "properties": {
+              "id":    { "type": "string" },
+              "title": { "type": "string" },
+              "ts":    { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

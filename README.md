@@ -152,6 +152,7 @@ The TypeScript counterpart `@abeon/shared` lives in a separate repository (`abeo
 
 | Document | Purpose |
 |---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Comprehensive architectural reference — layers, contracts, lifecycle, extension points |
 | [`docs/usage.md`](docs/usage.md) | Getting-started walkthrough + cookbook + troubleshooting |
 | [`docs/events-catalog.md`](docs/events-catalog.md) | How services declare and discover event schemas (federation) |
 | [`docs/adr/0001-jwt-format.md`](docs/adr/0001-jwt-format.md) | JWT format (user + service tokens) |
@@ -159,6 +160,11 @@ The TypeScript counterpart `@abeon/shared` lives in a separate repository (`abeo
 | [`docs/adr/0003-correlation-id.md`](docs/adr/0003-correlation-id.md) | Correlation ID propagation |
 | [`docs/adr/0004-rest-envelope-and-errors.md`](docs/adr/0004-rest-envelope-and-errors.md) | REST `{data, meta}` envelope + RFC 7807 errors |
 | [`docs/adr/0005-service-to-service-auth.md`](docs/adr/0005-service-to-service-auth.md) | Service-to-service authentication |
+| [`docs/adr/0006-notifications-contract.md`](docs/adr/0006-notifications-contract.md) | Notifications service contract (REST + Reverb + RabbitMQ fan-in) |
+| [`docs/adr/0007-search-and-command-registry.md`](docs/adr/0007-search-and-command-registry.md) | Cmd+K per-service command registry |
+| [`docs/adr/0008-broadcasting-auth.md`](docs/adr/0008-broadcasting-auth.md) | `/broadcasting/auth` (cookie → JWT → Reverb) |
+| [`docs/adr/0009-user-preferences.md`](docs/adr/0009-user-preferences.md) | Versioned user-preferences blob in Auth |
+| [`docs/adr/0010-auth-me-and-apps-endpoints.md`](docs/adr/0010-auth-me-and-apps-endpoints.md) | `/api/v1/auth/{user,apps}` schemas + filtering |
 
 Higher-level project docs (Phase 0 plan, architecture):
 
