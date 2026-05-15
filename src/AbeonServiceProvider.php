@@ -31,6 +31,7 @@ use Abeon\SDK\Health\OutboxLagCheck;
 use Abeon\SDK\Health\RabbitMqCheck;
 use Abeon\SDK\Http\CorrelationIdMiddleware;
 use Abeon\SDK\Http\ProblemDetailsRenderer;
+use Abeon\SDK\Http\VersionHeadersMiddleware;
 use Abeon\SDK\Logging\CorrelationContext;
 use Abeon\SDK\Logging\JsonFormatter;
 use Abeon\SDK\Services\Commands\RegisterCommand;
@@ -76,6 +77,7 @@ class AbeonServiceProvider extends ServiceProvider
         $router = $this->app->make(Router::class);
         $router->aliasMiddleware('abeon.correlation', CorrelationIdMiddleware::class);
         $router->aliasMiddleware('abeon.auth', AuthMiddleware::class);
+        $router->aliasMiddleware('abeon.version', VersionHeadersMiddleware::class);
 
         $this->attachPermissionsBridge();
 
