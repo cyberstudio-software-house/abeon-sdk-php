@@ -7,6 +7,13 @@ return [
         'name' => env('ABEON_SERVICE_NAME'),
     ],
 
+    'client' => [
+        'timeout'        => (float) env('ABEON_CLIENT_TIMEOUT', 10.0),
+        'connect_timeout'=> (float) env('ABEON_CLIENT_CONNECT_TIMEOUT', 3.0),
+        'max_retries'    => (int)   env('ABEON_CLIENT_MAX_RETRIES', 2),
+        'retry_delay_ms' => (int)   env('ABEON_CLIENT_RETRY_DELAY_MS', 500),
+    ],
+
     'auth' => [
         'url'      => env('ABEON_AUTH_URL', 'http://auth-service.abeon.svc.cluster.local'),
         'jwks_url' => env('ABEON_AUTH_JWKS_URL'),

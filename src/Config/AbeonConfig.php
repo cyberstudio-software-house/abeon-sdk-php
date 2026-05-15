@@ -114,6 +114,26 @@ class AbeonConfig
         return max(0.1, (float) $this->config->get('abeon.events.health_probe_timeout', 2.0));
     }
 
+    public function clientTimeoutSeconds(): float
+    {
+        return max(0.1, (float) $this->config->get('abeon.client.timeout', 10.0));
+    }
+
+    public function clientConnectTimeoutSeconds(): float
+    {
+        return max(0.1, (float) $this->config->get('abeon.client.connect_timeout', 3.0));
+    }
+
+    public function clientMaxRetries(): int
+    {
+        return max(0, (int) $this->config->get('abeon.client.max_retries', 2));
+    }
+
+    public function clientRetryDelayMs(): int
+    {
+        return max(0, (int) $this->config->get('abeon.client.retry_delay_ms', 500));
+    }
+
     public function outboxConnection(): ?string
     {
         $name = $this->config->get('abeon.events.outbox.connection');
