@@ -193,7 +193,12 @@ class AbeonServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(SchemaDiscovery::class, function ($app) {
-            return new SchemaDiscovery(vendorPath: $app->basePath('vendor'));
+            return new SchemaDiscovery(
+                vendorPath: $app->basePath('vendor'),
+                logger: $app->bound(\Psr\Log\LoggerInterface::class)
+                    ? $app->make(\Psr\Log\LoggerInterface::class)
+                    : null,
+            );
         });
         $this->app->singleton(EventCatalog::class);
     }
