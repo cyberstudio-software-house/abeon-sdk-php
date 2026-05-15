@@ -215,8 +215,9 @@ After `vendor:publish --tag=abeon-config`:
 | `abeon:permissions:declare` | Publishes `service.permissions.declared` event so Auth updates the RBAC catalog. |
 | `abeon:events:outbox-drain` | Long-running worker draining `abeon_event_outbox` to RabbitMQ. `--once` for a single pass. |
 | `abeon:events:consume` | Long-running consumer dispatching to tagged `abeon.event_handler` services. |
+| `abeon:config:validate` | Smoke-test required SDK config keys. Flags: `--require-jwt-key`, `--require-rabbitmq`. Run as CI gate or post-deploy. |
 
-All four handle `SIGTERM` / `SIGINT` cleanly via `pcntl_signal`.
+The two long-running workers handle `SIGTERM` / `SIGINT` cleanly via `pcntl_signal`.
 
 ---
 

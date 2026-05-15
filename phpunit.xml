@@ -24,6 +24,7 @@
         <exclude>
             <directory>src/Events/Commands</directory>
             <directory>src/Services/Commands</directory>
+            <directory>src/Config/Commands</directory>
         </exclude>
     </source>
     <php>

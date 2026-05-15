@@ -13,6 +13,7 @@ use Abeon\SDK\Auth\PermissionsServiceProvider as PermissionsBridge;
 use Abeon\SDK\Client\ServiceClient;
 use Abeon\SDK\Client\ServiceTokenProvider;
 use Abeon\SDK\Config\AbeonConfig;
+use Abeon\SDK\Config\Commands\ValidateConfigCommand;
 use Abeon\SDK\Events\Commands\ConsumeCommand;
 use Abeon\SDK\Events\Commands\DeclarePermissionsCommand;
 use Abeon\SDK\Events\Commands\OutboxDrainCommand;
@@ -87,6 +88,7 @@ class AbeonServiceProvider extends ServiceProvider
                 OutboxDrainCommand::class,
                 ConsumeCommand::class,
                 DeclarePermissionsCommand::class,
+                ValidateConfigCommand::class,
             ]);
         }
     }
