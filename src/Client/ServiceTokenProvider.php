@@ -14,6 +14,16 @@ use Firebase\JWT\JWT;
  * Each call is cached in-memory until the refresh margin is reached.
  * Public key for verification is published via JWKS aggregated by Auth
  * (M7 — K8s label discovery).
+ *
+ * Lifetime: bound as `$app->singleton()` — process-wide cache.
+ *
+ * Octane / Swoole compatibility (LO-5):
+ *   - Cache is intentionally process-wide so worker reuse avoids re-signing
+ *     on every request. Worker boundary = token rotation boundary.
+ *   - On 401 from any downstream, `ServiceClient` calls `flush()` so the
+ *     stale token is dropped (MD-5 from code review).
+ *   - Process restart (deploy / OOM / scale event) naturally rotates the
+ *     cached token within at most TTL seconds.
  */
 class ServiceTokenProvider
 {

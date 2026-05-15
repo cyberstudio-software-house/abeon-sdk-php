@@ -14,6 +14,19 @@ use RuntimeException;
 /**
  * Lazy RabbitMQ connection + channel, plus topology declarations
  * (main exchange + dead-letter exchange).
+ *
+ * Lifetime: bound as `$app->singleton()` — one connection per process.
+ *
+ * Octane / Swoole compatibility (LO-5):
+ *   - One AMQP connection per worker process — desired (connection pooling).
+ *   - Long-running workers (drainer, consumer) call `channel()` once at
+ *     startup; subsequent message handling reuses the same channel.
+ *   - On worker restart (deploy, K8s rolling update, OOM kill), `close()`
+ *     is called from the SIGTERM/SIGINT handler in OutboxDrainer::run() and
+ *     EventConsumer::run() to flush gracefully.
+ *   - HTTP workers (php-fpm, Octane) rarely publish events directly —
+ *     publishing goes through OutboxPublisher (DB write only). Only the
+ *     drainer worker holds long-lived RabbitMQ connections.
  */
 class RabbitMq
 {

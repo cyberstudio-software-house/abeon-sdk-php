@@ -26,6 +26,9 @@ class EventConsumer
     /** @var list<EventHandler> */
     private array $handlers = [];
 
+    /** @var list<EventHandler>|null Memoized resolved handler list (LO-3). */
+    private ?array $cachedHandlers = null;
+
     private LoggerInterface $logger;
 
     public function __construct(
@@ -47,6 +50,7 @@ class EventConsumer
         foreach ($handlers as $handler) {
             $this->handlers[] = $handler;
         }
+        $this->cachedHandlers = null;  // invalidate memoization
 
         return $this;
     }
@@ -173,12 +177,7 @@ class EventConsumer
      */
     private function matchingHandlers(string $routingKey): iterable
     {
-        $all = $this->handlers !== [] ? $this->handlers : $this->container->tagged('abeon.event_handler');
-
-        foreach ($all as $handler) {
-            if (! $handler instanceof EventHandler) {
-                continue;
-            }
+        foreach ($this->resolvedHandlers() as $handler) {
             foreach ($handler->subscribesTo() as $pattern) {
                 if ($this->matches($routingKey, $pattern)) {
                     yield $handler;
@@ -186,6 +185,37 @@ class EventConsumer
                 }
             }
         }
+    }
+
+    /**
+     * Memoize the materialized handler list.
+     *
+     * LO-3 from code review: previously `$container->tagged('abeon.event_handler')`
+     * was called on every matchingHandlers() and subscriptions() pass. Worse,
+     * Laravel's tagged() returns a RewindableGenerator that can be one-shot
+     * in some container configurations — re-iterating could silently yield
+     * empty. Materializing once into an array is both faster and safer.
+     *
+     * @return list<EventHandler>
+     */
+    private function resolvedHandlers(): array
+    {
+        if ($this->cachedHandlers !== null) {
+            return $this->cachedHandlers;
+        }
+
+        $source = $this->handlers !== []
+            ? $this->handlers
+            : $this->container->tagged('abeon.event_handler');
+
+        $resolved = [];
+        foreach ($source as $handler) {
+            if ($handler instanceof EventHandler) {
+                $resolved[] = $handler;
+            }
+        }
+
+        return $this->cachedHandlers = $resolved;
     }
 
     /**
@@ -218,13 +248,10 @@ class EventConsumer
             return $declared;
         }
 
-        $all = $this->handlers !== [] ? $this->handlers : $this->container->tagged('abeon.event_handler');
         $keys = [];
-        foreach ($all as $handler) {
-            if ($handler instanceof EventHandler) {
-                foreach ($handler->subscribesTo() as $pattern) {
-                    $keys[$pattern] = true;
-                }
+        foreach ($this->resolvedHandlers() as $handler) {
+            foreach ($handler->subscribesTo() as $pattern) {
+                $keys[$pattern] = true;
             }
         }
 

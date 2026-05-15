@@ -6,6 +6,20 @@ namespace Abeon\SDK\Logging;
 
 use Abeon\SDK\Support\Uuid;
 
+/**
+ * Request-scoped holder for the inbound `X-Correlation-ID`.
+ *
+ * Lifetime: bound via `$app->scoped()` in AbeonServiceProvider, which means
+ * a fresh instance per HTTP request in php-fpm.
+ *
+ * Octane / Swoole / RoadRunner compatibility (LO-5):
+ *   - `$app->scoped()` is reset between requests by Octane's flush hook —
+ *     verified safe under Octane 2.x.
+ *   - For other long-lived workers (custom Swoole servers), the host MUST
+ *     call `clear()` between requests; otherwise correlation IDs leak.
+ *   - `EventConsumer` calls `clear()` after every message (try/finally in
+ *     onMessage()) so RabbitMQ workers are safe regardless of runtime.
+ */
 class CorrelationContext
 {
     private ?string $correlationId = null;

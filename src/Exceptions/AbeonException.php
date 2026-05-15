@@ -14,10 +14,18 @@ class AbeonException extends RuntimeException
         public readonly ProblemDetails $problem,
         ?Throwable $previous = null,
     ) {
+        // LO-2 from code review: exception code is always 0 (not the HTTP
+        // status). Mixing HTTP status into the exception-code slot makes
+        // catch-by-code unreliable. HTTP status is in $problem->status.
         parent::__construct(
-            $problem->detail ?? $problem->title,
-            $problem->status,
-            $previous,
+            message: $problem->detail ?? $problem->title,
+            code: 0,
+            previous: $previous,
         );
+    }
+
+    public function status(): int
+    {
+        return $this->problem->status;
     }
 }
