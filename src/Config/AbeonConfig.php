@@ -99,6 +99,21 @@ class AbeonConfig
         return (string) $this->config->get('abeon.events.dlx_exchange', 'abeon.events.dlx');
     }
 
+    public function rabbitMqConnectionTimeout(): float
+    {
+        return max(0.1, (float) $this->config->get('abeon.events.connection_timeout', 3.0));
+    }
+
+    public function rabbitMqReadWriteTimeout(): float
+    {
+        return max(0.1, (float) $this->config->get('abeon.events.read_write_timeout', 3.0));
+    }
+
+    public function rabbitMqHealthProbeTimeout(): float
+    {
+        return max(0.1, (float) $this->config->get('abeon.events.health_probe_timeout', 2.0));
+    }
+
     public function outboxConnection(): ?string
     {
         $name = $this->config->get('abeon.events.outbox.connection');

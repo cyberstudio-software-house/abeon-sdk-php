@@ -27,9 +27,12 @@ return [
     ],
 
     'events' => [
-        'dsn'           => env('ABEON_RABBITMQ_DSN'),
-        'exchange'      => env('ABEON_RABBITMQ_EXCHANGE', 'abeon.events'),
-        'dlx_exchange'  => env('ABEON_RABBITMQ_DLX', 'abeon.events.dlx'),
+        'dsn'                  => env('ABEON_RABBITMQ_DSN'),
+        'exchange'             => env('ABEON_RABBITMQ_EXCHANGE', 'abeon.events'),
+        'dlx_exchange'         => env('ABEON_RABBITMQ_DLX', 'abeon.events.dlx'),
+        'connection_timeout'   => (float) env('ABEON_RABBITMQ_CONNECTION_TIMEOUT', 3.0),
+        'read_write_timeout'   => (float) env('ABEON_RABBITMQ_RW_TIMEOUT', 3.0),
+        'health_probe_timeout' => (float) env('ABEON_RABBITMQ_HEALTH_TIMEOUT', 2.0),
         'outbox' => [
             'connection'    => env('ABEON_OUTBOX_CONNECTION'), // default DB connection if null
             'batch_size'    => (int) env('ABEON_OUTBOX_BATCH_SIZE', 100),

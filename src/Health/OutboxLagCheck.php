@@ -31,13 +31,25 @@ class OutboxLagCheck implements Check
     {
         $start = microtime(true);
         try {
-            $oldest = $this->db
-                ->connection($this->config->outboxConnection())
+            $connection = $this->db->connection($this->config->outboxConnection());
+
+            // MD-7 fix: graceful degradation when migrations haven't run yet
+            // (init container race or fresh deploy). Returning `degraded`
+            // instead of `down` lets readiness pass-with-warning rather than
+            // bouncing the pod.
+            if (! $connection->getSchemaBuilder()->hasTable(OutboxPublisher::TABLE)) {
+                return CheckResult::degraded(
+                    'Outbox table not yet present — migration pending?',
+                    $this->elapsedMs($start),
+                );
+            }
+
+            $oldest = $connection
                 ->table(OutboxPublisher::TABLE)
                 ->whereNull('processed_at')
                 ->min('created_at');
 
-            $latency = (int) round((microtime(true) - $start) * 1000);
+            $latency = $this->elapsedMs($start);
 
             if ($oldest === null) {
                 return CheckResult::ok($latency);
@@ -55,7 +67,12 @@ class OutboxLagCheck implements Check
 
             return CheckResult::ok($latency);
         } catch (Throwable $e) {
-            return CheckResult::down($e->getMessage(), (int) round((microtime(true) - $start) * 1000));
+            return CheckResult::down($e->getMessage(), $this->elapsedMs($start));
         }
+    }
+
+    private function elapsedMs(float $start): int
+    {
+        return (int) round((microtime(true) - $start) * 1000);
     }
 }

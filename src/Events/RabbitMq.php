@@ -59,7 +59,7 @@ class RabbitMq
     public function ping(): bool
     {
         try {
-            $connection = $this->openConnection();
+            $connection = $this->openConnection(probeTimeout: true);
             $isOpen     = $connection->isConnected();
             $connection->close();
 
@@ -69,7 +69,13 @@ class RabbitMq
         }
     }
 
-    private function openConnection(): AbstractConnection
+    /**
+     * MD-6 fix: explicit `connection_timeout` and `read_write_timeout` so
+     * RabbitMQ unreachable doesn't hang the caller for OS-default 60+ seconds.
+     * The probe timeout is shorter than the workload timeout — health checks
+     * should fail fast.
+     */
+    private function openConnection(bool $probeTimeout = false): AbstractConnection
     {
         $dsn = $this->config->rabbitMqDsn();
         if ($dsn === null) {
@@ -81,12 +87,18 @@ class RabbitMq
             throw new RuntimeException("Invalid RabbitMQ DSN: {$dsn}");
         }
 
+        $connectionTimeout = $probeTimeout
+            ? $this->config->rabbitMqHealthProbeTimeout()
+            : $this->config->rabbitMqConnectionTimeout();
+
         return new AMQPStreamConnection(
-            host:     $parts['host'],
-            port:     $parts['port'] ?? 5672,
-            user:     $parts['user'] ?? 'guest',
-            password: $parts['pass'] ?? 'guest',
-            vhost:    isset($parts['path']) ? ltrim($parts['path'], '/') : '/',
+            host:               $parts['host'],
+            port:               $parts['port'] ?? 5672,
+            user:               isset($parts['user']) ? urldecode($parts['user']) : 'guest',
+            password:           isset($parts['pass']) ? urldecode($parts['pass']) : 'guest',
+            vhost:              isset($parts['path']) ? ltrim($parts['path'], '/') : '/',
+            connection_timeout: $connectionTimeout,
+            read_write_timeout: $this->config->rabbitMqReadWriteTimeout(),
         );
     }
 
