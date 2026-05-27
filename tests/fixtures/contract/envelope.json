@@ -1,0 +1,19 @@
+{
+    "event_id": "550e8400-e29b-41d4-a716-446655440000",
+    "event_type": "crm.contact.created",
+    "timestamp": "2026-05-15T10:30:00.000Z",
+    "source": "crm",
+    "version": "1.0",
+    "actor": {
+        "type": "user",
+        "user_id": "42"
+    },
+    "data": {
+        "contact_id": 1234,
+        "email": "jan@example.com",
+        "company_id": 56
+    },
+    "metadata": {
+        "correlation_id": "660e8400-e29b-41d4-a716-446655440001"
+    }
+}

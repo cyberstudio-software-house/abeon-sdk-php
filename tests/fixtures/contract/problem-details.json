@@ -1,0 +1,10 @@
+{
+    "type": "https://api.abeon.pl/errors/validation",
+    "title": "Validation Error",
+    "status": 422,
+    "detail": "The given data was invalid.",
+    "instance": "/api/v1/contacts",
+    "errors": {
+        "email": ["The email field is required.", "The email must be valid."]
+    }
+}

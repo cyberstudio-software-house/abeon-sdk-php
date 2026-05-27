@@ -1,0 +1,8 @@
+{
+    "name": "crm",
+    "label": "CRM",
+    "path": "/crm",
+    "icon": "users",
+    "version": "1.0.0",
+    "permissions": ["crm.contacts.read", "crm.contacts.write", "crm.deals.manage"]
+}

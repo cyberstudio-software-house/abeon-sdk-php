@@ -1,0 +1,36 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Strict comparison using \\=\\=\\= between non\\-empty\\-string and '' will always evaluate to false\\.$#"
+			count: 1
+			path: src/Auth/Endpoints/AppsController.php
+
+		-
+			message: "#^Else branch is unreachable because ternary operator condition is always true\\.$#"
+			count: 1
+			path: src/Auth/Endpoints/PreferencesController.php
+
+		-
+			message: "#^Offset 'preferences' on \\*NEVER\\* on left side of \\?\\? always exists and is not nullable\\.$#"
+			count: 1
+			path: src/Auth/Endpoints/PreferencesController.php
+
+		-
+			message: "#^Parameter \\#2 \\$keyOrKeyArray of static method Firebase\\\\JWT\\\\JWT\\:\\:decode\\(\\) expects array\\<string, Firebase\\\\JWT\\\\Key\\>\\|ArrayAccess\\<string, Firebase\\\\JWT\\\\Key\\>\\|Firebase\\\\JWT\\\\Key, Firebase\\\\JWT\\\\Key\\|null given\\.$#"
+			count: 1
+			path: src/Auth/JwtValidator.php
+
+		-
+			message: "#^Negated boolean expression is always false\\.$#"
+			count: 1
+			path: src/Config/AbeonConfig.php
+
+		-
+			message: "#^Method Abeon\\\\SDK\\\\Events\\\\RabbitMq\\:\\:channel\\(\\) should return PhpAmqpLib\\\\Channel\\\\AMQPChannel but returns PhpAmqpLib\\\\Channel\\\\AMQPChannel\\|null\\.$#"
+			count: 1
+			path: src/Events/RabbitMq.php
+
+		-
+			message: "#^Method Abeon\\\\SDK\\\\Http\\\\ApiResponse\\:\\:paginated\\(\\) has parameter \\$paginator with generic interface Illuminate\\\\Contracts\\\\Pagination\\\\LengthAwarePaginator but does not specify its types\\: TKey, TValue$#"
+			count: 1
+			path: src/Http/ApiResponse.php

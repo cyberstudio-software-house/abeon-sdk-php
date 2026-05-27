@@ -1,0 +1,8 @@
+{
+    "id": "42",
+    "email": "jan@example.com",
+    "name": "Jan Kowalski",
+    "roles": ["sales_manager"],
+    "permissions": ["crm.contacts.read", "crm.contacts.write", "crm.deals.manage"],
+    "org_id": 1
+}
