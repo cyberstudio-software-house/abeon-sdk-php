@@ -161,6 +161,16 @@ class AbeonConfig
         return max(1, (int) $this->config->get('abeon.events.outbox.lag_threshold', 60));
     }
 
+    /**
+     * When true, the drainer claims rows with `FOR UPDATE SKIP LOCKED` so a
+     * second replica skips locked rows instead of blocking. Requires a driver
+     * that supports it (MariaDB 10.6+/MySQL 8/PostgreSQL); ignored on SQLite.
+     */
+    public function outboxSkipLocked(): bool
+    {
+        return (bool) $this->config->get('abeon.events.outbox.skip_locked', false);
+    }
+
     public function consumerQueuePrefix(): string
     {
         $prefix = $this->config->get('abeon.events.consumer.queue_prefix');

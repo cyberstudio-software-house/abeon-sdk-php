@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Abeon\SDK\Events;
 
 use Abeon\SDK\Config\AbeonConfig;
+use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Query\Builder;
 use PhpAmqpLib\Message\AMQPMessage;
@@ -37,48 +38,54 @@ class OutboxDrainer
 
     /**
      * Run one drain pass. Returns the number of rows processed (success + failure).
+     *
+     * CR-1: the fetch + publish + mark cycle runs inside one transaction, so the
+     * fetched rows stay locked (see fetchBatch) until commit. A second drainer
+     * replica therefore cannot fetch and republish the same events.
      */
     public function drainOnce(): int
     {
-        $rows = $this->fetchBatch();
-        if ($rows === []) {
-            return 0;
-        }
-
-        $channel  = $this->rabbit->channel();
-        $exchange = $this->config->rabbitMqExchange();
-        $count    = 0;
-
-        foreach ($rows as $row) {
-            $record = OutboxRecord::fromRow($row);
-            try {
-                $message = new AMQPMessage(
-                    body: json_encode($record->envelope, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-                    properties: [
-                        'content_type'  => 'application/json',
-                        'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
-                        'message_id'    => $record->eventId,
-                        'timestamp'     => time(),
-                    ],
-                );
-
-                $channel->basic_publish($message, $exchange, $record->routingKey);
-
-                $this->markProcessed($record->id);
-            } catch (Throwable $e) {
-                $this->markFailure($record, $e);
-                $this->logger->error('outbox.publish.failed', [
-                    'event_id'    => $record->eventId,
-                    'routing_key' => $record->routingKey,
-                    'attempts'    => $record->attempts + 1,
-                    'error'       => $e->getMessage(),
-                ]);
+        return (int) $this->connection()->transaction(function (): int {
+            $rows = $this->fetchBatch();
+            if ($rows === []) {
+                return 0;
             }
 
-            $count++;
-        }
+            $channel  = $this->rabbit->channel();
+            $exchange = $this->config->rabbitMqExchange();
+            $count    = 0;
 
-        return $count;
+            foreach ($rows as $row) {
+                $record = OutboxRecord::fromRow($row);
+                try {
+                    $message = new AMQPMessage(
+                        body: json_encode($record->envelope, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                        properties: [
+                            'content_type'  => 'application/json',
+                            'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                            'message_id'    => $record->eventId,
+                            'timestamp'     => time(),
+                        ],
+                    );
+
+                    $channel->basic_publish($message, $exchange, $record->routingKey);
+
+                    $this->markProcessed($record->id);
+                } catch (Throwable $e) {
+                    $this->markFailure($record, $e);
+                    $this->logger->error('outbox.publish.failed', [
+                        'event_id'    => $record->eventId,
+                        'routing_key' => $record->routingKey,
+                        'attempts'    => $record->attempts + 1,
+                        'error'       => $e->getMessage(),
+                    ]);
+                }
+
+                $count++;
+            }
+
+            return $count;
+        });
     }
 
     /**
@@ -117,16 +124,39 @@ class OutboxDrainer
     {
         $now = date('Y-m-d H:i:s');
 
-        return $this->table()
+        $query = $this->table()
             ->whereNull('processed_at')
             ->where(function (Builder $q) use ($now): void {
                 $q->whereNull('next_attempt_at')->orWhere('next_attempt_at', '<=', $now);
             })
             ->where('attempts', '<', $this->config->outboxMaxAttempts())
             ->orderBy('id')
-            ->limit($this->config->outboxBatchSize())
-            ->get()
-            ->all();
+            ->limit($this->config->outboxBatchSize());
+
+        $this->applyLock($query);
+
+        return $query->get()->all();
+    }
+
+    /**
+     * CR-1: lock the fetched rows so a concurrent drainer replica cannot pick
+     * the same events. Held until drainOnce()'s transaction commits. `SKIP
+     * LOCKED` (opt-in) lets peers move past locked rows on MariaDB 10.6+/MySQL
+     * 8/PostgreSQL. SQLite and SQL Server have no row-level locking, so we skip
+     * it there and rely on the documented single-replica convention.
+     */
+    private function applyLock(Builder $query): void
+    {
+        $driver = $this->connection()->getDriverName();
+        if ($driver === 'sqlite' || $driver === 'sqlsrv') {
+            return;
+        }
+
+        if ($this->config->outboxSkipLocked()) {
+            $query->lock('for update skip locked');
+        } else {
+            $query->lockForUpdate();
+        }
     }
 
     private function markProcessed(int $id): void
@@ -152,8 +182,11 @@ class OutboxDrainer
 
     private function table(): Builder
     {
-        return $this->db
-            ->connection($this->config->outboxConnection())
-            ->table(OutboxPublisher::TABLE);
+        return $this->connection()->table(OutboxPublisher::TABLE);
+    }
+
+    private function connection(): Connection
+    {
+        return $this->db->connection($this->config->outboxConnection());
     }
 }
