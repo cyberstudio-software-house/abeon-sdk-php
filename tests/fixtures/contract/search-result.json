@@ -1,0 +1,10 @@
+{
+    "id": "crm.contact.42",
+    "title": "Jan Kowalski",
+    "subtitle": "Acme Sp. z o.o.",
+    "source_app": "crm",
+    "entity_type": "contact",
+    "url": "/crm/contacts/42",
+    "icon": "users",
+    "score": 0.92
+}

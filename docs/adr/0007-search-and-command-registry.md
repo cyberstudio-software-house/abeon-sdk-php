@@ -95,9 +95,22 @@ Cmd+K (macOS) / Ctrl+K (everywhere else) opens the palette. `<CommandPalette>` o
 - Providers run on every keystroke — services must be mindful of debounce and rate limits. The hook enforces 250ms debounce by default.
 - Recents are device-local. Sync across devices defers to Phase 2 (would land in `user.preferences.chrome.recents` per ADR-0009 if needed).
 
+## Update (2026-06-23) — implementation status
+
+- The per-service registry shipped in `@abeon/shared` (`command-registry.ts`), and nav-command
+  seeding is now provided by **`useRegisterNavCommands(items, navigate)`** there — services/chrome map
+  their nav config to commands instead of hand-rolling them. The boilerplate wires this in its
+  `Chrome.tsx` and renders the palette via a thin `<CommandMenu>` bridge over `@abeon/ui`'s controlled
+  `<CommandPalette>`.
+- The deferred Phase-2 **cross-app search** is now specified in **ADR-0011** (`SearchResult` contract +
+  `GET /api/v1/search`), integrated here as one async provider via **`useRegisterSearchProvider`** —
+  no palette change, exactly as the deferral promised.
+
 ## References
 
 - Chrome consumer: `abeon-shared/src/react/command-registry.ts` (Sprint S2)
-- UI: `abeon-ui/src/components/layout/command-palette.tsx` (Sprint S3)
-- Future Phase 2: `abeon-es-indexer/` aggregates per-service Elasticsearch indices and exposes `GET /api/v1/search`.
-- Related: ADR-0010 (apps endpoint feeds app-navigation commands)
+- Nav seeding: `abeon-shared/src/react/nav-commands.ts` (`useRegisterNavCommands`)
+- Search provider: `abeon-shared/src/react/search-provider.ts` (`useRegisterSearchProvider`, ADR-0011)
+- UI: `abeon-ui/src/components/layout/command-palette.tsx`
+- Future Phase 2: `abeon-search` (ADR-0011) exposes `GET /api/v1/search`.
+- Related: ADR-0010 (apps endpoint feeds app-navigation commands), ADR-0011 (cross-app search)

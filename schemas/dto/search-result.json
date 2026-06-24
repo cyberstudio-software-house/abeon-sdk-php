@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/search-result.json",
+  "title": "Abeon Search Result",
+  "description": "A single cross-app search hit returned by the abeon-search service (Phase 2, ADR-0011) and surfaced as a command-palette result.",
+  "type": "object",
+  "required": ["id", "title", "source_app", "entity_type", "url"],
+  "properties": {
+    "id":          { "type": "string", "description": "Stable, app-scoped result id, e.g. `crm.contact.42`." },
+    "title":       { "type": "string", "description": "Primary label shown in the palette row." },
+    "subtitle":    { "type": ["string", "null"], "description": "Secondary line, e.g. company or breadcrumb." },
+    "source_app":  { "type": "string", "description": "Owning app name, e.g. `crm` (matches AppDescriptor.name)." },
+    "entity_type": { "type": "string", "description": "Entity kind within the app, e.g. `contact`." },
+    "url":         { "type": "string", "description": "Navigation target for the hit." },
+    "icon":        { "type": ["string", "null"], "description": "Icon name (Lucide) or URL." },
+    "score":       { "type": ["number", "null"], "description": "Relevance/ranking hint (higher = closer to top)." }
+  },
+  "additionalProperties": false
+}

@@ -6,6 +6,7 @@ namespace Abeon\SDK\Tests\Unit\Contract;
 
 use Abeon\SDK\DTO\AppDescriptor;
 use Abeon\SDK\DTO\ProblemDetails;
+use Abeon\SDK\DTO\SearchResult;
 use Abeon\SDK\DTO\User;
 use Abeon\SDK\Events\Event;
 use Opis\JsonSchema\Errors\ErrorFormatter;
@@ -53,6 +54,11 @@ final class SchemaContractTest extends TestCase
         $this->assertValid('http/problem-details.json', $this->fixture('problem-details.json'));
     }
 
+    public function test_search_result_fixture_matches_schema(): void
+    {
+        $this->assertValid('dto/search-result.json', $this->fixture('search-result.json'));
+    }
+
     public function test_envelope_fixture_matches_schema(): void
     {
         $this->assertValid('events/_envelope.json', $this->fixture('envelope.json'));
@@ -75,6 +81,15 @@ final class SchemaContractTest extends TestCase
         $out     = AppDescriptor::fromArray($fixture)->toArray();
 
         $this->assertValid('dto/app-descriptor.json', $out);
+        $this->assertEquals($fixture, $out);
+    }
+
+    public function test_search_result_dto_conforms_and_roundtrips(): void
+    {
+        $fixture = $this->fixtureArray('search-result.json');
+        $out     = SearchResult::fromArray($fixture)->toArray();
+
+        $this->assertValid('dto/search-result.json', $out);
         $this->assertEquals($fixture, $out);
     }
 
@@ -104,6 +119,32 @@ final class SchemaContractTest extends TestCase
         $result = $this->validator->validate(
             json_decode((string) json_encode($bad)),
             self::SCHEMA_NS.'dto/user.json',
+        );
+
+        $this->assertFalse($result->isValid());
+    }
+
+    public function test_schema_rejects_app_descriptor_invalid_mode(): void
+    {
+        $bad = $this->fixtureArray('app-descriptor.json');
+        $bad['mode'] = 'bogus';
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/app-descriptor.json',
+        );
+
+        $this->assertFalse($result->isValid());
+    }
+
+    public function test_schema_rejects_search_result_missing_required_field(): void
+    {
+        $bad = $this->fixtureArray('search-result.json');
+        unset($bad['url']);
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/search-result.json',
         );
 
         $this->assertFalse($result->isValid());

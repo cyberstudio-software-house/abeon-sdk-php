@@ -11,7 +11,11 @@
     "path":        { "type": ["string", "null"] },
     "icon":        { "type": ["string", "null"] },
     "version":     { "type": ["string", "null"] },
-    "permissions": { "type": "array", "items": { "type": "string" } }
+    "permissions": { "type": "array", "items": { "type": "string" } },
+    "category":    { "type": ["string", "null"], "description": "Free-form AppSwitcher group label." },
+    "order":       { "type": ["integer", "null"], "description": "Sort hint within the switcher / category (ascending)." },
+    "mode":        { "type": ["string", "null"], "enum": ["suite", "app", null], "description": "Chrome UI mode the app prefers." },
+    "fullscreen":  { "type": ["boolean", "null"], "description": "Render chrome-less / full-bleed." }
   },
   "additionalProperties": false
 }

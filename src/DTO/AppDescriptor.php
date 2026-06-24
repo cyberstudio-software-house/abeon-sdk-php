@@ -16,6 +16,10 @@ final readonly class AppDescriptor
         public ?string $icon = null,
         public ?string $version = null,
         public array $permissions = [],
+        public ?string $category = null,
+        public ?int $order = null,
+        public ?string $mode = null,
+        public ?bool $fullscreen = null,
     ) {
     }
 
@@ -35,6 +39,10 @@ final readonly class AppDescriptor
             permissions: is_array($permissions)
                 ? array_values(array_map('strval', $permissions))
                 : [],
+            category:    isset($data['category']) ? (string) $data['category'] : null,
+            order:       isset($data['order']) ? (int) $data['order'] : null,
+            mode:        isset($data['mode']) ? (string) $data['mode'] : null,
+            fullscreen:  isset($data['fullscreen']) ? (bool) $data['fullscreen'] : null,
         );
     }
 
@@ -50,6 +58,10 @@ final readonly class AppDescriptor
             'icon'        => $this->icon,
             'version'     => $this->version,
             'permissions' => $this->permissions,
+            'category'    => $this->category,
+            'order'       => $this->order,
+            'mode'        => $this->mode,
+            'fullscreen'  => $this->fullscreen,
         ];
     }
 }

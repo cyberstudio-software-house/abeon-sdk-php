@@ -4,5 +4,9 @@
     "path": "/crm",
     "icon": "users",
     "version": "1.0.0",
-    "permissions": ["crm.contacts.read", "crm.contacts.write", "crm.deals.manage"]
+    "permissions": ["crm.contacts.read", "crm.contacts.write", "crm.deals.manage"],
+    "category": "Sprzedaż i finanse",
+    "order": 10,
+    "mode": "app",
+    "fullscreen": false
 }

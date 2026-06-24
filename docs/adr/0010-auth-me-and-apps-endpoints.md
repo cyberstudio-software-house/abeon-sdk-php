@@ -53,16 +53,32 @@ Returns the list of `AppDescriptor` rows from `ServiceRegistry`, filtered by the
 ```json
 {
   "data": [
-    { "name": "crm",       "label": "CRM",          "path": "/crm",       "icon": "users",       "version": "1.0.0", "permissions": ["crm.*"] },
-    { "name": "pm",        "label": "Projekty",     "path": "/pm",        "icon": "kanban",      "version": "0.9.0", "permissions": ["pm.*"] },
-    { "name": "cms",       "label": "Treści",       "path": "/cms",       "icon": "file-text",   "version": "1.2.0", "permissions": ["cms.*"] },
-    { "name": "finance",   "label": "Finanse",      "path": "/finance",   "icon": "wallet",      "version": "1.0.0", "permissions": ["finance.*"] }
+    { "name": "crm",     "label": "CRM",      "path": "/crm",     "icon": "users",     "version": "1.0.0", "permissions": ["crm.*"],     "category": "Sprzedaż i finanse", "order": 10, "mode": "app", "fullscreen": false },
+    { "name": "finance", "label": "Finanse",  "path": "/finance", "icon": "wallet",    "version": "1.0.0", "permissions": ["finance.*"], "category": "Sprzedaż i finanse", "order": 20, "mode": "app", "fullscreen": false },
+    { "name": "pm",      "label": "Projekty", "path": "/pm",      "icon": "briefcase", "version": "0.9.0", "permissions": ["pm.*"],      "category": "Praca i treści",     "order": 30, "mode": "app", "fullscreen": false },
+    { "name": "cms",     "label": "Treści",   "path": "/cms",     "icon": "file-text", "version": "1.2.0", "permissions": ["cms.*"],     "category": "Praca i treści",     "order": 40, "mode": "app", "fullscreen": false }
   ],
   "meta": { "total": 4 }
 }
 ```
 
-Schema: [`schemas/dto/app-descriptor.json`](../../schemas/dto/app-descriptor.json) (already exists, unchanged).
+Schema: [`schemas/dto/app-descriptor.json`](../../schemas/dto/app-descriptor.json).
+
+### AppDescriptor chrome fields (`category`, `order`, `mode`, `fullscreen`)
+
+The descriptor carries four optional chrome-presentation fields (all nullable):
+
+| Field | Type | Purpose |
+|---|---|---|
+| `category` | string \| null | Free-form AppSwitcher group label. The mega-menu groups apps by this value. |
+| `order` | integer \| null | Sort hint within the switcher / category (ascending). |
+| `mode` | `"suite"` \| `"app"` \| null | Chrome UI mode the app prefers; `"suite"` maps to the `abeon-home` dashboard (ADR-0014). |
+| `fullscreen` | boolean \| null | Render chrome-less / full-bleed (e.g. a DAM/media app). |
+
+These are **display-only** and do **not** affect the filtering rule below — visibility keys off
+`permissions` alone. `@abeon/ui`'s `<Topbar>`/`<AppSwitcher>` consume `category`/`order` to render the
+grouped, ordered mega-menu; `mode`/`fullscreen` are consumed by `<AppShell>` (the latter as the chrome
+matures).
 
 ### Filtering rule
 
