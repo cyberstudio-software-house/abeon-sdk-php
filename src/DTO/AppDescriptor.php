@@ -20,6 +20,7 @@ final readonly class AppDescriptor
         public ?int $order = null,
         public ?string $mode = null,
         public ?bool $fullscreen = null,
+        public ?bool $enabled = null,
     ) {
     }
 
@@ -43,6 +44,7 @@ final readonly class AppDescriptor
             order:       isset($data['order']) ? (int) $data['order'] : null,
             mode:        isset($data['mode']) ? (string) $data['mode'] : null,
             fullscreen:  isset($data['fullscreen']) ? (bool) $data['fullscreen'] : null,
+            enabled:     isset($data['enabled']) ? (bool) $data['enabled'] : null,
         );
     }
 
@@ -62,6 +64,7 @@ final readonly class AppDescriptor
             'order'       => $this->order,
             'mode'        => $this->mode,
             'fullscreen'  => $this->fullscreen,
+            'enabled'     => $this->enabled,
         ];
     }
 }

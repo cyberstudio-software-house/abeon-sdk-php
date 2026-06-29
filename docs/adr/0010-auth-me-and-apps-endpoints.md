@@ -82,11 +82,14 @@ matures).
 
 ### Filtering rule
 
-An app is included in the response if **any** permission declared in its `AppDescriptor.permissions` array is satisfied by the user — either by exact match, or by a wildcard `app.*` matching any of the user's `{app}.*` permissions. Pseudocode:
+An app is included in the response if it is **org-enabled** (`AppDescriptor.enabled === true`, ADR-0015) **AND** the user holds a matching permission — i.e. **any** permission declared in its `AppDescriptor.permissions` array is satisfied, either by exact match or by a wildcard `app.*` matching any of the user's `{app}.*` permissions. Pseudocode:
 
 ```php
 $visible = collect($registry->list())
     ->filter(function (AppDescriptor $app) use ($user) {
+        if ($app->enabled !== true) {
+            return false;   // org has not enabled this app (ADR-0015)
+        }
         foreach ($app->permissions as $declared) {
             $prefix = strtok($declared, '.');   // e.g. "crm" from "crm.contacts.read" or "crm.*"
             foreach ($user->permissions as $granted) {
@@ -100,7 +103,7 @@ $visible = collect($registry->list())
     ->values();
 ```
 
-This is intentionally permissive: a user with **any** permission on an app sees it in the switcher. Inside the app, finer-grained authorisation still uses the full permission string.
+So visibility is **org-enabled AND user-permitted**. Enablement is an org-level decision managed via the store API (ADR-0015: `GET /api/v1/auth/store`, `POST /api/v1/auth/store/{app}/{enable|disable}`); the permission half stays permissive (any permission on an app surfaces it). Inside the app, finer-grained authorisation still uses the full permission string.
 
 ### Base controllers (provided by SDK)
 

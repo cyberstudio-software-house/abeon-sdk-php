@@ -8,5 +8,6 @@
     "category": "Sprzedaż i finanse",
     "order": 10,
     "mode": "app",
-    "fullscreen": false
+    "fullscreen": false,
+    "enabled": true
 }
