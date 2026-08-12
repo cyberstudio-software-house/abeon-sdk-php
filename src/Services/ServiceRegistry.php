@@ -37,12 +37,18 @@ class ServiceRegistry
     }
 
     /**
-     * POST this service's descriptor to Auth.
+     * POST this service's descriptor to the registry.
+     *
+     * Owned by **AbeonUnified** (ADR-0019), not Auth: Auth owns users,
+     * memberships, roles and permissions; Unified owns applications and their
+     * assignment to organisations. Read paths (`GET /api/v1/auth/apps`) keep their
+     * URLs with Auth proxying, because the chrome and both SDKs already call them
+     * — but self-registration moves, since nothing outside this SDK depends on it.
      */
     public function register(): void
     {
         $this->client
-            ->service('auth')
+            ->service('unified')
             ->post('/api/v1/internal/registry/register', $this->descriptor()->toArray());
     }
 

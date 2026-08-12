@@ -5,6 +5,31 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 ## [Unreleased]
 
+### 2026-08-12 — per-organisation preferences, registry ownership, config
+
+#### Changed
+- **Preferences are per user per organisation** (ADR-0009 as amended by ADR-0016). `user_preferences`
+  is keyed `(user_id, org_id)` with a unique constraint; the organisation comes from the caller's
+  token, so **the URL is unchanged** — switching organisation simply makes the same request resolve to
+  a different row. Reading or writing with no organisation is refused rather than falling back to a
+  shared row (ADR-0018).
+  7 tests added, since this path had none: isolation between organisations, that a write in one does
+  not clobber the other, separation between users in the same organisation, refusal without an
+  organisation, and that PATCH still merges.
+- **`ServiceRegistry::register()` posts to `service('unified')`** instead of `service('auth')`
+  (ADR-0019). Auth owns users, memberships, roles and permissions; Unified owns applications and their
+  assignment. Read paths keep their URLs with Auth proxying, because the chrome and both SDKs already
+  call them — only self-registration moves, since nothing outside this SDK depends on it.
+- **`config/abeon.php`** resolves the two platform-tier services by name: `auth` (`ABEON_AUTH_URL`) and
+  `unified` (`ABEON_UNIFIED_URL`). An unconfigured service still throws `unknownService` rather than
+  silently resolving to null.
+
+#### Not built, deliberately
+The AI client (delta item 11) is a wrapper around one `ServiceClient` call, for a gateway that does not
+exist yet, and ADR-0020 leaves the request shape as "OpenRouter's, narrowed to what the platform
+supports". Building it now would mean guessing that shape and shipping something untestable. It belongs
+with the gateway.
+
 ### 2026-08-12 — `Tenant` DTO (ADR-0017)
 
 #### Added

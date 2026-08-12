@@ -14,9 +14,14 @@ use Illuminate\Http\Request;
 /**
  * Base implementation of `/api/v1/auth/me/preferences` per ADR-0009.
  *
- * Stored in `user_preferences.preferences` as a JSON blob keyed by `user_id`.
- * The blob is a versioned object whose top-level keys are namespaces — `chrome`
- * is the namespace owned by the federated chrome.
+ * Stored in `user_preferences.preferences` as a JSON blob keyed by
+ * `(user_id, org_id)` — preferences are per user **per organisation** (ADR-0009
+ * as amended by ADR-0016). The blob is a versioned object whose top-level keys
+ * are namespaces — `chrome` is the namespace owned by the federated chrome.
+ *
+ * The organisation comes from the caller's token, so the URL is unchanged;
+ * switching organisation (ADR-0017) simply makes the same request resolve to a
+ * different row.
  *
  * `GET`  → returns the blob (with defaults synthesised if no row exists).
  * `PATCH` → deep-merges top-level keys with the incoming body and persists.
@@ -49,7 +54,7 @@ class PreferencesController
             throw AuthException::unauthenticated();
         }
 
-        return ApiResponse::data($this->read((int) $user->id));
+        return ApiResponse::data($this->read((int) $user->id, $this->requireOrgId()));
     }
 
     public function update(Request $request): JsonResponse
@@ -64,7 +69,8 @@ class PreferencesController
             $incoming = [];
         }
 
-        $current = $this->read((int) $user->id);
+        $orgId   = $this->requireOrgId();
+        $current = $this->read((int) $user->id, $orgId);
         $merged  = $this->mergeTopLevel($current, $incoming);
 
         $encoded = json_encode($merged, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -72,7 +78,7 @@ class PreferencesController
             throw AuthException::forbidden('Preferences blob exceeds maximum size');
         }
 
-        $this->write((int) $user->id, $encoded);
+        $this->write((int) $user->id, $orgId, $encoded);
 
         return ApiResponse::data($merged);
     }
@@ -80,10 +86,11 @@ class PreferencesController
     /**
      * @return array<string, mixed>
      */
-    public function read(int $userId): array
+    public function read(int $userId, int $orgId): array
     {
         $row = $this->db->table(self::TABLE)
             ->where('user_id', $userId)
+            ->where('org_id', $orgId)
             ->first();
 
         if ($row === null) {
@@ -99,25 +106,50 @@ class PreferencesController
         return $decoded;
     }
 
-    private function write(int $userId, string $json): void
+    private function write(int $userId, int $orgId, string $json): void
     {
         $now = (string) (new \DateTimeImmutable())->format('Y-m-d H:i:s');
 
-        $existing = $this->db->table(self::TABLE)->where('user_id', $userId)->exists();
+        $existing = $this->db->table(self::TABLE)
+            ->where('user_id', $userId)
+            ->where('org_id', $orgId)
+            ->exists();
 
         if ($existing) {
-            $this->db->table(self::TABLE)->where('user_id', $userId)->update([
-                'preferences' => $json,
-                'updated_at'  => $now,
-            ]);
+            $this->db->table(self::TABLE)
+                ->where('user_id', $userId)
+                ->where('org_id', $orgId)
+                ->update([
+                    'preferences' => $json,
+                    'updated_at'  => $now,
+                ]);
         } else {
             $this->db->table(self::TABLE)->insert([
                 'user_id'     => $userId,
+                'org_id'      => $orgId,
                 'preferences' => $json,
                 'created_at'  => $now,
                 'updated_at'  => $now,
             ]);
         }
+    }
+
+    /**
+     * Organisation of the caller, or refuse.
+     *
+     * Preferences are organisation-scoped, so writing without one would either
+     * collide across organisations or silently create an unreachable row
+     * (ADR-0018: a missing tenant is an error, never a wildcard).
+     */
+    private function requireOrgId(): int
+    {
+        $orgId = $this->authContext->orgId();
+
+        if ($orgId === null) {
+            throw AuthException::noOrganisation('Preferences are scoped to an organisation.');
+        }
+
+        return $orgId;
     }
 
     /**

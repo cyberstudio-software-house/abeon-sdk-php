@@ -77,9 +77,15 @@ return [
         )),
     ],
 
-    // Services this consumer talks to. SDK does NOT know about specific services (M1).
+    // Services this consumer talks to. SDK does NOT know about specific services (M1),
+    // with two platform-tier exceptions it resolves by name:
+    //   'auth'    — identity: users, memberships, roles, permissions
+    //   'unified' — AbeonUnified (ADR-0019): notifications, app registry,
+    //               organisation↔app assignment, AI gateway (ADR-0020), storage
+    //               credentials (ADR-0021)
     'services' => [
-        // 'auth' => ['url' => 'http://auth-service.abeon.svc.cluster.local'],
+        'auth'    => ['url' => env('ABEON_AUTH_URL')],
+        'unified' => ['url' => env('ABEON_UNIFIED_URL')],
     ],
 
     // Permissions DECLARED by this service (M5).

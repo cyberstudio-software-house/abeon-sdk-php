@@ -19,9 +19,16 @@ return new class extends Migration
     {
         Schema::create('user_preferences', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id')->unique();
+            $table->unsignedBigInteger('user_id');
+            // Per user PER ORGANISATION (ADR-0009 as amended by ADR-0016). A user
+            // in two organisations keeps separate app order, pins and theme in
+            // each, because the app sets differ — a pin to /crm/contacts is
+            // meaningless in an organisation that has no CRM.
+            $table->unsignedBigInteger('org_id');
             $table->json('preferences');
             $table->timestamps();
+
+            $table->unique(['user_id', 'org_id']);
         });
     }
 
