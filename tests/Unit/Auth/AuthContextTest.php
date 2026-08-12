@@ -6,6 +6,7 @@ namespace Abeon\SDK\Tests\Unit\Auth;
 
 use Abeon\SDK\Auth\AuthContext;
 use Abeon\SDK\DTO\User;
+use Abeon\SDK\Exceptions\AuthException;
 use PHPUnit\Framework\TestCase;
 
 final class AuthContextTest extends TestCase
@@ -61,7 +62,55 @@ final class AuthContextTest extends TestCase
         $this->assertFalse($ctx->hasRole('owner'));
     }
 
-    private function makeUser(array $roles = [], array $permissions = []): User
+    // --- organisation context (ADR-0016 / ADR-0018) ---
+
+    public function test_org_id_returns_the_users_organisation(): void
+    {
+        $ctx = new AuthContext();
+        $ctx->set($this->makeUser(orgId: 7));
+
+        $this->assertSame(7, $ctx->orgId());
+        $this->assertSame(7, $ctx->requireOrgId());
+    }
+
+    public function test_org_id_is_null_with_no_user(): void
+    {
+        $this->assertNull((new AuthContext())->orgId());
+    }
+
+    public function test_require_org_id_throws_with_no_user(): void
+    {
+        // The whole point of requireOrgId(): a missing tenant must fail loudly
+        // rather than let a caller fall back to an unscoped query.
+        $this->expectException(AuthException::class);
+        (new AuthContext())->requireOrgId();
+    }
+
+    public function test_require_org_id_throws_when_the_user_carries_no_organisation(): void
+    {
+        $ctx = new AuthContext();
+        $ctx->set($this->makeUser(orgId: null));
+
+        $this->expectException(AuthException::class);
+        $ctx->requireOrgId();
+    }
+
+    public function test_clear_drops_the_organisation_too(): void
+    {
+        $ctx = new AuthContext();
+        $ctx->set($this->makeUser(orgId: 7));
+        $ctx->clear();
+
+        // Leaking a previous request's organisation into the next one is the
+        // cross-tenant bug this context exists to avoid (see the class PHPDoc).
+        $this->assertNull($ctx->orgId());
+    }
+
+    /**
+     * @param  list<string>  $roles
+     * @param  list<string>  $permissions
+     */
+    private function makeUser(array $roles = [], array $permissions = [], ?int $orgId = null): User
     {
         return new User(
             id: '1',
@@ -69,7 +118,7 @@ final class AuthContextTest extends TestCase
             name: null,
             roles: $roles,
             permissions: $permissions,
-            orgId: null,
+            orgId: $orgId,
         );
     }
 }

@@ -13,6 +13,7 @@
     "aud":          { "type": "string", "const": "abeon" },
     "type":         { "type": "string", "const": "service" },
     "service_name": { "type": "string" },
+    "org_id":       { "type": ["integer", "null"], "description": "Set when the service acts on behalf of an organisation (ADR-0005 as amended by ADR-0016). Absent or null = no organisation — never 'all organisations'." },
     "jti":          { "type": "string" }
   },
   "additionalProperties": true

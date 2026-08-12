@@ -3,7 +3,7 @@
   "$id": "https://schemas.abeon.pl/dto/user.json",
   "title": "Abeon User DTO",
   "type": "object",
-  "required": ["id", "email", "roles", "permissions"],
+  "required": ["id", "email", "roles", "permissions", "org_id"],
   "properties": {
     "id":          { "type": "string" },
     "email":       { "type": "string", "format": "email" },

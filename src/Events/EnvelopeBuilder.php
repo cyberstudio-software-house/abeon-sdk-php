@@ -22,6 +22,14 @@ class EnvelopeBuilder
     }
 
     /**
+     * Build an event envelope (schemas/events/_envelope.json).
+     *
+     * `org_id` is taken from the authenticated user (ADR-0016). It is `null` when
+     * there is no request context — a console command, a scheduled job, or genuinely
+     * platform-level work such as registry self-registration. `null` means "no
+     * organisation", never "all organisations": a consumer that requires a tenant
+     * must refuse the message rather than process it unscoped (ADR-0018).
+     *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -40,6 +48,7 @@ class EnvelopeBuilder
             'timestamp'  => (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.v\Z'),
             'source'     => $this->config->serviceName(),
             'version'    => $version,
+            'org_id'     => $this->auth->user()?->orgId,
             'actor'      => ($actor ?? $this->defaultActor())->toArray(),
             'data'       => $data,
             'metadata'   => array_filter([

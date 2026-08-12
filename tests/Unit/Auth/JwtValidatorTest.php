@@ -104,6 +104,27 @@ final class JwtValidatorTest extends TestCase
         $this->validator()->decodeUser($this->token(['type' => 'service']));
     }
 
+    public function test_decode_user_rejects_a_token_without_org_id(): void
+    {
+        // ADR-0016: org_id is the authorization and data-scoping dimension, so a
+        // token without it is rejected at the trust boundary. Letting it through as
+        // null would push a missing tenant into query scoping, where "no tenant" is
+        // one mistake away from "every tenant".
+        $claims = $this->claims();
+        unset($claims['org_id']);
+
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage('missing the required org_id claim');
+        $this->validator()->decodeUser($this->tokenFromClaims($claims));
+    }
+
+    public function test_decode_user_rejects_a_null_org_id(): void
+    {
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage('missing the required org_id claim');
+        $this->validator()->decodeUser($this->token(['org_id' => null]));
+    }
+
     public function test_rejects_an_algorithm_confusion_token(): void
     {
         // HS256 token carrying the same kid. The validator resolves an RS256 JWK,
@@ -169,6 +190,17 @@ final class JwtValidatorTest extends TestCase
     private function token(array $overrides = []): string
     {
         return JWT::encode($this->claims($overrides), $this->privateKey, 'RS256', self::KID);
+    }
+
+    /**
+     * Sign an exact claim set — for cases that need a claim *absent* rather than
+     * overridden, which `claims()`' array_merge cannot express.
+     *
+     * @param  array<string, mixed>  $claims
+     */
+    private function tokenFromClaims(array $claims): string
+    {
+        return JWT::encode($claims, $this->privateKey, 'RS256', self::KID);
     }
 
     /**

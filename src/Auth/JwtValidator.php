@@ -65,13 +65,22 @@ class JwtValidator
             throw AuthException::unauthenticated('Expected user-type JWT');
         }
 
+        // ADR-0016: org_id is a required, non-null claim on user tokens — it is the
+        // authorization and data-scoping dimension, not a display field. Rejecting
+        // here keeps the failure at the trust boundary; letting it through as null
+        // would push a missing tenant deep into query scoping, where "no tenant" is
+        // one mistake away from "every tenant" (ADR-0018).
+        if (! isset($claims['org_id']) || ! is_int($claims['org_id'])) {
+            throw AuthException::unauthenticated('User JWT is missing the required org_id claim');
+        }
+
         return User::fromArray([
             'id'          => (string) ($claims['sub'] ?? ''),
             'email'       => (string) ($claims['email'] ?? ''),
             'name'        => $claims['name'] ?? null,
             'roles'       => $claims['roles'] ?? [],
             'permissions' => $claims['permissions'] ?? [],
-            'org_id'      => $claims['org_id'] ?? null,
+            'org_id'      => $claims['org_id'],
         ]);
     }
 

@@ -172,6 +172,10 @@ class AbeonServiceProvider extends ServiceProvider
                 tokens:      $app->make(ServiceTokenProvider::class),
                 correlation: $app->make(CorrelationContext::class),
                 config:      $app->make(AbeonConfig::class),
+                // Closure, not an instance: this binding is a singleton and
+                // AuthContext is scoped. Resolving per call keeps each request's
+                // organisation its own (ADR-0016).
+                authResolver: static fn (): AuthContext => $app->make(AuthContext::class),
             );
         });
     }

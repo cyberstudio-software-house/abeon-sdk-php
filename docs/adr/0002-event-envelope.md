@@ -27,6 +27,7 @@ Every event uses the **generic envelope** defined in [`schemas/events/_envelope.
   "timestamp":  "ISO-8601 UTC with milliseconds",
   "source":     "publishing service name",
   "version":    "1.0",
+  "org_id":     123,
   "actor": {
     "type":         "user | service | system",
     "user_id":      "string (when type=user)",
@@ -39,6 +40,24 @@ Every event uses the **generic envelope** defined in [`schemas/events/_envelope.
   }
 }
 ```
+
+### `org_id` — the tenant the event belongs to (ADR-0016)
+
+**Top-level, not inside `actor`.** An event caused by a scheduled job or by the system itself has no
+actor worth speaking of but still belongs to exactly one organisation: the tenant is a property of *the
+event*, not of *who triggered it*. Nesting it under `actor` would make it unavailable precisely when
+`actor.type = "system"`.
+
+`org_id` is **required and non-null** for events arising from organisation-scoped work, which in
+practice is all business events. It is `null` only for genuinely platform-level events (registry
+self-registration, maintenance). `null` means "no organisation" — never "all organisations". A consumer
+that requires a tenant and receives `null` must refuse the message rather than process it unscoped
+(ADR-0018).
+
+**This field is what makes the asynchronous half of the platform scopable at all.** `EventConsumer`
+does not populate `AuthContext` — a handler runs with no request context and no authenticated user (see
+`AuthContext`'s class PHPDoc) — so the envelope is a consumer's *only* possible source of tenant.
+Without it, ADR-0018's scoping cannot reach any event handler.
 
 ### Routing key grammar
 
@@ -136,10 +155,24 @@ In v1 the payload is **not** validated automatically — only the envelope is. S
 
 Envelope is version 1.0. The `version` field exists for future-proofing: when a breaking payload change is required for a specific event type, options are:
 
+
 1. **Suffix the routing key** with `.v2` (e.g. `crm.contact.created.v2`) — consumers bind to the new key explicitly.
 2. **Bump `version` in envelope** (e.g. `"version": "2.0"`) — consumers branch on `version` in the handler.
 
 Either path is supported by the contract. The choice depends on whether the new shape is "the same event, evolved" (envelope bump) or "logically a different event" (routing key suffix).
+
+#### Why adding `org_id` took neither path (2026-08-12)
+
+Adding a required field to a schema declared `"additionalProperties": false` is a breaking change, so
+by the rules above it should have bumped the envelope to 2.0. **It amended 1.0 in place instead, and
+that was a deliberate choice made at the only moment it was free:** no service consumes this envelope
+yet. Zero producers, zero consumers, zero messages in flight — so there is no population to migrate and
+no branch for a handler to take.
+
+The alternative was to ship 1.0 without the tenant, then bump to 2.0 the moment the first service needed
+scoping — paying for a dual-version consumer path to migrate a contract nobody had implemented. Recorded
+explicitly because the same reasoning will **not** apply next time: once service #1 is live, the
+versioning rules above are binding again.
 
 ## Consequences
 
@@ -160,3 +193,7 @@ Either path is supported by the contract. The choice depends on whether the new 
 - Schema: `schemas/events/_envelope.json`
 - Migrations: `database/migrations/2026_01_01_000001_create_abeon_event_outbox_table.php`, `..._000000_create_abeon_processed_events_table.php`
 - Related: ADR-0003 (correlation), arch doc sekcja 6
+- **Amended 2026-08-12 by ADR-0016** (multi-tenant organisations): the envelope gained a top-level
+  `org_id`. **ADR-0018 (tenant scoping) depends on it** — without it, event handlers have no source of
+  tenant at all. The amendment was applied to envelope 1.0 in place rather than bumping to 2.0; the
+  reasoning is recorded under *Versioning* above.

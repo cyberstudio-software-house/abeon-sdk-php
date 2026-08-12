@@ -4,7 +4,7 @@
   "title": "Abeon User JWT Payload",
   "description": "Access token issued by Auth service for authenticated users.",
   "type": "object",
-  "required": ["sub", "exp", "iat", "iss", "aud", "type", "roles", "permissions", "jti"],
+  "required": ["sub", "exp", "iat", "iss", "aud", "type", "roles", "permissions", "org_id", "jti"],
   "properties": {
     "sub":         { "type": "string", "description": "Subject — user ID." },
     "exp":         { "type": "integer", "description": "Expiration (unix timestamp)." },
@@ -23,7 +23,7 @@
         "description": "{app}.{resource}.{action}"
       }
     },
-    "org_id":      { "type": ["integer", "null"] },
+    "org_id":      { "type": "integer", "description": "Organisation the token is scoped to. Authorization and data-scoping dimension (ADR-0016); switching re-issues the token (ADR-0017)." },
     "jti":         { "type": "string", "description": "Unique token ID (for revocation)." }
   },
   "additionalProperties": true

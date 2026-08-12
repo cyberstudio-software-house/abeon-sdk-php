@@ -150,6 +150,104 @@ final class SchemaContractTest extends TestCase
         $this->assertFalse($result->isValid());
     }
 
+    // --- multi-tenancy: org_id is required, and must stay required (ADR-0016) ---
+
+    public function test_schema_rejects_envelope_without_org_id(): void
+    {
+        $bad = $this->fixtureArray('envelope.json');
+        unset($bad['org_id']);
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'events/_envelope.json',
+        );
+
+        $this->assertFalse(
+            $result->isValid(),
+            'The envelope must carry org_id — it is an event consumer\'s only source of tenant (ADR-0018).',
+        );
+    }
+
+    public function test_envelope_org_id_may_be_null_for_platform_events(): void
+    {
+        $platformEvent = $this->fixtureArray('envelope.json');
+        $platformEvent['org_id'] = null;
+
+        // Null is "no organisation" (registry self-registration, maintenance) — it is
+        // NOT "all organisations". Consumers requiring a tenant must refuse it, but
+        // the envelope itself is well-formed.
+        $this->assertValid('events/_envelope.json', $platformEvent);
+    }
+
+    public function test_schema_rejects_user_dto_without_org_id(): void
+    {
+        $bad = $this->fixtureArray('user.json');
+        unset($bad['org_id']);
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/user.json',
+        );
+
+        $this->assertFalse($result->isValid());
+    }
+
+    public function test_schema_rejects_user_jwt_without_org_id(): void
+    {
+        $claims = [
+            'sub'         => '42',
+            'exp'         => 1893456000,
+            'iat'         => 1893452400,
+            'iss'         => 'abeon-auth',
+            'aud'         => 'abeon',
+            'type'        => 'user',
+            'email'       => 'jan@example.com',
+            'roles'       => ['admin'],
+            'permissions' => ['crm.contacts.read'],
+            'jti'         => 'jti-1',
+        ];
+
+        $withOrg = $claims + ['org_id' => 1];
+        $this->assertValid('auth/jwt-user.json', $withOrg);
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($claims)),
+            self::SCHEMA_NS.'auth/jwt-user.json',
+        );
+
+        $this->assertFalse(
+            $result->isValid(),
+            'org_id is required on user tokens — it is the authorization dimension (ADR-0001/ADR-0016).',
+        );
+    }
+
+    public function test_schema_rejects_null_org_id_on_a_user_jwt(): void
+    {
+        $claims = [
+            'sub'         => '42',
+            'exp'         => 1893456000,
+            'iat'         => 1893452400,
+            'iss'         => 'abeon-auth',
+            'aud'         => 'abeon',
+            'type'        => 'user',
+            'email'       => 'jan@example.com',
+            'roles'       => ['admin'],
+            'permissions' => ['crm.contacts.read'],
+            'org_id'      => null,
+            'jti'         => 'jti-1',
+        ];
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($claims)),
+            self::SCHEMA_NS.'auth/jwt-user.json',
+        );
+
+        $this->assertFalse(
+            $result->isValid(),
+            'A user token is always scoped to exactly one organisation — null is not a valid scope.',
+        );
+    }
+
     // --- helpers ---
 
     /**

@@ -82,13 +82,13 @@ matures).
 
 ### Filtering rule
 
-An app is included in the response if it is **org-enabled** (`AppDescriptor.enabled === true`, ADR-0015) **AND** the user holds a matching permission — i.e. **any** permission declared in its `AppDescriptor.permissions` array is satisfied, either by exact match or by a wildcard `app.*` matching any of the user's `{app}.*` permissions. Pseudocode:
+An app is included in the response if it is **assigned to the caller's organisation** (`AppDescriptor.enabled === true`, meaning a `tenant_apps` row exists for `org_id` — ADR-0015 as amended by ADR-0016) **AND** the user holds a matching permission — i.e. **any** permission declared in its `AppDescriptor.permissions` array is satisfied, either by exact match or by a wildcard `app.*` matching any of the user's `{app}.*` permissions. Pseudocode:
 
 ```php
-$visible = collect($registry->list())
+$visible = collect($registry->listForOrg($user->orgId))
     ->filter(function (AppDescriptor $app) use ($user) {
         if ($app->enabled !== true) {
-            return false;   // org has not enabled this app (ADR-0015)
+            return false;   // this organisation does not have the app (ADR-0015 / ADR-0016)
         }
         foreach ($app->permissions as $declared) {
             $prefix = strtok($declared, '.');   // e.g. "crm" from "crm.contacts.read" or "crm.*"
@@ -103,7 +103,41 @@ $visible = collect($registry->list())
     ->values();
 ```
 
-So visibility is **org-enabled AND user-permitted**. Enablement is an org-level decision managed via the store API (ADR-0015: `GET /api/v1/auth/store`, `POST /api/v1/auth/store/{app}/{enable|disable}`); the permission half stays permissive (any permission on an app surfaces it). Inside the app, finer-grained authorisation still uses the full permission string.
+So visibility is **`tenant_apps` ∩ permissions** — the app is assigned to the caller's organisation *and* the user is permitted. This is the rule the React MVP had (*"available apps = `tenant_apps(currentTenant)` intersected with the user's role permissions"*), restored by ADR-0016. Assignment is managed via the store API (ADR-0015: `GET /api/v1/auth/store`, `POST /api/v1/auth/store/{app}/{enable|disable}`), which now acts on the caller's organisation; the permission half stays permissive (any permission on an app surfaces it). Inside the app, finer-grained authorisation still uses the full permission string.
+
+> **Implementation note (2026-08-12).** The SDK's base `AppsController` can only enforce part of this
+> rule, and the split is structural rather than an oversight:
+>
+> - The **permission half** is enforced in full.
+> - The **assignment half** is enforced only negatively — an app explicitly `enabled === false` is
+>   hidden. It cannot be enforced positively there, because `ServiceRegistry::list()` returns
+>   descriptors as services self-registered them, and self-registration leaves `enabled` null *by this
+>   ADR's own contract* (ADR-0015 §1: "null/ignored on self-registration"). Treating null as a denial
+>   would render every self-registered catalogue empty.
+>
+> Resolving `enabled` for an organisation requires the `tenant_apps` relation, which lives in the
+> registry's owning service (AbeonUnified, ADR-0019). **An extending controller with access to that
+> relation MUST resolve `enabled` per organisation before filtering** — which is why Auth owns this
+> endpoint canonically and may bypass `ServiceRegistry::list()` to read the table directly.
+>
+> Until 2026-08-12 the base controller ignored `enabled` entirely, so an explicitly disabled app stayed
+> visible to anyone using it directly; only `abeon-auth-stub`'s subclass applied enablement.
+
+### Ownership: the registry moves to AbeonUnified (ADR-0019)
+
+The app registry — the catalogue and the organisation↔app assignment behind it — is owned by
+**AbeonUnified**, not Auth. Auth owns users, memberships, roles and permissions.
+
+**Paths do not change.** `GET /api/v1/auth/apps` and the store endpoints stay where they are, and Auth
+**proxies** to Unified for the catalogue half. Chosen over moving the paths because:
+
+- The chrome, both SDKs and the boilerplate already call `/api/v1/auth/apps`; moving it would be a
+  breaking change to a working contract for no user-visible gain.
+- The response needs the caller's permissions *and* the organisation's app assignment. Auth already
+  holds the first and has the authenticated context; proxying keeps one round-trip from the browser.
+
+Self-registration **does** move: `ServiceRegistry::register()` targets `service('unified')` instead of
+`service('auth')`, since nothing depends on that path but the SDK itself.
 
 ### Base controllers (provided by SDK)
 
@@ -144,3 +178,9 @@ Both controllers require `AuthMiddleware`. Both return JSON in the ADR-0004 enve
 - Chrome consumers: `abeon-shared/src/react/use-auth.ts`, `use-apps.ts`, `_internal/`
 - Related: ADR-0001 (JWT), ADR-0004 (REST envelope), ADR-0009 (preferences alongside)
 - Arch doc: §3.6 (App Registry)
+- **Amended 2026-06-26 by ADR-0015**: filtering rule became org-enabled AND permission (was
+  permission-only).
+- **Amended 2026-08-12 by ADR-0016 and ADR-0019**: the rule is now **`tenant_apps` ∩ permissions**, the
+  registry is owned by AbeonUnified with Auth proxying the read paths, and self-registration targets
+  `service('unified')`. `GET /api/v1/auth/user` also gains the caller's organisation memberships, so the
+  tenant switcher (ADR-0017) has something to render.

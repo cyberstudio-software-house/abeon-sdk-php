@@ -1,7 +1,14 @@
 # ADR-0012: Single-tenant per instance
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0016](0016-multi-tenant-organisations.md) (2026-08-12)
 **Date:** 2026-06-23
+
+> **Superseded.** The platform is multi-tenant: one deployment serves many client organisations, and
+> `org_id` is an authorization and data-scoping dimension rather than an informational claim. See
+> [ADR-0016](0016-multi-tenant-organisations.md), which also records why the single-tenant reading was
+> adopted here and why it was reversed. The reasoning below is left intact deliberately — in
+> particular its "Retrofit cost" paragraph, which turned out to be an accurate description of the work
+> ADR-0016 now requires.
 
 ## Context
 

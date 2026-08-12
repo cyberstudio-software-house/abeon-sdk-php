@@ -41,6 +41,33 @@ Schema: [`schemas/auth/jwt-service.json`](../../schemas/auth/jwt-service.json) (
 
 The token is **cached in-process** by the provider — repeated calls within the TTL window reuse it. Cache flushes when refresh margin is reached.
 
+### Acting on behalf of an organisation (ADR-0016)
+
+A service call made while serving a user request belongs to that user's organisation, and the callee
+needs to know which one — otherwise the tenant dimension is lost at every service boundary.
+
+The service token therefore carries an **optional `org_id`**:
+
+```json
+{
+  "iss": "crm", "sub": "crm", "aud": "abeon", "type": "service",
+  "service_name": "crm", "org_id": 42,
+  "iat": 1735689600, "exp": 1735689900, "jti": "uuid"
+}
+```
+
+- **Present** when the call originates from an organisation-scoped context — propagate the `org_id` of
+  the inbound user token (`AuthContext::orgId()`).
+- **Absent** for genuinely organisation-less work: registry self-registration, health probes, scheduled
+  maintenance. Absent means "no organisation", never "all organisations" — a callee that needs a tenant
+  and finds none must refuse, consistent with ADR-0018's fail-closed rule.
+
+**Cache consequence.** `ServiceTokenProvider` caches exactly one token process-wide (deliberately, for
+Octane worker reuse). An organisation-scoped token cannot share that slot: the cache must be **keyed by
+`org_id`**, with the organisation-less token as its own entry. Getting this wrong leaks one
+organisation's token into another organisation's request — a same-service, wrong-tenant call that
+`AuthMiddleware` would happily accept.
+
 ### Validation by callee
 
 The callee validates the token using `Abeon\SDK\Auth\JwtValidator`:
@@ -93,3 +120,6 @@ JWKS naturally supports multiple `kid`s simultaneously — this enables zero-dow
 - Schema: `schemas/auth/jwt-service.json`
 - Config keys: `ABEON_SERVICE_JWT_PRIVATE_KEY`, `ABEON_SERVICE_JWT_KID`, `ABEON_AUTH_JWKS_URL`
 - Related: ADR-0001 (JWT format both kinds), arch doc sekcja 5.4
+- **Amended 2026-08-12 by ADR-0016** (multi-tenant organisations): the service token gained an optional
+  `org_id` for on-behalf-of calls, and `ServiceTokenProvider`'s process-wide cache must be keyed by it.
+  See also ADR-0018 (fail-closed when a tenant is required and absent).

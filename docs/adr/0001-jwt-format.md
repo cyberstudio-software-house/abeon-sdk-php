@@ -32,7 +32,7 @@ Canonical schema: [`schemas/auth/jwt-user.json`](../../schemas/auth/jwt-user.jso
 | `name` | optional | Display name. |
 | `roles` | yes | List of role names. |
 | `permissions` | yes | List of `{app}.{resource}.{action}` strings (e.g. `crm.contacts.read`). Regex `^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$`. |
-| `org_id` | optional | Integer organization ID for multi-org accounts. |
+| `org_id` | **yes** | Integer organization ID. **The organisation the token is scoped to** — an authorization and data-scoping dimension, not a display field (ADR-0016). A user belonging to several organisations holds a token for exactly one at a time; switching re-issues the token (ADR-0017). |
 | `jti` | yes | Unique token ID — enables revocation lists. |
 
 ### Service token claims
@@ -48,6 +48,7 @@ Canonical schema: [`schemas/auth/jwt-service.json`](../../schemas/auth/jwt-servi
 | `aud` | yes | Constant `"abeon"`. |
 | `type` | yes | Constant `"service"`. |
 | `service_name` | yes | Calling service identifier. |
+| `org_id` | optional | Present when the service acts **on behalf of an organisation** (ADR-0016). Absent for genuinely organisation-less work — scheduled maintenance, registry self-registration, health probes. See ADR-0005. |
 | `jti` | yes | Unique token ID. |
 
 ### Validation rules
@@ -94,3 +95,7 @@ The Auth service issues the access token as an httpOnly cookie on `.abeon.pl` (c
 - Issuer: `src/Client/ServiceTokenProvider.php` (service tokens; user tokens issued by Auth service)
 - Schemas: `schemas/auth/jwt-user.json`, `schemas/auth/jwt-service.json`
 - Related: ADR-0005 (service-to-service auth flow), arch doc sekcja 5
+- **Amended 2026-08-12 by ADR-0016** (multi-tenant organisations): `org_id` became **required** on user
+  tokens and is now an authorization dimension — it was previously *"optional … for multi-org
+  accounts"*, informational only under the superseded ADR-0012. The service token gained an optional
+  `org_id` for on-behalf-of calls. See also ADR-0017 (switching re-issues the token).

@@ -1,7 +1,15 @@
 # ADR-0006: Notifications contract (REST + WebSocket fan-in)
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0019](0019-abeon-unified-service.md) (2026-08-12)
 **Date:** 2026-05-15
+
+> **Superseded — but the contract below is still current.** The owning service was renamed and widened:
+> `abeon-notifications` became **AbeonUnified**, which also owns the app registry, organisation↔app
+> assignment and app data. Every REST endpoint, the `NotificationDto`, the `*.notification.requested`
+> fan-in and the `user.{id}` Reverb channel specified here carry forward **unchanged** — read this
+> document for the contract and [ADR-0019](0019-abeon-unified-service.md) for the service that owns it.
+> ADR-0019 also records the gap this ADR left open: §5A of the architecture doc promises email and push
+> channels, but the schemas here are in-app + WebSocket only.
 
 ## Context
 

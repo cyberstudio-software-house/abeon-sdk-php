@@ -21,7 +21,17 @@ Where should these preferences live?
 
 ## Decision
 
-**Option 2 — `abeon-auth` exposes `/api/v1/auth/me/preferences`** (GET + PATCH). Preferences are stored alongside the user profile as a JSON blob in the `user_preferences` table (one row per user). The SDK provides a base controller (`Abeon\SDK\Auth\Endpoints\PreferencesController`) plus the migration so Auth service drops it in with one extension call.
+**Option 2 — `abeon-auth` exposes `/api/v1/auth/me/preferences`** (GET + PATCH). Preferences are stored alongside the user profile as a JSON blob in the `user_preferences` table (**one row per user per organisation** — see the amendment below). The SDK provides a base controller (`Abeon\SDK\Auth\Endpoints\PreferencesController`) plus the migration so Auth service drops it in with one extension call.
+
+> **Amended 2026-08-12 (ADR-0016): preferences are per-user-per-organisation.**
+> The table key becomes `(user_id, org_id)` and the endpoint reads the organisation from the caller's
+> token — the URL does not change. A user who belongs to two organisations keeps a separate app order,
+> separate pins and separate theme in each, because the app sets themselves differ: a pin to
+> `/crm/contacts` is meaningless in an organisation that has no CRM.
+>
+> This is what the MVP's own spec asked for — FR-3 required pins to persist server-side per user and
+> *"SHOULD be scoped per tenant"*. Switching organisation (ADR-0017) must therefore re-fetch
+> preferences along with the app list.
 
 ### Data shape
 
@@ -122,3 +132,6 @@ No row is created until the first `PATCH`.
 - Base controller: `src/Auth/Endpoints/PreferencesController.php`
 - Chrome consumer: `abeon-shared/src/react/use-preferences.ts`, `use-app-order.ts`
 - Related: ADR-0010 (Auth /me + /apps endpoints), arch doc §3.6
+- **Amended 2026-08-12 by ADR-0016** (multi-tenant organisations): preferences are keyed
+  `(user_id, org_id)`, and ADR-0017's tenant switch must re-fetch them. MVP precedent:
+  `unified-shell-spec.md` FR-3.

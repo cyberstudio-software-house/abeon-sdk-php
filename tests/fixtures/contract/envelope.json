@@ -4,6 +4,7 @@
     "timestamp": "2026-05-15T10:30:00.000Z",
     "source": "crm",
     "version": "1.0",
+    "org_id": 1,
     "actor": {
         "type": "user",
         "user_id": "42"

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Abeon\SDK\Client;
 
+use Abeon\SDK\Auth\AuthContext;
 use Abeon\SDK\Config\AbeonConfig;
 use Abeon\SDK\Http\CorrelationIdMiddleware;
 use Abeon\SDK\Logging\CorrelationContext;
@@ -37,19 +38,35 @@ use Illuminate\Http\Client\Response;
  */
 class ServiceClient
 {
+    /**
+     * @param  (\Closure(): ?AuthContext)|null  $authResolver  Resolves the *current*
+     *        request's AuthContext. A closure, not an instance: this client is bound
+     *        as a singleton while `AuthContext` is request-scoped, so holding one
+     *        would pin the first request's organisation for the life of the process
+     *        and send every later tenant's calls under it.
+     */
     public function __construct(
         private readonly HttpFactory $http,
         private readonly ServiceTokenProvider $tokens,
         private readonly CorrelationContext $correlation,
         private readonly AbeonConfig $config,
+        private readonly ?\Closure $authResolver = null,
     ) {
     }
 
+    /**
+     * Open a request to another service.
+     *
+     * When the call is made while serving a user request, the current organisation
+     * (ADR-0016) is propagated into the service token so the callee can scope its
+     * work. Outside a request — console commands, queued jobs, consumers — there is
+     * no organisation and the token carries none (ADR-0005 as amended).
+     */
     public function service(string $name): PendingRequest
     {
         $request = $this->http
             ->baseUrl(rtrim($this->config->serviceUrl($name), '/'))
-            ->withToken($this->tokens->token())
+            ->withToken($this->tokens->token($this->currentOrgId()))
             ->acceptJson()
             ->asJson()
             ->timeout((int) ceil($this->config->clientTimeoutSeconds()))
@@ -80,6 +97,23 @@ class ServiceClient
      * Retry policy: transient network / 5xx only. 4xx responses are caller
      * bugs (validation, auth, not-found) — retry doesn't help.
      */
+    /**
+     * Organisation of the request currently being served, or null outside one.
+     *
+     * Resolved on every call — see the constructor note on why this must not be a
+     * held instance.
+     */
+    private function currentOrgId(): ?int
+    {
+        if ($this->authResolver === null) {
+            return null;
+        }
+
+        $auth = ($this->authResolver)();
+
+        return $auth instanceof AuthContext ? $auth->orgId() : null;
+    }
+
     private function shouldRetry(\Throwable $exception): bool
     {
         if ($exception instanceof ConnectionException || $exception instanceof ConnectException) {

@@ -19,13 +19,27 @@ use Illuminate\Http\JsonResponse;
  * `abeon_user()->permissions` (the current user's grants). Returns the subset
  * of apps the user can see in the AppSwitcher.
  *
- * Filtering rule: an app is visible if ANY entry of its declared `permissions`
- * has a prefix that matches ANY of the user's `{app}.{resource}.{action}`
- * permissions. See ADR-0010 §"Filtering rule".
+ * Filtering rule (ADR-0010): an app is visible when it is **assigned to the
+ * caller's organisation** AND the user holds a matching permission — i.e. ANY
+ * entry of the app's declared `permissions` has a prefix matching ANY of the
+ * user's `{app}.{resource}.{action}` grants.
  *
- * Auth service owns this endpoint canonically — it has direct DB access to
- * the registry so an extending controller may bypass `ServiceRegistry::list()`
- * and read the table directly for performance.
+ * **This base implementation can only enforce part of that**, and the split is
+ * deliberate rather than an oversight:
+ *
+ *   - The *permission* half is enforced here in full.
+ *   - The *assignment* half is only enforced negatively — an app explicitly
+ *     marked `enabled === false` is hidden. It cannot be enforced positively,
+ *     because `ServiceRegistry::list()` returns descriptors as services
+ *     self-registered them, and self-registration leaves `enabled` null by
+ *     contract (ADR-0015: "null/ignored on self-registration"). Resolving
+ *     `enabled` for an organisation needs the `tenant_apps` relation, which
+ *     lives in the registry's owning service (AbeonUnified, ADR-0019).
+ *
+ * So an extending controller with access to that relation MUST resolve
+ * `enabled` per organisation before filtering — which is exactly why Auth owns
+ * this endpoint canonically and may bypass `ServiceRegistry::list()` to read
+ * the table directly.
  *
  * Requires `abeon.auth` middleware.
  */
@@ -57,6 +71,14 @@ class AppsController
      */
     public function isVisibleTo(AppDescriptor $app, User $user): bool
     {
+        // Assignment half, as far as this layer can see it: an app explicitly
+        // disabled for the organisation is never visible. `null` means "not
+        // resolved here" — see the class docblock — so it is not treated as a
+        // denial, or a self-registered catalogue would render empty.
+        if ($app->enabled === false) {
+            return false;
+        }
+
         $userPerms = $user->permissions;
         if ($userPerms === []) {
             return false;

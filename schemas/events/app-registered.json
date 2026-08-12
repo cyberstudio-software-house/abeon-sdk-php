@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/app-registered.json",
+  "title": "unified.app.registered payload",
+  "description": "Payload for `unified.app.registered`, emitted by AbeonUnified when an application completes registration and is assigned an identity. Consumed by Auth to provision the owner user for a new organisation, or to attach the application to an existing one. Per ADR-0019; organisation provisioning per ADR-0016.\n\nPlacement note: ADR-0002 federates per-event payload schemas into each owning service's repository. AbeonUnified does not exist as a repository yet, so this ships in the SDK alongside `notification-requested.json` — the same exception, for the same reason. Move it to `abeon-unified/schemas/events/` when that repository exists.",
+  "type": "object",
+  "required": ["id", "name", "owner_email"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Identity assigned to the application by the registry. Stable for the lifetime of the registration."
+    },
+    "name": {
+      "type": "string",
+      "description": "Application identifier, matching `AppDescriptor.name` (e.g. `crm`)."
+    },
+    "owner_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Email of the person who owns this registration. Auth creates the organisation owner user from it when the organisation is new, and delivers credentials there."
+    },
+    "org_id": {
+      "type": ["integer", "null"],
+      "description": "Existing organisation to attach the application to. `null` means the registration creates a new organisation, whose owner is `owner_email`. The envelope's own `org_id` is `null` for this event — registration is platform-level work that happens before an organisation context exists."
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Free-form registration context. Opaque to Auth."
+    }
+  },
+  "additionalProperties": false
+}

@@ -4,7 +4,7 @@
   "title": "Abeon Event Envelope",
   "description": "Generic envelope wrapping every event on RabbitMQ exchange `abeon.events`. Per-event payload schemas (the contents of `data`) live in each service's own repo and are discovered via composer extra.abeon.event-schemas.",
   "type": "object",
-  "required": ["event_id", "event_type", "timestamp", "source", "version", "actor", "data", "metadata"],
+  "required": ["event_id", "event_type", "timestamp", "source", "version", "org_id", "actor", "data", "metadata"],
   "properties": {
     "event_id":   { "type": "string", "format": "uuid" },
     "event_type": {
@@ -15,6 +15,10 @@
     "timestamp":  { "type": "string", "format": "date-time" },
     "source":     { "type": "string", "description": "Publishing service name." },
     "version":    { "type": "string", "default": "1.0" },
+    "org_id": {
+      "type": ["integer", "null"],
+      "description": "Organisation this event belongs to (ADR-0016). Top-level rather than inside `actor`, because a system-generated event has no actor but still belongs to a tenant. `null` = platform-level event with no organisation — never 'all organisations'; a consumer that requires a tenant must refuse a null (ADR-0018)."
+    },
     "actor": {
       "type": "object",
       "required": ["type"],

@@ -27,4 +27,20 @@ class AuthException extends AbeonException
             detail: $reason,
         ));
     }
+
+    /**
+     * No organisation in the current context where one is required (ADR-0016/ADR-0018).
+     *
+     * Deliberately an error rather than a fallback: a tenant-scoped operation with no
+     * tenant must fail loudly, never silently widen to every organisation.
+     */
+    public static function noOrganisation(string $reason = 'No organisation in the current context'): self
+    {
+        return new self(new ProblemDetails(
+            type:   'https://api.abeon.pl/errors/no-organisation',
+            title:  'No organisation context',
+            status: 403,
+            detail: $reason,
+        ));
+    }
 }
