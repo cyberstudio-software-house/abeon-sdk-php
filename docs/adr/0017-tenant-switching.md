@@ -48,8 +48,19 @@ update `useAuth()` without a second round-trip.
 
 ### Listing memberships
 
-`GET /api/v1/auth/user` (ADR-0010) gains the user's organisations, so the switcher has something to
-render. Shape and whether it is a separate endpoint are settled in the ADR-0010 amendment.
+**`GET /api/v1/auth/tenants`** — a separate endpoint, returning `Tenant[]` (`schemas/dto/tenant.json`)
+for the organisations the caller belongs to, with `current: true` on the active one.
+
+Settled 2026-08-12 in favour of a separate endpoint rather than widening `GET /api/v1/auth/user`:
+
+- The `User` DTO is contract-frozen, mirrored in `@abeon/shared` and covered by golden fixtures shared
+  byte-for-byte between the two packages. Adding a nested collection to it is a breaking change to a
+  working contract, for data with a different cardinality and a different refresh cadence.
+- The switcher needs the list once per session; the user object is read on every chrome render.
+
+**`Tenant` carries no roles or permissions**, deliberately. It is a display list. A client that could
+read its own authorisation from it would be deriving authorisation from a response it can influence —
+authorisation arrives only in the re-issued JWT.
 
 ### Consequences for services
 

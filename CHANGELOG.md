@@ -5,6 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 ## [Unreleased]
 
+### 2026-08-12 — `Tenant` DTO (ADR-0017)
+
+#### Added
+- **`schemas/dto/tenant.json` + `src/DTO/Tenant.php`** — a client organisation, as returned by
+  `GET /api/v1/auth/tenants` for the chrome's switcher.
+
+  Deliberately thin: id, name, slug, optional logo, and `current`. **No roles or permissions** — those
+  are per membership and arrive in the re-issued JWT (ADR-0017). A client that could read its own
+  authorisation from this list would be deriving authorisation from a response it can influence; a
+  contract test asserts the schema rejects a `permissions` key.
+
+  ADR-0017 left the shape open ("whether it is a separate endpoint"). Settled here in favour of a
+  separate endpoint rather than widening `GET /api/v1/auth/user`: the `User` DTO is contract-frozen,
+  mirrored in `@abeon/shared` and covered by golden fixtures shared byte-for-byte, so nesting a
+  collection into it is a breaking change to a working contract — for data with a different cardinality
+  and refresh cadence.
+
 ### 2026-08-12 — `Tenancy`: row scoping (ADR-0018)
 
 The mechanism ADR-0018 specified. Lands before the first domain table exists, which is the cheapest

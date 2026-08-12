@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/tenant.json",
+  "title": "Abeon Tenant DTO",
+  "description": "A client organisation (ADR-0016). Returned by `GET /api/v1/auth/tenants` as the list a user may switch between; the chrome renders it in the tenant switcher and posts the chosen `id` to `POST /api/v1/auth/tenant` (ADR-0017).\n\nDeliberately thin: identity and display only. Roles and permissions are NOT here — they are per membership and arrive in the re-issued JWT, so a client can never derive its own authorisation from this list.",
+  "type": "object",
+  "required": ["id", "name", "slug"],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "Organisation id. Matches the `org_id` claim (ADR-0001)."
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name, e.g. \"Acme Sp. z o.o.\"."
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "URL-safe identifier. Stable; suitable for deep links and logs."
+    },
+    "logo_url": {
+      "type": ["string", "null"],
+      "description": "Optional organisation logo for the switcher."
+    },
+    "current": {
+      "type": ["boolean", "null"],
+      "description": "True for the organisation the caller's token is currently scoped to. Populated by Auth on the list response; ignored on input."
+    }
+  },
+  "additionalProperties": false
+}

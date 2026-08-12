@@ -7,6 +7,7 @@ namespace Abeon\SDK\Tests\Unit\Contract;
 use Abeon\SDK\DTO\AppDescriptor;
 use Abeon\SDK\DTO\ProblemDetails;
 use Abeon\SDK\DTO\SearchResult;
+use Abeon\SDK\DTO\Tenant;
 use Abeon\SDK\DTO\User;
 use Abeon\SDK\Events\Event;
 use Opis\JsonSchema\Errors\ErrorFormatter;
@@ -62,6 +63,36 @@ final class SchemaContractTest extends TestCase
     public function test_envelope_fixture_matches_schema(): void
     {
         $this->assertValid('events/_envelope.json', $this->fixture('envelope.json'));
+    }
+
+    public function test_tenant_fixture_matches_schema(): void
+    {
+        $this->assertValid('dto/tenant.json', $this->fixture('tenant.json'));
+    }
+
+    public function test_tenant_dto_conforms_and_roundtrips(): void
+    {
+        $fixture = $this->fixtureArray('tenant.json');
+        $out     = Tenant::fromArray($fixture)->toArray();
+
+        $this->assertValid('dto/tenant.json', $out);
+        $this->assertEquals($fixture, $out);
+    }
+
+    public function test_tenant_carries_no_permissions(): void
+    {
+        // The switcher list must not be a source of authorisation — a client that
+        // could read its own roles from it would be deriving authorisation from a
+        // response it can influence. Roles arrive in the re-issued JWT (ADR-0017).
+        $bad = $this->fixtureArray('tenant.json');
+        $bad['permissions'] = ['crm.contacts.read'];
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/tenant.json',
+        );
+
+        $this->assertFalse($result->isValid());
     }
 
     // --- DTO serialization conforms to the schema and round-trips the fixture ---
