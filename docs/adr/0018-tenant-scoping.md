@@ -61,6 +61,11 @@ carries a tenant, the asynchronous half of the platform cannot be scoped at all.
 - **Raw access bypasses it entirely.** `DB::table()`, raw SQL and query-builder joins do not run through
   an Eloquent global scope. Reviews and static analysis must treat raw database access in a service as
   something requiring justification.
+- **Quiet saves bypass the stamp.** `saveQuietly()` and `Model::withoutEvents()` suppress the `creating`
+  hook, so the row inserts unstamped. This cannot be closed from inside the trait, so the **tenant column
+  MUST be declared `NOT NULL`** — the database is the backstop for this one hole, turning a silent
+  unscoped row into a failed insert. (Found while building the component, and covered by a test that
+  asserts the constraint fires.)
 - **Consumers and queued jobs have no ambient context**, per the table above. This is handled, but by
   explicit plumbing rather than by the global scope.
 - **Migrations, seeders and console commands run tenant-less** by nature.
@@ -82,5 +87,8 @@ carries a tenant, the asynchronous half of the platform cannot be scoped at all.
   for the consumer path)**
 - Related: ADR-0003 (`CorrelationContext` — the precedent for propagating request state into jobs and
   consumers), ADR-0021 (object storage, which this scope does *not* cover)
-- Implementation: `Abeon\SDK\Auth\AuthContext` (`orgId()`), new `Abeon\SDK\Tenancy\*`
+- Implementation (shipped 2026-08-12): `Abeon\SDK\Auth\AuthContext` (`orgId()`, `requireOrgId()`) and
+  `Abeon\SDK\Tenancy\` — `TenantContext` (current organisation; falls back to `AuthContext` in HTTP,
+  entered explicitly via `runFor()` in consumers, jobs and commands), `TenantScope` (global scope,
+  fail-closed), `BelongsToTenant` (scope + stamp on create + `withoutTenantScope()`)
 - Implementation delta: `abeon-sdk-delta-2026-08-12.md` items 5–6

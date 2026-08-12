@@ -43,6 +43,7 @@ use Abeon\SDK\Logging\JsonFormatter;
 use Abeon\SDK\Services\Commands\RegisterCommand;
 use Abeon\SDK\Services\ServiceRegistry;
 use Abeon\SDK\Support\PathPrefix;
+use Abeon\SDK\Tenancy\TenantContext;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
@@ -104,6 +105,12 @@ class AbeonServiceProvider extends ServiceProvider
     {
         $this->app->scoped(CorrelationContext::class);
         $this->app->scoped(AuthContext::class);
+
+        // Scoped, like AuthContext — a singleton would carry one request's
+        // organisation into the next (ADR-0018).
+        $this->app->scoped(TenantContext::class, function ($app) {
+            return new TenantContext($app->make(AuthContext::class));
+        });
 
         $this->app->singleton(AbeonConfig::class, function ($app) {
             /** @var ConfigRepository $config */

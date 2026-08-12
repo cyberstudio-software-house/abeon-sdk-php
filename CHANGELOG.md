@@ -5,6 +5,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 ## [Unreleased]
 
+### 2026-08-12 — `Tenancy`: row scoping (ADR-0018)
+
+The mechanism ADR-0018 specified. Lands before the first domain table exists, which is the cheapest
+this will ever be.
+
+#### Added
+- **`Abeon\SDK\Tenancy\TenantContext`** — the organisation the current unit of work belongs to. In an
+  HTTP request it falls back to `AuthContext`, so the common path needs no wiring. Elsewhere there is
+  nothing to fall back on — `EventConsumer` deliberately does not populate `AuthContext` — so consumers,
+  queued jobs and console commands enter a tenant explicitly with
+  `runFor($orgId, fn () => …)`, which restores the previous value afterwards **including on exceptions**,
+  so a failing handler cannot leave a worker pinned to one organisation. Bound `scoped()`, like
+  `AuthContext`.
+- **`Abeon\SDK\Tenancy\TenantScope`** — global query scope. **Fails closed:** with no tenant in context
+  it throws rather than returning every organisation's rows.
+- **`Abeon\SDK\Tenancy\BelongsToTenant`** — `use` it on a model to get the scope, automatic stamping of
+  `org_id` on create, and `Model::withoutTenantScope(fn () => …)` — one greppable token, so auditing
+  cross-organisation access is a search rather than a code review. Nested calls use a counter, so an
+  inner block cannot re-enable scoping for an outer one.
+
+#### Known limits, documented rather than papered over
+- Raw access (`DB::table()`, SQL, query-builder joins) bypasses Eloquent scopes entirely.
+- Migrations, seeders and console commands run tenant-less by nature.
+- **`saveQuietly()` / `withoutEvents()` suppress the stamp**, inserting an unstamped row. This cannot be
+  closed from inside the trait, so **the tenant column must be `NOT NULL`** — the database is the
+  backstop. Found while building the component; there is a test asserting the constraint fires.
+
+23 tests covering scoping, cross-organisation invisibility by id, fail-closed reads and writes, the
+escape hatch (including restoration after a throw and correct nesting), and the consumer shape — run
+against real SQLite rather than a mocked builder, since the thing under test is the SQL that comes out.
+
 ### 2026-08-12 — multi-tenancy: ADR reconciliation + contract changes
 
 Brings the recorded architecture back in line with the concept meeting. Plan:

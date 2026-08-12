@@ -117,6 +117,45 @@ Run: `php artisan abeon:events:outbox-drain` and `php artisan abeon:events:consu
 
 > **`EventHandler` implementations must be idempotent.** Replaying a handler with the same `Event` must produce the same state — no double emails, no double-charged invoices, no incremented counters that move twice. See [ADR-0002](docs/adr/0002-event-envelope.md#consume-flow--idempotency) for the rationale and concrete patterns.
 
+### Scope a model to an organisation
+
+```php
+class Invoice extends Model
+{
+    use Abeon\SDK\Tenancy\BelongsToTenant;
+}
+
+// Migration — NOT NULL and indexed. Both matter, see below.
+$table->unsignedBigInteger('org_id')->index();
+```
+
+Reads are constrained to the current organisation and inserts are stamped with it, so application code
+never writes `org_id` by hand:
+
+```php
+Invoice::all();                              // only this organisation's rows
+Invoice::create(['number' => 'FV/1']);       // org_id stamped automatically
+Invoice::withoutTenantScope(fn () => …);     // the one sanctioned way to read across organisations
+```
+
+**A missing tenant throws** (`AuthException`, 403) rather than returning every organisation's rows. That
+rule matters more than the mechanism: any scoping can be bypassed, so what makes the system safe is that
+the unsafe state is loud — in development, on the first query.
+
+In an HTTP request the organisation follows from the authenticated user with no wiring. Everywhere else
+there is no auth context to fall back on, so enter it explicitly:
+
+```php
+// In an event handler — the tenant comes from the envelope (ADR-0002), because
+// EventConsumer does not populate AuthContext.
+$tenants->runFor($event->orgId, fn () => $this->process($event));
+```
+
+> **Known limits, by design.** The scope does not reach `DB::table()`, raw SQL or query-builder joins;
+> migrations, seeders and console commands run tenant-less; and `saveQuietly()` suppresses the stamp —
+> which is why the column must be **NOT NULL**, so the database is the backstop. See
+> [ADR-0018](docs/adr/0018-tenant-scoping.md) for the full list and the reasoning.
+
 ---
 
 ## Architecture — internal layering
@@ -128,6 +167,8 @@ Run: `php artisan abeon:events:outbox-drain` and `php artisan abeon:events:consu
 │  Client (ServiceClient, ServiceTokenProvider)│  ← sync communication
 ├──────────────────────────────────────────────┤
 │  Events (Publisher, Consumer, OutboxDrainer) │  ← async communication
+├──────────────────────────────────────────────┤
+│  Tenancy (TenantContext, Scope, trait)       │  ← organisation isolation
 ├──────────────────────────────────────────────┤
 │  Auth (JwtValidator, AuthMiddleware, Gate)   │  ← identity
 ├──────────────────────────────────────────────┤
