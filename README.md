@@ -30,7 +30,7 @@ observability, and operational concerns.
 
 - Business logic — that's the consumer service's responsibility.
 - Auth service implementation — see `abeon-auth` (Faza 1).
-- Notifications service implementation — see `abeon-notifications` (Faza 1).
+- AbeonUnified implementation — notifications, app registry, org↔app assignment; see `abeon-unified` (Faza 1, ADR-0019).
 - Frontend code — see `@abeon/shared` (TypeScript counterpart in sibling repo `abeon-shared/`).
 - Boilerplate Laravel application — separate workstream.
 - @abeon/ui design system — separate workstream (existing `abeon-ui` repo).

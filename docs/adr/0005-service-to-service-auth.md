@@ -85,7 +85,14 @@ If validation succeeds, the call is allowed. The callee can additionally check `
 
 **Future (M7, deferred):** K8s label-based discovery. Auth scrapes all Services labeled `abeon.io/service=true`, reads `abeon.io/jwks-url` annotation, builds JWKS dynamically. Adding a service = label + annotation; no Auth redeploy.
 
-The decision to defer M7 is conscious — current single-tenant scope makes the ConfigMap approach acceptable, and the future migration is mechanical (Auth changes, no service changes).
+The decision to defer M7 is conscious — the ConfigMap approach is acceptable at the current service
+count, and the future migration is mechanical (Auth changes, no service changes).
+
+> **Corrected 2026-08-12 (ADR-0016).** This deferral was originally justified by *"current single-tenant
+> scope"*. That reasoning no longer applies and, on inspection, never really did: the ConfigMap holds
+> **service** public keys, which are per service and not per organisation. Multi-tenancy does not change
+> the number of entries or how often they change, so the deferral stands — on the honest grounds above,
+> which are about service count rather than tenancy.
 
 ### Rotation
 

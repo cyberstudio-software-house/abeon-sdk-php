@@ -42,7 +42,7 @@ The SDK **does not**:
 
 - Implement business logic, persistence schemas beyond its own infrastructure tables, or domain models.
 - Implement the Auth service itself (`abeon-auth` repo, Phase 1).
-- Implement the Notifications service (`abeon-notifications` repo, Phase 0.5 / 1).
+- Implement AbeonUnified — notifications, app registry, org↔app assignment (`abeon-unified` repo, Phase 0.5 / 1; ADR-0019).
 - Ship a frontend — that's `@abeon/shared` + `@abeon/ui`.
 - Manage Kubernetes resources, Helm charts, or deploy pipelines.
 

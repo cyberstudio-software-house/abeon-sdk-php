@@ -29,6 +29,19 @@ holds and is retained.
    OCS credentials; the SDK's `Storage` component requests short-lived, organisation-scoped credentials
    from Unified and caches them, mirroring the `JwksClient` cache pattern and `ServiceTokenProvider`'s
    flush-on-401 behaviour.
+
+   **Package boundary.** The architecture doc's *Decyzje uzupełniające* #2 keeps the OCS Laravel driver
+   in a sibling package, `abeon/filesystem-ocs`, deliberately out of the core SDK so services that
+   never touch files (AbeonUnified, the ES Indexer) do not pull Swift/Keystone dependencies. **That
+   decision stands**, and the work splits along it:
+
+   | Where | What |
+   |---|---|
+   | **core `abeon/sdk`** — `Abeon\SDK\Storage` | Fetch + cache organisation-scoped credentials from Unified (plain HTTP via `ServiceClient`), enforce the `{service}/` prefix, assemble the disk. **No Swift, no Keystone dependency** — which is precisely what decision #2 protects. |
+   | **`abeon/filesystem-ocs`** | The Flysystem / Swift / Keystone driver, unchanged. |
+
+   Without this split the core SDK would drag object-storage dependencies into every service on the
+   platform, including the ones that exist specifically to avoid them.
 4. **Bytes go directly from the application to OCS.** Unified is in the credential path, not the data
    path.
 5. **The SDK enforces the `{service}/` prefix** so ordinary application code cannot address another
@@ -83,7 +96,9 @@ provisioning step. This ADR should be revisited at that point rather than patche
 - Related: ADR-0018 (tenant scoping — database only; it does **not** cover object storage)
 - Supersedes: `abeon-unified-architecture.md` §8.4 container layout (its Keystone caching and upload
   flow are retained)
-- Implementation: new `Abeon\SDK\Storage\*`; patterns to reuse in `src/Auth/JwksClient.php`
-  (`CacheRepository`) and `src/Client/ServiceTokenProvider.php` (fetch / cache / flush-on-401)
+- Implementation: new `Abeon\SDK\Storage\*` (credentials, prefix, disk assembly) + the existing
+  `abeon/filesystem-ocs` sibling package (Swift driver) per the architecture doc's *Decyzje
+  uzupełniające* #2; patterns to reuse in `src/Auth/JwksClient.php` (`CacheRepository`) and
+  `src/Client/ServiceTokenProvider.php` (fetch / cache / flush-on-401)
 - Swift ACL scope: [OpenStack Swift — Access Control Lists](https://docs.openstack.org/swift/latest/overview_acl.html)
 - Implementation delta: `abeon-sdk-delta-2026-08-12.md` item 7
