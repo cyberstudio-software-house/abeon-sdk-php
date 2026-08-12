@@ -20,6 +20,16 @@ final readonly class AppDescriptor
         public ?int $order = null,
         public ?string $mode = null,
         public ?bool $fullscreen = null,
+        /**
+         * Whether this application is assigned to the caller's organisation — the
+         * presence of a `tenant_apps` row for `(org_id, app)` (ADR-0015 as amended
+         * by ADR-0016).
+         *
+         * **Organisation-relative:** the same app yields different values for
+         * different callers. A cached catalogue is only valid for the organisation
+         * it was fetched for. `null` on self-registration — an app cannot know
+         * which organisations hold it.
+         */
         public ?bool $enabled = null,
     ) {
     }

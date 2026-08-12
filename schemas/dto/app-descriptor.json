@@ -16,7 +16,7 @@
     "order":       { "type": ["integer", "null"], "description": "Sort hint within the switcher / category (ascending)." },
     "mode":        { "type": ["string", "null"], "enum": ["suite", "app", null], "description": "Chrome UI mode the app prefers." },
     "fullscreen":  { "type": ["boolean", "null"], "description": "Render chrome-less / full-bleed." },
-    "enabled":     { "type": ["boolean", "null"], "description": "Org-level enablement (ADR-0015). Populated by Auth on catalog/apps responses; null/ignored on self-registration." }
+    "enabled":     { "type": ["boolean", "null"], "description": "Whether this application is assigned to the caller's organisation \u2014 the presence of a `tenant_apps` row for (org_id, app). ADR-0015 as amended by ADR-0016.\n\nOrganisation-relative: the SAME app yields different values for different callers, so a cached catalogue must be re-derived when the active organisation changes (ADR-0017). Populated by Auth on catalog/apps responses; null/ignored on self-registration, where the app cannot know which organisations hold it." }
   },
   "additionalProperties": false
 }
