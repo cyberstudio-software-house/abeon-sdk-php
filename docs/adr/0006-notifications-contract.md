@@ -111,6 +111,26 @@ A single emitter may not exceed **100 notifications/sec for one user**. `abeon-n
 
 ## References
 
+**2026-08-13 — implemented in `abeon-unified`, with three notes where reality differs from the text above.**
+
+1. **`unread-count` returns `unread_count`, as specified here.** The chrome hook
+   (`abeon-shared/src/react/use-notifications.ts`) read `data.count` from its first day, and the
+   boilerplate's dev stub was written against the hook rather than against this ADR — so the two agreed
+   with each other and with nothing else, and no test could see it while both sides were ours. The hook
+   now reads `unread_count` and treats the old field as a missing answer; its fallback of counting the
+   loaded page is a *degraded* answer, not an equivalent one, since it only ever sees the first page.
+2. **`cursor` is opaque, not an id.** The table above writes `?cursor=<id>`, which cannot work as
+   stated: the feed is ordered by time and a UUID carries no order, so "everything after this id" has no
+   meaning. The cursor encodes the sort key `(created_at, id)` and is base64url'd to keep clients from
+   reconstructing it. The response shape is unchanged — `next_cursor` was only ever typed as `string`.
+3. **Ids are UUIDv7, not v4.** `schemas/dto/notification.json` says `format: uuid` and nothing else, so
+   this is inside the contract. v7 is time-ordered, which suits an append-only feed; the cursor still
+   does not rely on that, because an id scheme is a bad thing for pagination to depend on silently.
+
+Also implemented but not specified here: the internal POST takes `source_app` from the **verified
+service token** rather than the body, so a service cannot attribute a notification to another
+application; the per-user rate limit and the retention job are not built yet.
+
 - Schema: `schemas/dto/notification.json`, `schemas/events/notification-requested.json`
 - Chrome consumer: `abeon-shared/src/react/use-notifications.ts`
 - Related: ADR-0002 (event envelope), ADR-0004 (REST envelope), ADR-0005 (service-to-service auth), ADR-0008 (broadcasting auth), ADR-0010 (auth /me + /apps)

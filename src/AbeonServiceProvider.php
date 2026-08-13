@@ -13,6 +13,7 @@ use Abeon\SDK\Auth\JwksClient;
 use Abeon\SDK\Auth\JwtValidator;
 use Abeon\SDK\Auth\PermissionsDeclarator;
 use Abeon\SDK\Auth\PermissionsServiceProvider as PermissionsBridge;
+use Abeon\SDK\Auth\ServiceAuthMiddleware;
 use Abeon\SDK\Broadcasting\BroadcastingAuthController;
 use Abeon\SDK\Client\ServiceClient;
 use Abeon\SDK\Client\ServiceTokenProvider;
@@ -85,6 +86,7 @@ class AbeonServiceProvider extends ServiceProvider
         $router = $this->app->make(Router::class);
         $router->aliasMiddleware('abeon.correlation', CorrelationIdMiddleware::class);
         $router->aliasMiddleware('abeon.auth', AuthMiddleware::class);
+        $router->aliasMiddleware('abeon.service', ServiceAuthMiddleware::class);
         $router->aliasMiddleware('abeon.version', VersionHeadersMiddleware::class);
         $router->aliasMiddleware('abeon.cors', Cors::class);
 

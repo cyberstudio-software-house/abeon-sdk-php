@@ -128,7 +128,7 @@ JWKS naturally supports multiple `kid`s simultaneously — this enables zero-dow
 
 ## References
 
-- Implementation: `src/Client/ServiceTokenProvider.php`, `src/Client/ServiceClient.php`, `src/Auth/JwtValidator.php`, `src/Auth/JwksClient.php`
+- Implementation: `src/Client/ServiceTokenProvider.php`, `src/Client/ServiceClient.php`, `src/Auth/JwtValidator.php`, `src/Auth/JwksClient.php`, `src/Auth/ServiceAuthMiddleware.php`
 - Schema: `schemas/auth/jwt-service.json`
 - Config keys: `ABEON_SERVICE_JWT_PRIVATE_KEY`, `ABEON_SERVICE_JWT_KID`, `ABEON_AUTH_JWKS_URL`
 - Related: ADR-0001 (JWT format both kinds), arch doc sekcja 5.4
@@ -143,3 +143,12 @@ JWKS naturally supports multiple `kid`s simultaneously — this enables zero-dow
   could not change. ADR-0025 additionally defines what the aggregated JWKS endpoint does when the
   ConfigMap is missing or malformed: serve Auth's own keys, 200, alert — but fail startup on a duplicate
   `kid`, which would make validation non-deterministic.
+
+- **Amended 2026-08-13** — the SDK now ships the *receiving* half. Until AbeonUnified needed an internal
+  endpoint, this ADR was implemented on the calling side only: `ServiceTokenProvider` minted the tokens
+  and `ServiceClient` attached them, but nothing validated one on arrival. `AuthMiddleware` calls
+  `decodeUser()`, which asserts `type: "user"` and therefore **rejects every service token**, so the
+  first service with an internal route would have written its own check — and the sixteenth would have
+  written a slightly different one. `Abeon\SDK\Auth\ServiceAuthMiddleware` (alias `abeon.service`)
+  enforces this ADR's validation list and exposes the verified `service_name` as a request attribute.
+  Deciding *which* services may call a given route stays per-route policy, as specified above.
