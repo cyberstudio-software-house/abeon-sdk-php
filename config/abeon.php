@@ -19,6 +19,15 @@ return [
         'jwks_url' => env('ABEON_AUTH_JWKS_URL'),
         'issuer'   => env('ABEON_AUTH_ISSUER', 'abeon-auth'),
         'audience' => env('ABEON_AUTH_AUDIENCE', 'abeon'),
+        // Clock-skew tolerance for exp/nbf, in seconds (ADR-0001 validation rule 5).
+        // Zero tolerance means a validator one second ahead of the issuer rejects a
+        // freshly minted token — intermittently, and only once services land on
+        // different nodes.
+        'leeway' => (int) env('ABEON_AUTH_LEEWAY', 60),
+        // How long this service caches the JWKS document, in seconds. This is what
+        // actually bounds key rotation: Auth must keep a retired kid published for at
+        // least this long plus one token lifetime (ADR-0005 as amended by ADR-0025).
+        'jwks_cache_ttl' => (int) env('ABEON_JWKS_CACHE_TTL', 3600),
         // Canonical cookie names — Auth service issues them, frontends (Inertia + Next.js
         // via @abeon/shared) read them. Frontends MUST swap from cookie → Authorization
         // Bearer header before calling downstream services, since AuthMiddleware only

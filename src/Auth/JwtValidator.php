@@ -29,6 +29,13 @@ class JwtValidator
     public function decode(string $token): array
     {
         try {
+            // ADR-0001 rule 5: `exp`/`nbf` are checked by firebase/php-jwt against its
+            // static leeway, which defaults to 0. Set it here rather than at boot so it
+            // holds for every validator, including one constructed directly in a test —
+            // a validator whose clock is a second ahead of the issuer would otherwise
+            // reject tokens that were just minted.
+            JWT::$leeway = $this->config->authLeewaySeconds();
+
             $kid = $this->kid($token);
             $jwk = $this->jwks->findKey($kid);
             if ($jwk === null) {

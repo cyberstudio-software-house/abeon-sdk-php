@@ -137,10 +137,13 @@ class AbeonServiceProvider extends ServiceProvider
     private function registerAuth(): void
     {
         $this->app->singleton(JwksClient::class, function ($app) {
+            $config = $app->make(AbeonConfig::class);
+
             return new JwksClient(
-                http:    $app->make(HttpFactory::class),
-                cache:   $app->make(CacheRepository::class),
-                jwksUrl: $app->make(AbeonConfig::class)->authJwksUrl(),
+                http:       $app->make(HttpFactory::class),
+                cache:      $app->make(CacheRepository::class),
+                jwksUrl:    $config->authJwksUrl(),
+                ttlSeconds: $config->authJwksCacheTtl(),
             );
         });
 

@@ -48,6 +48,31 @@ class AbeonConfig
         return (string) $this->config->get('abeon.auth.audience', 'abeon');
     }
 
+    /**
+     * Clock-skew tolerance when validating `exp` / `nbf`, in seconds (ADR-0001 rule 5).
+     *
+     * Nodes drift independently, so a validator with zero tolerance rejects tokens
+     * that were just minted by an issuer whose clock is a second ahead. Configurable
+     * because the right value depends on how well the cluster's clocks are kept.
+     */
+    public function authLeewaySeconds(): int
+    {
+        return (int) $this->config->get('abeon.auth.leeway', 60);
+    }
+
+    /**
+     * How long a consumer caches the JWKS document, in seconds.
+     *
+     * This is the quantity that binds key rotation: a consumer that never misses its
+     * cache keeps a retired `kid` usable for a full TTL, so the grace period before
+     * removing a key must cover this plus one access-token lifetime (ADR-0005 as
+     * amended by ADR-0025).
+     */
+    public function authJwksCacheTtl(): int
+    {
+        return (int) $this->config->get('abeon.auth.jwks_cache_ttl', 3600);
+    }
+
     public function authAccessCookieName(): string
     {
         return (string) $this->config->get('abeon.auth.cookies.access', 'abeon_token');

@@ -52,6 +52,16 @@ final class JwtValidatorTest extends TestCase
         ]));
     }
 
+    protected function tearDown(): void
+    {
+        // `JWT::$leeway` is a library-global static that `decode()` writes on every
+        // call. Restore the library default so a leeway set here cannot leak into
+        // another test file's expectations.
+        JWT::$leeway = 0;
+
+        parent::tearDown();
+    }
+
     public function test_decodes_a_valid_user_token_into_a_user_dto(): void
     {
         $user = $this->validator()->decodeUser($this->token());
@@ -177,6 +187,37 @@ final class JwtValidatorTest extends TestCase
 
         $this->assertSame('42', $claims['sub']);
         $this->assertSame(1, $jwks->flushCount);
+    }
+
+    public function test_tolerates_clock_skew_within_the_configured_leeway(): void
+    {
+        // Expired 30s ago: an issuer whose clock ran slightly behind this validator.
+        // ADR-0001 rule 5 (as amended by ADR-0025) requires 60s of tolerance, without
+        // which sixteen independently drifting nodes reject freshly minted tokens.
+        $claims = $this->validator()->decode($this->token(['exp' => time() - 30]));
+
+        $this->assertSame('42', $claims['sub']);
+    }
+
+    public function test_rejects_a_token_expired_beyond_the_leeway(): void
+    {
+        $this->expectException(AuthException::class);
+
+        $this->validator()->decode($this->token(['exp' => time() - 120]));
+    }
+
+    public function test_leeway_is_configurable_and_zero_disables_tolerance(): void
+    {
+        $strict = new JwtValidator(
+            new FakeJwksClient([self::KID => $this->jwk]),
+            new AbeonConfig(new Repository([
+                'abeon' => ['auth' => ['issuer' => 'abeon-auth', 'audience' => 'abeon', 'leeway' => 0]],
+            ])),
+        );
+
+        $this->expectException(AuthException::class);
+
+        $strict->decode($this->token(['exp' => time() - 30]));
     }
 
     private function validator(): JwtValidator
