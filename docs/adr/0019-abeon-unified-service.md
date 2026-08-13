@@ -110,3 +110,10 @@ places. Bulk object bytes are worth an exception (ADR-0021); control-plane calls
 - Elaborated by: ADR-0020 (AI gateway), ADR-0021 (object storage layout)
 - Doctrine sources: `abeon-unified-architecture.md` §5A, §8.5; the OCS exception at §8.4
 - Status account: `abeon-concept-status-2026-08-12.md` §5
+- **Amended 2026-08-13 by [ADR-0022](0022-organisation-provisioning.md)** (organisation provisioning):
+  the ownership split is sharpened at the one point where it is ambiguous. Unified owns *apps and their
+  assignment*, but **Auth creates the organisation row** — so a registration with `org_id: null` is
+  completed by Auth and the resulting identifier travels back on `auth.org.created`, correlated by the
+  registration's own `id`. Unified holds a projection, not a second source of truth. ADR-0022 also
+  records that the email gap noted in this ADR's Decision §1 blocks self-service onboarding: credential
+  delivery waits for Unified's email channel rather than giving Auth its own Mailgun credentials.

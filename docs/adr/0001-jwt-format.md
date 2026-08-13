@@ -31,9 +31,9 @@ Canonical schema: [`schemas/auth/jwt-user.json`](../../schemas/auth/jwt-user.jso
 | `email` | yes | RFC 5322 email. |
 | `name` | optional | Display name. |
 | `roles` | yes | List of role names. |
-| `permissions` | yes | List of `{app}.{resource}.{action}` strings (e.g. `crm.contacts.read`). Regex `^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$`. |
+| `permissions` | yes | List of `{app}.{resource}.{action}` strings (e.g. `crm.contacts.read`). Regex `^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$`. **Literal grants only — no wildcards.** Auth expands roles to fully-qualified permissions at issue time, subject to a token-size budget (ADR-0024). |
 | `org_id` | **yes** | Integer organization ID. **The organisation the token is scoped to** — an authorization and data-scoping dimension, not a display field (ADR-0016). A user belonging to several organisations holds a token for exactly one at a time; switching re-issues the token (ADR-0017). |
-| `jti` | yes | Unique token ID — enables revocation lists. |
+| `jti` | yes | Unique token ID — enables revocation lists. **Mechanism specified in ADR-0023:** v1 revokes the refresh family and lets the access token expire (≤ 15 min); v2 pushes `auth.token.revoked` to a per-service local deny-list. |
 
 ### Service token claims
 
@@ -59,7 +59,9 @@ Every service validates inbound JWTs **locally** using the cached JWKS (no Auth 
 2. Signature verified via RS256 against the resolved JWK.
 3. `iss` must equal the configured issuer (`abeon-auth` for user tokens; emitting service name for service tokens — validator inspects `type` to know which to expect).
 4. `aud` must equal `abeon`.
-5. `exp` not in the past.
+5. `exp` not in the past, **allowing 60 seconds of clock skew** (`JWT::$leeway = 60`, set centrally by
+   the SDK). Nodes drift independently; a validator with no tolerance rejects tokens that were just
+   minted.
 6. `type` matches the expected token kind for the endpoint.
 
 Implementation: `Abeon\SDK\Auth\JwtValidator` + `Abeon\SDK\Auth\JwksClient`.
@@ -85,7 +87,7 @@ The Auth service issues the access token as an httpOnly cookie on `.abeon.pl` (c
 - Type claim distinguishes user vs service in audit logs and policy decisions.
 
 **Negative / accepted:**
-- 15-minute user token requires refresh token flow (separate refresh cookie). Mitigated by `@abeon/shared` `refreshTokenIfExpired()` helper.
+- 15-minute user token requires refresh token flow (separate refresh cookie). Mitigated by `@abeon/shared` `refreshTokenIfExpired()` helper. **Refresh tokens rotate and reuse kills the family — ADR-0023.**
 - Compromised service private key has 5-minute exposure until JWKS rotation propagates.
 - Permission catalog is federated (each service declares its own via `service.permissions.declared` event) — no central RBAC table. Single source of truth requires aggregation in Auth.
 
@@ -99,3 +101,21 @@ The Auth service issues the access token as an httpOnly cookie on `.abeon.pl` (c
   tokens and is now an authorization dimension — it was previously *"optional … for multi-org
   accounts"*, informational only under the superseded ADR-0012. The service token gained an optional
   `org_id` for on-behalf-of calls. See also ADR-0017 (switching re-issues the token).
+- **Amended 2026-08-13 by [ADR-0023](0023-token-revocation-and-sessions.md)** (revocation and sessions):
+  `jti`'s "enables revocation lists" gained an actual mechanism, and the refresh flow this ADR introduced
+  gained defined semantics — rotation on every use, family-wide revocation on reuse, and a stated
+  ≤ 15-minute window before a revoked session's access token stops working.
+- **Amended 2026-08-13 by [ADR-0024](0024-permission-expansion.md)** (permission expansion): the
+  `permissions` claim is literal grants only, expanded from roles by Auth at issue time, with a 4 KB
+  token-size budget enforced by test. Role-only tokens are the named escape hatch if that budget is ever
+  breached — which would make `permissions` optional here.
+- **Amended 2026-08-13 by [ADR-0025](0025-auth-service-invariants.md)** (Auth service invariants):
+  validation rule 5 gained **60 seconds of clock-skew tolerance**. The tolerance had never been stated,
+  and `JWT::$leeway` was therefore 0 across the platform — a validator one second ahead of the issuer
+  rejects a freshly minted token. ADR-0025 also fixes what happens when expansion would breach the
+  ADR-0024 budget: Auth refuses to mint rather than truncating the claim.
+- **Impersonation, decided 2026-08-13, implementation deferred.** When impersonation ships
+  (`abeon-auth-spec.md` FR-30), the real actor is carried by an **`act` claim in the style of RFC 8693**
+  — an impersonated token must be distinguishable from an ordinary one in every service and in the audit
+  log. The claim table above gains `act` at that point, along with the `User` DTO in both SDKs; it is
+  recorded here now so the shape is not invented under deadline later.

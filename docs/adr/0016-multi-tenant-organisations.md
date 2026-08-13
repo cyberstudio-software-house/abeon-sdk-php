@@ -52,7 +52,8 @@ suite, many clients.
    ADR-0012. Every domain table carries a tenant key; every query is scoped (ADR-0018).
 2. **A user belongs to one or more organisations.** Membership is a relation (the MVP's
    `tenant_users`), owned by Auth. Roles and permissions are held **per membership**, not globally —
-   a user may be an admin in one organisation and a read-only user in another.
+   a user may be an admin in one organisation and a read-only user in another. The organisation row
+   itself is Auth's too, and how one comes into existence is specified in ADR-0022.
 3. **Each organisation holds its own set of apps** (the MVP's `tenant_apps`). This replaces ADR-0015's
    instance-global `enabled` flag; see the amendment there.
 4. **`org_id` is the wire name; "tenant" is the domain word.** They mean the same thing. The claim is
@@ -104,3 +105,11 @@ suite, many clients.
 - Provenance: `abeon-shell-unified/supabase/migrations/20251210133745_*.sql`, `unified-shell-spec.md`
   (FR-1, FR-2, FR-9), `abeon-unified-architecture.md` §1.1 / §5B / §16
 - Status account: `abeon-concept-status-2026-08-12.md` §3 and §4/D1
+- **Amended 2026-08-13 by [ADR-0022](0022-organisation-provisioning.md)** (organisation provisioning):
+  this ADR established that organisations exist and that membership is Auth's, but not how an
+  organisation is *created*. ADR-0022 closes that: Auth creates the row, driven by
+  `unified.app.registered`, and publishes `auth.org.created` so Unified can key its `tenant_apps`
+  assignment on the new identifier.
+- **Amended 2026-08-13 by [ADR-0024](0024-permission-expansion.md)** (permission expansion): because
+  grants are per membership, Auth re-expands roles into literal permissions on every login, refresh and
+  tenant switch. No wildcard stands in for "everything".

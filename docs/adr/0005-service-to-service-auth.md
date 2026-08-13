@@ -96,7 +96,12 @@ count, and the future migration is mechanical (Auth changes, no service changes)
 
 ### Rotation
 
-- **Routine rotation:** redeploy service with new `(kid, private_key)` pair. Old `kid` removed from JWKS after a grace period (≥ 2× token TTL = 10 minutes minimum).
+- **Routine rotation:** redeploy service with new `(kid, private_key)` pair. Old `kid` removed from JWKS
+  after a grace period of **at least the consumer JWKS cache TTL plus one access-token lifetime**.
+  The binding quantity is the *cache*, not the token: a consumer that never misses its cache keeps a
+  retired key usable for a full TTL. `JwksClient`'s TTL is configurable via
+  `abeon.auth.jwks_cache_ttl`; with its 3600 s default the grace period is ≥ 75 minutes, not the
+  10 minutes an earlier reading of this ADR implied.
 - **Compromised key:** redeploy immediately with new pair, remove old `kid` from JWKS. Maximum exposure window = remaining TTL of in-flight tokens (≤ 5 minutes).
 
 JWKS naturally supports multiple `kid`s simultaneously — this enables zero-downtime rotation.
@@ -130,3 +135,11 @@ JWKS naturally supports multiple `kid`s simultaneously — this enables zero-dow
 - **Amended 2026-08-12 by ADR-0016** (multi-tenant organisations): the service token gained an optional
   `org_id` for on-behalf-of calls, and `ServiceTokenProvider`'s process-wide cache must be keyed by it.
   See also ADR-0018 (fail-closed when a tenant is required and absent).
+- **Amended 2026-08-13 by [ADR-0025](0025-auth-service-invariants.md)** (Auth service invariants): the
+  rotation grace period is now derived from the **consumer JWKS cache TTL**, not from the token TTL. The
+  original "≥ 2× token TTL = 10 minutes" understated it — `JwksClient` caches for 3600 s by default, so a
+  consumer that never misses its cache keeps a retired `kid` usable for an hour. The TTL also became
+  configurable (`abeon.auth.jwks_cache_ttl`); it was previously a constructor default that operations
+  could not change. ADR-0025 additionally defines what the aggregated JWKS endpoint does when the
+  ConfigMap is missing or malformed: serve Auth's own keys, 200, alert — but fail startup on a duplicate
+  `kid`, which would make validation non-deterministic.

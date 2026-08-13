@@ -92,3 +92,9 @@ carries a tenant, the asynchronous half of the platform cannot be scoped at all.
   entered explicitly via `runFor()` in consumers, jobs and commands), `TenantScope` (global scope,
   fail-closed), `BelongsToTenant` (scope + stamp on create + `withoutTenantScope()`)
 - Implementation delta: `abeon-sdk-delta-2026-08-12.md` items 5–6
+- **Amended 2026-08-13 by [ADR-0022](0022-organisation-provisioning.md)** (organisation provisioning):
+  the fail-closed rule has exactly one documented exception. The `unified.app.registered` consumer starts
+  with no tenant *legitimately* — registration is platform-level work that happens before an organisation
+  exists — and discharges the obligation by entering `TenantContext::runFor()` as soon as it has resolved
+  or created the organisation. Recorded so a handler that does not call `requireOrgId()` at entry reads as
+  the specified exception rather than as this ADR being ignored.

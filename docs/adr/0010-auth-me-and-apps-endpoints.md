@@ -182,5 +182,31 @@ Both controllers require `AuthMiddleware`. Both return JSON in the ADR-0004 enve
   permission-only).
 - **Amended 2026-08-12 by ADR-0016 and ADR-0019**: the rule is now **`tenant_apps` ∩ permissions**, the
   registry is owned by AbeonUnified with Auth proxying the read paths, and self-registration targets
-  `service('unified')`. `GET /api/v1/auth/user` also gains the caller's organisation memberships, so the
-  tenant switcher (ADR-0017) has something to render.
+  `service('unified')`.
+
+  > **Corrected 2026-08-13.** This note originally continued: *"`GET /api/v1/auth/user` also gains the
+  > caller's organisation memberships, so the tenant switcher (ADR-0017) has something to render."*
+  > That never happened and was never the decision. **ADR-0017, written the same day, explicitly chose a
+  > separate `GET /api/v1/auth/tenants` endpoint** rather than widening this one, precisely because the
+  > `User` DTO is contract-frozen and mirrored in golden fixtures on both sides. The code agrees with
+  > ADR-0017: `schemas/dto/user.json`, `src/DTO/User.php` and `abeon-shared/src/types/user.ts` carry no
+  > membership collection (verified 2026-08-13). The `User` DTO is unchanged by ADR-0016.
+
+- **Amended 2026-08-13 by [ADR-0025](0025-auth-service-invariants.md)** (Auth service invariants):
+  `GET /api/v1/auth/apps` may cache per `org_id` for at most 60 seconds and **must** invalidate on any
+  store write, so an entitlement change is visible on the next request rather than after a TTL. An
+  organisation with no assigned applications returns an empty list with 200, never an error — the state
+  is reachable between provisioning and Unified's assignment landing (ADR-0022).
+
+- **Amended 2026-08-13: which permission set gates the UI.** This ADR justified the endpoint partly on
+  the grounds that *"permissions may evolve between JWT issue and refresh — the endpoint can return the
+  current set"*, while ADR-0024 makes the token the source of authorization. Both cannot govern what the
+  chrome renders. **The token wins:** the chrome gates controls on the grants in the caller's token, so a
+  user is never shown a control that every service will refuse. The endpoint MAY additionally expose a
+  freshly re-derived set in a separate field for administrative views, but that field must not drive
+  gating. The cost is accepted and bounded: a permission *granted* mid-session becomes visible only after
+  the next token issue, within the 15-minute window ADR-0023 defines.
+
+- **Amended 2026-08-13 by [ADR-0026](0026-administration-is-an-sdk-surface.md)**: the administration
+  endpoints `/api/v1/auth/admin/*` join this ADR's endpoints as a shared, versioned, fixture-covered
+  contract, because `@abeon/shared` consumes them from every application.
