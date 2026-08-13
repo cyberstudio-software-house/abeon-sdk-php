@@ -78,6 +78,17 @@ Implementation: `Abeon\SDK\Auth\JwtValidator` + `Abeon\SDK\Auth\JwksClient`.
 
 The Auth service issues the access token as an httpOnly cookie on `.abeon.pl` (cookie name from `auth.cookies.access`, default `abeon_token`). Frontend backends (Laravel + Inertia or Next.js SSR) **must read this cookie and attach the JWT as `Authorization: Bearer <value>`** before calling downstream services. `Abeon\SDK\Auth\AuthMiddleware` only reads the `Authorization` header — it does **not** inspect cookies. See [`@abeon/shared`](../../../abeon-shared/) for the TypeScript helper `createServerApiClient(cookies, headers)` that performs this translation.
 
+> **Amended 2026-08-13: Auth performs the translation for itself.** The rule above covers services a
+> frontend backend calls *on the user's behalf*. Auth is also reachable **directly from a browser** —
+> architecture doc §7.1 routes `app.abeon.pl/auth/*` straight to it — and such a request carries the
+> cookie and no header. Auth therefore mounts its own cookie→Bearer bridge ahead of `AuthMiddleware`
+> (`abeon-auth-spec.md` FR-39). An explicit `Authorization` header always wins, so a service-to-service
+> call is never overridden by a browser cookie riding along.
+>
+> Note this leaves an open routing question rather than settling it: the chrome calls
+> `/api/v1/auth/*`, which §7.1 maps to *"wewnętrzne API (service-to-service, opcjonalnie)"* rather than
+> to Auth. See `abeon-auth-spec.md` finding A-21 — the bridge makes Auth correct under either answer.
+
 ## Consequences
 
 **Positive:**
@@ -114,6 +125,10 @@ The Auth service issues the access token as an httpOnly cookie on `.abeon.pl` (c
   and `JWT::$leeway` was therefore 0 across the platform — a validator one second ahead of the issuer
   rejects a freshly minted token. ADR-0025 also fixes what happens when expansion would breach the
   ADR-0024 budget: Auth refuses to mint rather than truncating the claim.
+- **Amended 2026-08-13: Auth bridges cookie → `Authorization` for itself.** See the note in *Cookie ↔
+  Authorization translation* above. The original rule assigned the translation to frontend backends,
+  which does not cover a browser reaching Auth directly. Requirement: `abeon-auth-spec.md` FR-39; the
+  unresolved ingress question it exposes: finding A-21.
 - **Impersonation, decided 2026-08-13, implementation deferred.** When impersonation ships
   (`abeon-auth-spec.md` FR-30), the real actor is carried by an **`act` claim in the style of RFC 8693**
   — an impersonated token must be distinguishable from an ordinary one in every service and in the audit
