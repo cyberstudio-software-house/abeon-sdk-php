@@ -58,8 +58,15 @@ class AppsController
             throw AuthException::unauthenticated();
         }
 
+        if ($user->orgId === null) {
+            // ADR-0018: no tenant is not every tenant. A catalogue cannot be assembled
+            // without one, and inventing a global answer here is the failure mode that
+            // rule exists to forbid.
+            throw AuthException::unauthenticated('User JWT is missing the required org_id claim');
+        }
+
         $visible = array_values(array_filter(
-            $this->registry->list(),
+            $this->registry->list($user->orgId),
             fn (AppDescriptor $app) => $this->isVisibleTo($app, $user),
         ));
 

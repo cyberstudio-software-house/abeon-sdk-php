@@ -48,7 +48,7 @@ class ServiceAuthMiddleware
 
     public function handle(Request $request, Closure $next): Response
     {
-        $token = $this->extractToken($request);
+        $token = BearerToken::from($request);
 
         if ($token === null) {
             throw AuthException::unauthenticated();
@@ -75,16 +75,5 @@ class ServiceAuthMiddleware
         $request->attributes->set(self::ATTRIBUTE_ORG_ID, is_int($orgId) ? $orgId : null);
 
         return $next($request);
-    }
-
-    private function extractToken(Request $request): ?string
-    {
-        $header = $request->headers->get('Authorization');
-
-        if (is_string($header) && str_starts_with($header, 'Bearer ')) {
-            return substr($header, 7) ?: null;
-        }
-
-        return null;
     }
 }

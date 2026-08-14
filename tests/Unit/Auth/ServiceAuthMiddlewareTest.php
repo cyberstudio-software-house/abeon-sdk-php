@@ -85,6 +85,41 @@ final class ServiceAuthMiddlewareTest extends TestCase
         $this->middleware()->handle($this->request($token), fn () => new Response('ok'));
     }
 
+    public function test_decode_itself_refuses_a_service_token_with_no_identity(): void
+    {
+        // `decode()` is public, and it is the only part of this contract a service can
+        // use *without* this middleware — in an event consumer, a console command, or
+        // its own middleware. Whoever does that is entitled to assume a decoded service
+        // token names its sender, and until 2026-08-15 the requirement lived one layer
+        // up, where they would not get it.
+        $claims = $this->claims();
+        unset($claims['service_name']);
+
+        $config = new AbeonConfig(new Repository([
+            'abeon' => ['auth' => ['issuer' => 'abeon-auth', 'audience' => 'abeon']],
+        ]));
+        $validator = new JwtValidator(new StaticJwksClient([self::KID => $this->jwk]), $config);
+
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage('missing service_name');
+
+        $validator->decode(JWT::encode($claims, $this->privateKey, 'RS256', self::KID));
+    }
+
+    public function test_a_service_name_that_is_not_a_string_is_refused(): void
+    {
+        // The cast this replaced turned an array into the literal `"Array"` and then
+        // compared that — a conversion applied to a value from outside our control.
+        $config = new AbeonConfig(new Repository([
+            'abeon' => ['auth' => ['issuer' => 'abeon-auth', 'audience' => 'abeon']],
+        ]));
+        $validator = new JwtValidator(new StaticJwksClient([self::KID => $this->jwk]), $config);
+
+        $this->expectException(AuthException::class);
+
+        $validator->decode($this->token(['service_name' => ['crm'], 'iss' => 'Array']));
+    }
+
     public function test_rejects_a_service_token_without_a_service_name(): void
     {
         // Rejected by the validator rather than here: with no `service_name` there is

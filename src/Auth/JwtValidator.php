@@ -195,7 +195,21 @@ class JwtValidator
             // A service token is self-signed, so its claimed name has to match the key
             // it was signed with. `iss` is still checked against `service_name` to keep
             // the two fields of the token consistent with each other.
-            $serviceName = (string) ($claims['service_name'] ?? '');
+            $serviceName = $claims['service_name'] ?? null;
+
+            // Checked here rather than left to `ServiceAuthMiddleware`, which is where it
+            // used to live. `decode()` is public and is the only part of this contract a
+            // service can use *without* that middleware — in a consumer, a console
+            // command, or its own middleware, which is exactly the case the middleware
+            // exists to make unnecessary. Somebody doing that was entitled to assume a
+            // decoded service token names its sender.
+            //
+            // The cast this replaces was its own small problem: `(string) $claims[...]`
+            // on a value from outside our control turns an array into `"Array"` and an
+            // integer into its digits, and then compares that.
+            if (! is_string($serviceName) || $serviceName === '') {
+                throw AuthException::unauthenticated('Service JWT is missing service_name');
+            }
 
             $this->assertClaim($claims, 'iss', $serviceName);
 

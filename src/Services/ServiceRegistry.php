@@ -53,13 +53,28 @@ class ServiceRegistry
     }
 
     /**
-     * Read the list of currently registered apps from Auth.
+     * Read the application catalogue.
+     *
+     * **This used to call `/api/v1/auth/apps` and could not have worked.** That route is
+     * behind `AuthMiddleware`, which calls `decodeUser()` and refuses anything that is
+     * not a user token — and `ServiceClient` presents a service token by construction.
+     * A 401, on the first call, by definition. Nothing called it, so nothing said so:
+     * the method had unit tests, looked finished, and would have failed the moment
+     * somebody used it.
+     *
+     * It now asks Unified, which owns the registry (ADR-0019) and whose internal routes
+     * are the ones meant for service tokens.
+     *
+     * The organisation is required rather than optional: that endpoint requires it, and
+     * ADR-0018's rule applies — a catalogue with no tenant is not "every tenant".
      *
      * @return list<AppDescriptor>
      */
-    public function list(): array
+    public function list(int $orgId): array
     {
-        $response = $this->client->service('auth')->get('/api/v1/auth/apps');
+        $response = $this->client
+            ->service('unified')
+            ->get('/api/v1/internal/registry/catalogue', ['org_id' => $orgId]);
         $body     = $response->json();
 
         if (! is_array($body) || ! isset($body['data']) || ! is_array($body['data'])) {
