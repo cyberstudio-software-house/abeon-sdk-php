@@ -127,3 +127,23 @@ All public APIs live under `/api/v1`. Version bumps follow strict rules:
 - Schemas: `schemas/http/envelope.json`, `schemas/http/problem-details.json`
 - Versioning middleware: `src/Http/VersionHeadersMiddleware.php`
 - Related: ADR-0005 (s2s auth — RFC 7807 lifted across hops), arch doc sekcja 6.1
+
+## References
+
+- **Implemented 2026-08-14** — until then only `AbeonException` rendered as a problem document, so the
+  error format above described a shape the platform mostly did not emit. A validation failure came back
+  in Laravel's own `{"message":..., "errors":{...}}`, and without an `Accept: application/json` header it
+  came back as a **302 to `/`** — from services that have no `web` group, no session and no page there.
+  `tests/fixtures/contract/problem-details.json` had pinned the correct validation shape since the
+  beginning and nothing produced it.
+
+  `ProblemDetailsRenderer::register()` now covers `AbeonException`, `ValidationException` (422 with the
+  `errors` extension member), `AuthenticationException` (401 instead of a redirect to a `login` route
+  that does not exist), anything implementing `HttpExceptionInterface` — which is how
+  `NotFoundHttpException` from `firstOrFail()` reaches a client — and, outside debug mode, any remaining
+  throwable.
+
+  It is **opt-in**, taken up by `abeon-auth` and `abeon-unified` only. `abeon-boilerplate-inertia` needs
+  validation failures to return as a redirect carrying the errors in the session, because that is how
+  Inertia forms work, and `abeon-auth-ui` posts Blade forms. Gating on `$request->expectsJson()` would
+  have fixed nothing: the redirect happens precisely when the caller omits that header.

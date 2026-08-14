@@ -162,3 +162,20 @@ JWKS naturally supports multiple `kid`s simultaneously — this enables zero-dow
   tokens with the platform issuer, a shape `ServiceTokenProvider` never produces. The validator now
   requires `iss === service_name` for service tokens, so a caller cannot claim to be another service,
   and the platform issuer only for user tokens (ADR-0001).
+
+- **JWKS aggregation implemented 2026-08-14 (FR-27).** The "current (v1)" design above — a shared
+  ConfigMap mounted into the Auth pod — was specified from the start and unbuilt, so
+  `/.well-known/jwks.json` served only Auth's own keys. The consequence was quiet and total: **service-
+  to-service authentication worked solely because Auth was the only caller.** A token signed by any other
+  service failed validation everywhere with "Unknown JWT signing key", which made a fourth service
+  impossible to add.
+
+  The ConfigMap is read as a **directory of JWKS documents**, one file per service, because Kubernetes
+  mounts each ConfigMap key as its own file — adding a service is then a one-key change with nothing to
+  merge. Keys are merged with Auth's own and deduplicated by `kid`; a duplicate is refused rather than
+  resolved, since two different keys under one identifier make validation non-deterministic. A missing or
+  malformed source degrades to Auth's own keys with an alert, per ADR-0025 §4.
+
+  FR-27.2's "fail startup" lives in `abeon:jwks:check` rather than in the application's boot: PHP-FPM
+  bootstraps per request, so failing there would take down user login — the exact trade ADR-0025 §4
+  refuses. The command belongs in a Helm `pre-upgrade` hook or an init container.
