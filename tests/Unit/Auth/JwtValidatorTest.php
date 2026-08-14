@@ -16,10 +16,18 @@ final class JwtValidatorTest extends TestCase
 {
     private const KID = 'test-kid';
 
+    /** A real service's own key, so owner-vs-claim can be exercised honestly. */
+    private const SERVICE_KID = 'crm-test-kid';
+
     private string $privateKey;
+
+    private string $servicePrivateKey;
 
     /** @var array<string, mixed> */
     private array $jwk;
+
+    /** @var array<string, mixed> */
+    private array $serviceJwk;
 
     private AbeonConfig $config;
 
@@ -45,6 +53,25 @@ final class JwtValidatorTest extends TestCase
             'kid' => self::KID,
             'n'   => $this->b64u($details['rsa']['n']),
             'e'   => $this->b64u($details['rsa']['e']),
+            // Auth's own key. Only this one may sign a user token.
+            JwtValidator::JWK_OWNER => 'abeon-auth',
+        ];
+
+        $serviceRes = openssl_pkey_new([
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ]);
+        openssl_pkey_export($serviceRes, $servicePem);
+        $this->servicePrivateKey = $servicePem;
+        $serviceDetails = openssl_pkey_get_details($serviceRes);
+        $this->serviceJwk = [
+            'kty' => 'RSA',
+            'use' => 'sig',
+            'alg' => 'RS256',
+            'kid' => self::SERVICE_KID,
+            'n'   => $this->b64u($serviceDetails['rsa']['n']),
+            'e'   => $this->b64u($serviceDetails['rsa']['e']),
+            JwtValidator::JWK_OWNER => 'crm',
         ];
 
         $this->config = new AbeonConfig(new Repository([
@@ -76,7 +103,7 @@ final class JwtValidatorTest extends TestCase
 
     public function test_decodes_a_service_token_but_rejects_it_as_a_user(): void
     {
-        $token = $this->token(['type' => 'service', 'sub' => 'crm', 'service_name' => 'crm', 'iss' => 'crm']);
+        $token = $this->serviceToken();
 
         $claims = $this->validator()->decode($token);
         $this->assertSame('service', $claims['type']);
@@ -111,9 +138,7 @@ final class JwtValidatorTest extends TestCase
     {
         $this->expectException(AuthException::class);
         $this->expectExceptionMessage('Expected user-type JWT');
-        $this->validator()->decodeUser($this->token([
-            'type' => 'service', 'service_name' => 'abeon-auth',
-        ]));
+        $this->validator()->decodeUser($this->serviceToken());
     }
 
     public function test_a_service_token_carries_its_own_issuer(): void
@@ -122,9 +147,7 @@ final class JwtValidatorTest extends TestCase
         // is that service's name, not the platform issuer. Asserting `abeon-auth` for
         // both kinds made every token `ServiceTokenProvider` mints unacceptable to the
         // SDK that minted it — visible only once a real client called a real service.
-        $claims = $this->validator()->decode($this->token([
-            'iss' => 'crm', 'type' => 'service', 'sub' => 'crm', 'service_name' => 'crm',
-        ]));
+        $claims = $this->validator()->decode($this->serviceToken());
 
         $this->assertSame('crm', $claims['iss']);
     }
@@ -134,9 +157,7 @@ final class JwtValidatorTest extends TestCase
         // Otherwise a service could sign a token claiming to come from another one.
         $this->expectException(AuthException::class);
 
-        $this->validator()->decode($this->token([
-            'iss' => 'crm', 'type' => 'service', 'sub' => 'crm', 'service_name' => 'finance',
-        ]));
+        $this->validator()->decode($this->serviceToken(['service_name' => 'finance']));
     }
 
     public function test_decode_user_rejects_a_token_without_org_id(): void
@@ -245,9 +266,94 @@ final class JwtValidatorTest extends TestCase
         $strict->decode($this->token(['exp' => time() - 30]));
     }
 
+    // ------------------------------------------- klucz musi należeć do nadawcy
+
+    public function test_a_service_key_cannot_sign_a_user_token(): void
+    {
+        // Najgroźniejsza z trzech dziur, jakie odsłoniła agregacja JWKS (FR-27): dopóki
+        // walidator sprawdzał wyłącznie `iss`, czyli pole zapisane przez podpisującego,
+        // klucz dowolnego serwisu wystawiał token dowolnego użytkownika w dowolnej
+        // organizacji. Podpis był prawidłowy — po prostu nie należał do Auth.
+        $token = JWT::encode($this->claims([
+            'iss' => 'abeon-auth', 'type' => 'user', 'sub' => '1',
+            'permissions' => ['core.users.manage'], 'org_id' => 2,
+        ]), $this->servicePrivateKey, 'RS256', self::SERVICE_KID);
+
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage('may not sign user tokens');
+
+        $this->validator()->decodeUser($token);
+    }
+
+    public function test_a_service_key_cannot_sign_another_services_token(): void
+    {
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage("belongs to 'crm', but the token claims to come from 'finance'");
+
+        $this->validator()->decode($this->serviceToken(['iss' => 'finance', 'service_name' => 'finance']));
+    }
+
+    public function test_a_key_that_does_not_say_who_owns_it_is_refused(): void
+    {
+        // Fail-closed: zestaw kluczy sprzed tej kontroli nie uwierzytelnia niczego,
+        // zamiast uwierzytelniać wszystko.
+        $anonymous = $this->jwk;
+        unset($anonymous[JwtValidator::JWK_OWNER]);
+
+        $validator = new JwtValidator(new FakeJwksClient([self::KID => $anonymous]), $this->config);
+
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage('does not record which party owns it');
+
+        $validator->decode($this->token());
+    }
+
+    public function test_a_token_without_an_expiry_is_refused(): void
+    {
+        // `firebase/php-jwt` sprawdza `exp` tylko wtedy, gdy jest — więc token bez tego
+        // pola był wieczny, a ADR-0005 ogranicza skutki kompromitacji klucza właśnie
+        // żywotnością tokenu.
+        $claims = $this->claims();
+        unset($claims['exp']);
+
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage('Token has no expiry');
+
+        $this->validator()->decode($this->tokenFromClaims($claims));
+    }
+
+    public function test_an_implausibly_long_lifetime_is_refused(): void
+    {
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage('exceeds the');
+
+        $this->validator()->decode($this->token(['exp' => time() + 400 * 86400]));
+    }
+
     private function validator(): JwtValidator
     {
-        return new JwtValidator(new FakeJwksClient([self::KID => $this->jwk]), $this->config);
+        return new JwtValidator(new FakeJwksClient([
+            self::KID         => $this->jwk,
+            self::SERVICE_KID => $this->serviceJwk,
+        ]), $this->config);
+    }
+
+    /**
+     * Sign with the *service's* key, which is the only honest way to mint a service
+     * token now that the key has to belong to the party the token claims to be.
+     *
+     * @param  array<string, mixed>  $overrides
+     */
+    private function serviceToken(array $overrides = []): string
+    {
+        return JWT::encode(
+            $this->claims(array_merge([
+                'iss' => 'crm', 'sub' => 'crm', 'type' => 'service', 'service_name' => 'crm',
+            ], $overrides)),
+            $this->servicePrivateKey,
+            'RS256',
+            self::SERVICE_KID,
+        );
     }
 
     /**

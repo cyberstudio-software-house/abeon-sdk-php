@@ -46,6 +46,9 @@ final class ServiceAuthMiddlewareTest extends TestCase
             'kid' => self::KID,
             'n'   => $this->b64u($details['rsa']['n']),
             'e'   => $this->b64u($details['rsa']['e']),
+            // The key belongs to `crm`, which is the only service whose tokens it may
+            // sign. Identity comes from the key set, not from a field of the token.
+            JwtValidator::JWK_OWNER => 'crm',
         ];
     }
 
@@ -68,17 +71,16 @@ final class ServiceAuthMiddlewareTest extends TestCase
 
     public function test_rejects_a_user_token(): void
     {
-        // The whole point of the middleware. Without this check, every holder of a
-        // normal session could call the internal surface, which is the opposite of
-        // what "internal" means.
-        // A *valid* user token, issuer and all — otherwise this would be rejected for
-        // being malformed and would prove nothing about the type check.
+        // A user token must never open an internal route. Since 2026-08-14 it cannot
+        // even be signed with this key — a service key may not mint user tokens at all
+        // — so the rejection now happens one layer earlier, in the validator, and for a
+        // stronger reason than the type check that used to catch it.
         $token = $this->token([
             'iss' => 'abeon-auth', 'type' => 'user', 'sub' => '42', 'org_id' => 7,
         ]);
 
         $this->expectException(AuthException::class);
-        $this->expectExceptionMessage('Expected service-type JWT');
+        $this->expectExceptionMessage('may not sign user tokens');
 
         $this->middleware()->handle($this->request($token), fn () => new Response('ok'));
     }
@@ -99,17 +101,16 @@ final class ServiceAuthMiddlewareTest extends TestCase
         );
     }
 
-    public function test_rejects_a_service_token_whose_name_is_empty(): void
+    public function test_rejects_a_service_token_claiming_another_service(): void
     {
-        // The case the middleware's own guard exists for: `iss` and `service_name` are
-        // both empty, so they agree with each other and the validator lets it through.
-        // An unnamed caller must still not reach an internal route — there would be
-        // nothing for per-route policy to allow or refuse.
+        // The attack the key-ownership check exists for: crm's key signing a token that
+        // says `finance`. Before 2026-08-14 this was accepted, because `iss` and
+        // `service_name` were only compared to each other — two fields the signer writes.
         $this->expectException(AuthException::class);
-        $this->expectExceptionMessage('missing service_name');
+        $this->expectExceptionMessage("belongs to 'crm'");
 
         $this->middleware()->handle(
-            $this->request($this->token(['iss' => '', 'service_name' => ''])),
+            $this->request($this->token(['iss' => 'finance', 'service_name' => 'finance'])),
             fn () => new Response('ok'),
         );
     }

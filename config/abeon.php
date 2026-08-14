@@ -23,6 +23,11 @@ return [
         // Zero tolerance means a validator one second ahead of the issuer rejects a
         // freshly minted token — intermittently, and only once services land on
         // different nodes.
+        // Longest lifetime a token may claim before this service refuses to believe it,
+        // regardless of who signed it (ADR-0005 bounds a key compromise by the token
+        // lifetime; that only holds if something enforces a lifetime).
+        'max_token_lifetime' => (int) env('ABEON_MAX_TOKEN_LIFETIME', 86400),
+
         'leeway' => (int) env('ABEON_AUTH_LEEWAY', 60),
         // How long this service caches the JWKS document, in seconds. This is what
         // actually bounds key rotation: Auth must keep a retired kid published for at

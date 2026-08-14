@@ -43,6 +43,16 @@ class AbeonConfig
         return (string) $this->config->get('abeon.auth.issuer', 'abeon-auth');
     }
 
+    /**
+     * Backstop against a token that never expires or expires in a decade. Not a TTL
+     * policy — issuers set their own, far shorter (ADR-0001: 15 minutes for users,
+     * ADR-0005: 5 for services). This only bounds what a *validator* will believe.
+     */
+    public function authMaxTokenLifetime(): int
+    {
+        return (int) $this->config->get('abeon.auth.max_token_lifetime', 86400);
+    }
+
     public function authAudience(): string
     {
         return (string) $this->config->get('abeon.auth.audience', 'abeon');

@@ -13,6 +13,16 @@ use Throwable;
 
 class JwtValidator
 {
+    /**
+     * JWK member naming the party a key belongs to.
+     *
+     * RFC 7517 §4 allows additional members and requires implementations to ignore
+     * ones they do not recognise, so this travels safely to standard JWT libraries
+     * that have no idea what it means. For this platform it is the difference between
+     * "a valid signature" and "a valid signature *from the party that claims it*".
+     */
+    public const JWK_OWNER = 'abeon_owner';
+
     public function __construct(
         private readonly JwksClient $jwks,
         private readonly AbeonConfig $config,
@@ -51,25 +61,8 @@ class JwtValidator
             $payload = (array) JWT::decode($token, $key);
 
             $this->assertClaim($payload, 'aud', $this->config->authAudience());
-
-            // `iss` means different things for the two token kinds, and asserting the
-            // platform issuer for both made every real service token invalid.
-            //
-            // A user token is minted by Auth and carries `iss: "abeon-auth"` (ADR-0001).
-            // A service token is **self-signed by the calling service** and carries its
-            // own name — `schemas/auth/jwt-service.json` types `iss` as "Issuing service
-            // name", `ServiceTokenProvider` sets it from the service name, and
-            // ADR-0005's validation list deliberately checks `aud`, `type` and `exp`
-            // but not `iss`. Requiring `abeon-auth` here meant the SDK could mint
-            // service tokens that the SDK could never accept.
-            if (($payload['type'] ?? null) === 'service') {
-                // Not unchecked, though: `iss` must agree with `service_name`, so a
-                // token cannot claim to come from one service while identifying as
-                // another. Which services may call a route stays per-route policy.
-                $this->assertClaim($payload, 'iss', (string) ($payload['service_name'] ?? ''));
-            } else {
-                $this->assertClaim($payload, 'iss', $this->config->authIssuer());
-            }
+            $this->assertLifetime($payload);
+            $this->assertKeyOwnsIdentity($jwk, $kid, $payload);
 
             return $payload;
         } catch (AuthException $e) {
@@ -136,6 +129,93 @@ class JwtValidator
     {
         if (($claims[$name] ?? null) !== $expected) {
             throw AuthException::unauthenticated("Invalid claim {$name}");
+        }
+    }
+
+    /**
+     * A token must say when it stops being valid, and must not claim to be valid for
+     * an implausible span.
+     *
+     * `firebase/php-jwt` checks `exp` only when it is present, so a token minted
+     * without one never expires. ADR-0005 bounds a key compromise by the token's
+     * lifetime — a guarantee that only holds if the lifetime exists and is short.
+     * The ceiling is generous on purpose: it is a backstop against an eternal token,
+     * not a second TTL policy.
+     *
+     * @param  array<string, mixed>  $claims
+     */
+    private function assertLifetime(array $claims): void
+    {
+        if (! isset($claims['exp']) || ! is_numeric($claims['exp'])) {
+            throw AuthException::unauthenticated('Token has no expiry');
+        }
+
+        $ceiling = $this->config->authMaxTokenLifetime();
+        $issued  = isset($claims['iat']) && is_numeric($claims['iat']) ? (int) $claims['iat'] : time();
+
+        if ((int) $claims['exp'] - $issued > $ceiling) {
+            throw AuthException::unauthenticated("Token lifetime exceeds the {$ceiling}s ceiling");
+        }
+    }
+
+    /**
+     * The key that signed the token must belong to the party the token claims to be.
+     *
+     * This is the check whose absence made JWKS aggregation dangerous. `iss` and
+     * `service_name` are both fields of the token, written by whoever signed it, so
+     * comparing them to each other proves internal consistency and **nothing about
+     * identity**. Once `/.well-known/jwks.json` publishes every service's key (FR-27),
+     * a flat "is this signature valid against any published key" check means any
+     * service's private key can mint a token for any other service — and, worse, a
+     * *user* token for any user in any organisation, because user tokens were only
+     * ever checked for `iss: abeon-auth`, which the signer also controls.
+     *
+     * So identity comes from the key, and the key's owner comes from a place the
+     * signer does not control: for Auth's own keys, the row in `signing_keys`; for
+     * everyone else, the ConfigMap key name that operations chose when mounting it.
+     *
+     * A key that does not say who owns it is refused rather than trusted. That is
+     * fail-closed, and it means a JWKS from before this check cannot be used to
+     * authenticate anything.
+     *
+     * @param  array<string, mixed>  $jwk
+     * @param  array<string, mixed>  $claims
+     */
+    private function assertKeyOwnsIdentity(array $jwk, string $kid, array $claims): void
+    {
+        $owner = $jwk[self::JWK_OWNER] ?? null;
+
+        if (! is_string($owner) || $owner === '') {
+            throw AuthException::unauthenticated(
+                "Signing key {$kid} does not record which party owns it, so no identity can be trusted to it",
+            );
+        }
+
+        if (($claims['type'] ?? null) === 'service') {
+            // A service token is self-signed, so its claimed name has to match the key
+            // it was signed with. `iss` is still checked against `service_name` to keep
+            // the two fields of the token consistent with each other.
+            $serviceName = (string) ($claims['service_name'] ?? '');
+
+            $this->assertClaim($claims, 'iss', $serviceName);
+
+            if ($owner !== $serviceName) {
+                throw AuthException::unauthenticated(
+                    "Signing key {$kid} belongs to '{$owner}', but the token claims to come from '{$serviceName}'",
+                );
+            }
+
+            return;
+        }
+
+        // User tokens are minted by Auth alone. No other service's key may sign one,
+        // whatever `iss` says.
+        $this->assertClaim($claims, 'iss', $this->config->authIssuer());
+
+        if ($owner !== $this->config->authIssuer()) {
+            throw AuthException::unauthenticated(
+                "Signing key {$kid} belongs to '{$owner}' and may not sign user tokens",
+            );
         }
     }
 }
