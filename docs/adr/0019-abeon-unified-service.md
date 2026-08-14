@@ -117,3 +117,23 @@ places. Bulk object bytes are worth an exception (ADR-0021); control-plane calls
   registration's own `id`. Unified holds a projection, not a second source of truth. ADR-0022 also
   records that the email gap noted in this ADR's Decision §1 blocks self-service onboarding: credential
   delivery waits for Unified's email channel rather than giving Auth its own Mailgun credentials.
+
+- **Completed 2026-08-14** — the application catalogue and `tenant_apps` now live in `abeon-unified`, and
+  `abeon-auth` has dropped its own tables. They were parked there through Slice 1 because `/auth/apps` is
+  on the chrome's render path and could not wait for this service to exist. The move ran in four steps
+  with a config switch in between (`ABEON_REGISTRY_DRIVER`), so the source could be changed and changed
+  back without a deploy; the switch was removed with the tables it read.
+
+  `/auth/apps` and `/auth/store` did not move. The concept graph splits it that way — *apps access
+  management* stays with Auth, *apps registration* and *apps tenants* belong here — so Auth still answers
+  the questions and this service holds the rows. `App\Apps\AppRegistry` remains as Auth's seam.
+
+  Two consequences worth recording. Auth is now a **client** of another service on its render path, so
+  reads fail soft onto the last known app set and fail visibly when there is none — an empty list is
+  indistinguishable from an organisation that legitimately holds no applications (ADR-0022), which would
+  make an outage look like correct behaviour. And Auth calling here means Unified calls Auth back for
+  JWKS to validate the service token, a runtime cycle that resolves only because both sides have more
+  than one worker and the key set is cached for an hour.
+
+  Still unbuilt from this ADR: *apps data*, whose meaning it deliberately left open, and the AI gateway
+  (ADR-0020) and OCS credentials (ADR-0021).
