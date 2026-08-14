@@ -135,3 +135,28 @@ a datastore rather than through a contract.
   by a 5-minute TTL instead), [ADR-0002](0002-event-envelope.md) (`auth.token.revoked` envelope)
 - Config: `abeon.auth.cookies.access` / `.refresh` (`config/abeon.php`)
 - Plan: `abeon-auth-plan.md` §A2, §D2
+
+- **2026-08-15 — reuse detection gained a same-client race window, because "two tabs" was a logout.**
+  This ADR kills the family on reuse and ADR-0025 §6 notes that clients should serialise their own
+  refreshes. The chrome does. That mitigation living entirely outside Auth *was* the defect: a mobile
+  app, an integration or a second frontend had nowhere to put it, and measured on a running service,
+  eight parallel refreshes with one token produced 1×200, 7×401, a revoked family and seven
+  `auth.refresh.reuse_detected` rows indistinguishable from a real incident.
+
+  A second presentation is now treated as the same client racing itself when **both** hold: it arrives
+  within `ABEON_REFRESH_RACE_GRACE` (10s by default) of the consumption it lost, **and** it comes from
+  the address and user agent the token was issued to. It still gets 401 — no credential is handed out —
+  but the family survives, and it is audited as `auth.refresh.raced` rather than as reuse.
+
+  **The client check is not a refinement, it is the point.** A window based on time alone would have
+  blinded the ordering this whole scheme exists for: a thief who uses a stolen token *first* leaves the
+  victim's client presenting it moments later, and a bare grace period files that as harmless — thief
+  still holding a live session, detection never firing. Requiring the presenting client to match the one
+  the token was issued to means a replay from anywhere else is reuse, as before.
+
+  Residual, stated rather than hidden: an attacker on the same address and user agent, replaying inside
+  the window, is not detected. That is far narrower than "any replay within N seconds", it is audited
+  either way, and races from a *different* address than the token's own are exactly the pattern worth
+  alerting on.
+
+  Set `ABEON_REFRESH_RACE_GRACE=0` to restore the previous behaviour exactly.
