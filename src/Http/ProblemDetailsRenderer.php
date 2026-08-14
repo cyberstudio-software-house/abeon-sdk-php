@@ -7,7 +7,9 @@ namespace Abeon\SDK\Http;
 use Abeon\SDK\DTO\ProblemDetails;
 use Abeon\SDK\Exceptions\AbeonException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\RecordsNotFoundException;
 use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -39,8 +41,11 @@ class ProblemDetailsRenderer
      * Gating on `$request->expectsJson()` would fix nothing: the redirect happens
      * exactly when the caller omits `Accept: application/json`.
      *
-     * Order matters. `renderViaCallbacks()` returns the first callback whose first
-     * parameter type matches, so these run most specific first.
+     * Order matters twice over. Within this method, `renderViaCallbacks()` returns the
+     * first callback whose first parameter type matches, so these run most specific
+     * first. And **this method must be called last** in `withExceptions()`: Laravel
+     * appends callbacks in registration order, so anything an application registers
+     * after the catch-all below would never be reached in production.
      */
     public static function register(Exceptions $exceptions): void
     {
@@ -61,9 +66,20 @@ class ProblemDetailsRenderer
         // an HTTP error — all of which answer Laravel's `{"message": "..."}` shape
         // otherwise, which is not the platform's error contract.
         $exceptions->render(fn (HttpExceptionInterface $e, $request): JsonResponse => app(self::class)
-            ->renderStatus($e->getStatusCode(), $e->getMessage(), self::instanceOf($request)));
+            ->renderStatus($e->getStatusCode(), self::safeDetail($e), self::instanceOf($request)));
 
         $exceptions->render(function (Throwable $e, $request): ?JsonResponse {
+            // `HttpResponseException` carries a response somebody already built —
+            // `abort($response)`, `throwResponse()`, Precognition. It is a plain
+            // `RuntimeException`, so none of the callbacks above match it, and this one
+            // runs *before* the branch in `Handler::render()` that would have returned
+            // that prepared response. Swallowing it turned a deliberate answer into a
+            // blank 500 — and only in production, because in debug this returns null and
+            // the chain carries on, so local development never saw it.
+            if ($e instanceof HttpResponseException) {
+                return null;
+            }
+
             // In debug mode this returns null so the callback chain falls through and
             // local development keeps Ignition. In production every error is a problem
             // document, including the ones nobody anticipated.
@@ -73,6 +89,28 @@ class ProblemDetailsRenderer
 
             return app(self::class)->render($e, self::instanceOf($request));
         });
+    }
+
+    /**
+     * The message on an HTTP exception, but only when a person wrote it.
+     *
+     * `prepareException()` maps `ModelNotFoundException` to `NotFoundHttpException`
+     * carrying its message, which reads `No query results for model [App\Models\Organisation] 42`.
+     * That names an internal class and confirms whether somebody else's record exists,
+     * and it went out in `detail` on every 404 in production — while `render()` was
+     * carefully hiding exception messages two methods away. The asymmetry was an
+     * oversight, not a decision.
+     *
+     * A message written at a call site (`new NotFoundHttpException('Notification not
+     * found')`) has no previous exception and is meant for the caller, so it survives.
+     */
+    private static function safeDetail(HttpExceptionInterface&Throwable $e): string
+    {
+        if ($e->getPrevious() instanceof RecordsNotFoundException) {
+            return '';
+        }
+
+        return $e->getMessage();
     }
 
     public function render(Throwable $exception, ?string $instance = null): JsonResponse
