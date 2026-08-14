@@ -76,7 +76,7 @@ final class JwtValidatorTest extends TestCase
 
     public function test_decodes_a_service_token_but_rejects_it_as_a_user(): void
     {
-        $token = $this->token(['type' => 'service', 'sub' => 'crm', 'service_name' => 'crm']);
+        $token = $this->token(['type' => 'service', 'sub' => 'crm', 'service_name' => 'crm', 'iss' => 'crm']);
 
         $claims = $this->validator()->decode($token);
         $this->assertSame('service', $claims['type']);
@@ -111,7 +111,32 @@ final class JwtValidatorTest extends TestCase
     {
         $this->expectException(AuthException::class);
         $this->expectExceptionMessage('Expected user-type JWT');
-        $this->validator()->decodeUser($this->token(['type' => 'service']));
+        $this->validator()->decodeUser($this->token([
+            'type' => 'service', 'service_name' => 'abeon-auth',
+        ]));
+    }
+
+    public function test_a_service_token_carries_its_own_issuer(): void
+    {
+        // ADR-0005: a service token is self-signed by the calling service and its `iss`
+        // is that service's name, not the platform issuer. Asserting `abeon-auth` for
+        // both kinds made every token `ServiceTokenProvider` mints unacceptable to the
+        // SDK that minted it — visible only once a real client called a real service.
+        $claims = $this->validator()->decode($this->token([
+            'iss' => 'crm', 'type' => 'service', 'sub' => 'crm', 'service_name' => 'crm',
+        ]));
+
+        $this->assertSame('crm', $claims['iss']);
+    }
+
+    public function test_a_service_token_whose_issuer_disagrees_with_its_name_is_rejected(): void
+    {
+        // Otherwise a service could sign a token claiming to come from another one.
+        $this->expectException(AuthException::class);
+
+        $this->validator()->decode($this->token([
+            'iss' => 'crm', 'type' => 'service', 'sub' => 'crm', 'service_name' => 'finance',
+        ]));
     }
 
     public function test_decode_user_rejects_a_token_without_org_id(): void

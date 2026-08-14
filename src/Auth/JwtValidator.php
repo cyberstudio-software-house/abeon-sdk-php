@@ -50,8 +50,26 @@ class JwtValidator
             $key     = JWK::parseKey($jwk);
             $payload = (array) JWT::decode($token, $key);
 
-            $this->assertClaim($payload, 'iss', $this->config->authIssuer());
             $this->assertClaim($payload, 'aud', $this->config->authAudience());
+
+            // `iss` means different things for the two token kinds, and asserting the
+            // platform issuer for both made every real service token invalid.
+            //
+            // A user token is minted by Auth and carries `iss: "abeon-auth"` (ADR-0001).
+            // A service token is **self-signed by the calling service** and carries its
+            // own name — `schemas/auth/jwt-service.json` types `iss` as "Issuing service
+            // name", `ServiceTokenProvider` sets it from the service name, and
+            // ADR-0005's validation list deliberately checks `aud`, `type` and `exp`
+            // but not `iss`. Requiring `abeon-auth` here meant the SDK could mint
+            // service tokens that the SDK could never accept.
+            if (($payload['type'] ?? null) === 'service') {
+                // Not unchecked, though: `iss` must agree with `service_name`, so a
+                // token cannot claim to come from one service while identifying as
+                // another. Which services may call a route stays per-route policy.
+                $this->assertClaim($payload, 'iss', (string) ($payload['service_name'] ?? ''));
+            } else {
+                $this->assertClaim($payload, 'iss', $this->config->authIssuer());
+            }
 
             return $payload;
         } catch (AuthException $e) {

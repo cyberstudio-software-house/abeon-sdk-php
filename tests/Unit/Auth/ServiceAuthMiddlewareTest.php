@@ -71,7 +71,11 @@ final class ServiceAuthMiddlewareTest extends TestCase
         // The whole point of the middleware. Without this check, every holder of a
         // normal session could call the internal surface, which is the opposite of
         // what "internal" means.
-        $token = $this->token(['type' => 'user', 'sub' => '42', 'org_id' => 7]);
+        // A *valid* user token, issuer and all — otherwise this would be rejected for
+        // being malformed and would prove nothing about the type check.
+        $token = $this->token([
+            'iss' => 'abeon-auth', 'type' => 'user', 'sub' => '42', 'org_id' => 7,
+        ]);
 
         $this->expectException(AuthException::class);
         $this->expectExceptionMessage('Expected service-type JWT');
@@ -81,14 +85,31 @@ final class ServiceAuthMiddlewareTest extends TestCase
 
     public function test_rejects_a_service_token_without_a_service_name(): void
     {
+        // Rejected by the validator rather than here: with no `service_name` there is
+        // nothing for `iss` to agree with, and a service token that cannot say which
+        // service it is has already failed the contract.
         $claims = $this->claims();
         unset($claims['service_name']);
 
         $this->expectException(AuthException::class);
-        $this->expectExceptionMessage('missing service_name');
 
         $this->middleware()->handle(
             $this->request(JWT::encode($claims, $this->privateKey, 'RS256', self::KID)),
+            fn () => new Response('ok'),
+        );
+    }
+
+    public function test_rejects_a_service_token_whose_name_is_empty(): void
+    {
+        // The case the middleware's own guard exists for: `iss` and `service_name` are
+        // both empty, so they agree with each other and the validator lets it through.
+        // An unnamed caller must still not reach an internal route — there would be
+        // nothing for per-route policy to allow or refuse.
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage('missing service_name');
+
+        $this->middleware()->handle(
+            $this->request($this->token(['iss' => '', 'service_name' => ''])),
             fn () => new Response('ok'),
         );
     }
@@ -147,7 +168,12 @@ final class ServiceAuthMiddlewareTest extends TestCase
     private function claims(array $overrides = []): array
     {
         return array_merge([
-            'iss'          => 'abeon-auth',
+            // `iss` is the *issuing service*, not the platform issuer — that is what
+            // `ServiceTokenProvider` mints and what `jwt-service.json` specifies. The
+            // first version of this harness copied the user-token claim set, so it
+            // tested a token shape the real client never produces and missed that the
+            // validator rejected every genuine one.
+            'iss'          => 'crm',
             'aud'          => 'abeon',
             'sub'          => 'crm',
             'type'         => 'service',

@@ -152,3 +152,13 @@ JWKS naturally supports multiple `kid`s simultaneously — this enables zero-dow
   written a slightly different one. `Abeon\SDK\Auth\ServiceAuthMiddleware` (alias `abeon.service`)
   enforces this ADR's validation list and exposes the verified `service_name` as a request attribute.
   Deciding *which* services may call a given route stays per-route policy, as specified above.
+
+- **Corrected 2026-08-14** — `JwtValidator` asserted `iss === abeon-auth` for *every* token, including
+  service ones. The validation list above deliberately checks `kid`, signature, `aud`, `type` and `exp`
+  and **not** `iss`, because a service token is self-signed by its caller and carries that caller's name
+  (`"iss": "crm"` in the example above; `schemas/auth/jwt-service.json` types it as "Issuing service
+  name"). The result was that the SDK minted service tokens the SDK could never accept — invisible until
+  a real client called a real service, because both the middleware's tests and the manual drives minted
+  tokens with the platform issuer, a shape `ServiceTokenProvider` never produces. The validator now
+  requires `iss === service_name` for service tokens, so a caller cannot claim to be another service,
+  and the platform issuer only for user tokens (ADR-0001).
