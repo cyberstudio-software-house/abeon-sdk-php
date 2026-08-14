@@ -135,3 +135,29 @@ touched, rather than as a side effect of this ADR.
 - Code verified 2026-08-13: `src/Auth/JwtValidator.php` (`decodeUser` rejects a null `org_id`),
   `abeon-auth-stub/app/Support/Memberships.php` (`default()` returns the first membership),
   `abeon-auth-stub/app/Auth/UserTokenIssuer.php` (throws rather than minting org-less)
+
+## References
+
+- **Amended 2026-08-14 — §6 keeps its guarantee and loses its ordering.**
+
+  §6 required the throttle check to run *before* the presented refresh token is looked
+  up, so that a 429 could never consume it. The ordering delivered that, and also made
+  the limit apply to **valid** tokens — and the limit is keyed on IP. Behind a shared
+  egress, a NAT or a corporate proxy, that is a denial of service on everyone: eleven bad
+  attempts from one client locked refresh for every user at the same address, verified on
+  a running service.
+
+  It also bought very little. What a refresh token protects is 64 characters of CSPRNG
+  output; a ten-per-minute limit is not what stands between an attacker and guessing it,
+  and replay is already answered by family revocation (ADR-0023).
+
+  The throttle now applies **only to failures**. A valid token is never subject to it,
+  so it can never be consumed by a 429 — §6's actual requirement, satisfied more
+  strongly than the ordering satisfied it. Looking a token up does not consume it; only
+  rotation does.
+
+  Deployment note the old rule hid: with the limit keyed on `$request->ip()`, a service
+  behind a proxy that does not configure `TrustProxies` sees one address for every
+  caller, which turns any per-IP limit into a global one. That is worth fixing wherever
+  a per-IP limit remains — login still has one, and there it protects a low-entropy
+  secret, so it earns its place.
