@@ -38,6 +38,7 @@ use Abeon\SDK\Health\RabbitMqCheck;
 use Abeon\SDK\Http\CorrelationIdMiddleware;
 use Abeon\SDK\Http\Cors;
 use Abeon\SDK\Http\ProblemDetailsRenderer;
+use Abeon\SDK\Http\TrustedProxies;
 use Abeon\SDK\Http\VersionHeadersMiddleware;
 use Abeon\SDK\Logging\CorrelationContext;
 use Abeon\SDK\Logging\JsonFormatter;
@@ -70,6 +71,13 @@ class AbeonServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Every Abeon service sits behind a TLS-terminating ingress, so believing the
+        // forwarded headers is a platform property rather than a per-service choice.
+        // Here rather than in each `bootstrap/app.php`: the middleware is already in
+        // Laravel's default global stack and reads these statics at request time, and
+        // `withMiddleware()` runs before the config repository exists.
+        TrustedProxies::apply();
+
         $this->publishes([
             __DIR__.'/../config/abeon.php' => $this->configPath('abeon.php'),
         ], 'abeon-config');

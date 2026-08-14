@@ -76,6 +76,20 @@ return [
         'checks' => array_filter(array_map('trim', explode(',', (string) env('ABEON_HEALTH_CHECKS', 'db')))),
     ],
 
+    'http' => [
+        /*
+         | Which proxies this service believes about `X-Forwarded-*`.
+         |
+         | `*` is right when the only route to the pod is through the ingress, which is
+         | the usual arrangement here. It is wrong the moment anything can reach the pod
+         | directly: a client then sets its own `X-Forwarded-For` and picks its own
+         | address, and Auth throttles failed logins per `(email, ip)` — a spoofable
+         | address is a spoofable counter. Pin this to the ingress CIDR wherever the
+         | network does not already guarantee it. Comma-separated.
+         */
+        'trusted_proxies' => env('ABEON_TRUSTED_PROXIES', '*'),
+    ],
+
     'logging' => [
         'correlation_field' => env('ABEON_LOG_CORRELATION_FIELD', 'correlation_id'),
     ],
