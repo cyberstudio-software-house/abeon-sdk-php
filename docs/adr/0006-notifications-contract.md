@@ -131,6 +131,31 @@ Also implemented but not specified here: the internal POST takes `source_app` fr
 service token** rather than the body, so a service cannot attribute a notification to another
 application; the per-user rate limit and the retention job are not built yet.
 
+**2026-08-14 — the rate limit and the retention job are built, and the cap sheds loudly rather than
+silently on the synchronous path.**
+
+- **Retention** (`abeon:notifications:prune`, scheduled daily) applies both windows as written: 90 days
+  on age, 30 days on when a notification was read. Config keys are on `abeon-unified`, as this ADR
+  requires. Deletion is chunked — a single `DELETE` across ninety days of rows is one long transaction
+  holding locks inside `notifications_unread_index`, which is the index every concurrent `unread-count`
+  is reading, so the cleanup would stall the bell platform-wide while it ran. `mark-all-read` was
+  chunked for the same reason. A retention window of zero refuses to run instead of emptying the table.
+- **Bulk caps** are enforced at 100/s per `(user_id, source_app)`, as specified. **The response differs
+  from what this ADR says.** "Drops with a logged warning; no DLX" describes the *asynchronous* fan-in,
+  where a consumer can drop a message and no caller is waiting on an answer. The synchronous POST is
+  kept here "for cases where the emitter must know the notification ID immediately", and the only way to
+  drop silently on that path is to answer `201 Created` with an id for a row that was never written —
+  a caller that stores or links to that id then fails later and somewhere else. So the synchronous path
+  answers **429** and logs the warning; the broker consumer, when it exists, can drop silently on its own
+  path, where nobody is waiting. The two are not the same decision and should not share one sentence.
+- A ceiling on the user-facing feed was added as well. It is not a contract term — it guards against a
+  runaway client loop — and it is keyed by the Abeon user id, not by address, because this service
+  authenticates with a platform JWT and never with a Laravel guard, so Laravel's stock throttle would
+  put every user on the platform in one address-keyed bucket. Making that keying actually work required
+  putting `AuthMiddleware` ahead of `ThrottleRequests` on Laravel's middleware priority list: declaring
+  auth first on the route does not make it run first, and until that was fixed the limiter read an empty
+  `AuthContext` and fell back to the address on every request, with correct-looking headers throughout.
+
 - Schema: `schemas/dto/notification.json`, `schemas/events/notification-requested.json`
 - Chrome consumer: `abeon-shared/src/react/use-notifications.ts`
 - Related: ADR-0002 (event envelope), ADR-0004 (REST envelope), ADR-0005 (service-to-service auth), ADR-0008 (broadcasting auth), ADR-0010 (auth /me + /apps)
