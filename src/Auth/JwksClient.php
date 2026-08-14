@@ -25,7 +25,7 @@ class JwksClient
      */
     public function keys(): array
     {
-        return $this->cache->remember(self::CACHE_KEY, $this->ttlSeconds, function () {
+        return $this->cache->remember(self::CACHE_KEY, $this->jitteredTtl(), function () {
             $response = $this->http->get($this->jwksUrl);
             if (! $response->successful()) {
                 throw AuthException::unauthenticated('Could not fetch JWKS from '.$this->jwksUrl);
@@ -45,6 +45,32 @@ class JwksClient
 
             return $keys;
         });
+    }
+
+    /**
+     * The configured TTL, spread by up to ±10%.
+     *
+     * Without this every process that started around the same time expires its key set
+     * at the same moment, and they all go to Auth at once. There is one source, and on
+     * this platform it is the service that also sits on the login path — and which is
+     * itself waiting on Unified for the app catalogue while it answers (ADR-0019 records
+     * that cycle). Sixteen services times their replicas, synchronised on the hour, is a
+     * thundering herd aimed at the one endpoint that must not be slow.
+     *
+     * The spread is per store, not per call: `remember()` only sets a TTL when it writes,
+     * so each process picks its own expiry once and they drift apart from there.
+     */
+    private function jitteredTtl(): int
+    {
+        if ($this->ttlSeconds < 10) {
+            // Too short to spread meaningfully, and in tests a jittered value would just
+            // make assertions unstable for no benefit.
+            return $this->ttlSeconds;
+        }
+
+        $spread = (int) round($this->ttlSeconds * 0.1);
+
+        return $this->ttlSeconds + random_int(-$spread, $spread);
     }
 
     /**

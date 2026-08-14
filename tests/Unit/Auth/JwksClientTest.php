@@ -92,4 +92,62 @@ final class JwksClientTest extends TestCase
             ],
         ];
     }
+
+    public function test_the_cache_ttl_is_spread_so_replicas_do_not_expire_together(): void
+    {
+        // There is one source of keys, and on this platform it is the service that also
+        // sits on the login path — and which is itself waiting on Unified for the app
+        // catalogue while it answers. Every process expiring on the same second sends
+        // sixteen services' worth of replicas at it simultaneously.
+        $this->http->fake(['*' => $this->http->response($this->jwks(), 200)]);
+
+        $cache = new class(new ArrayStore()) extends CacheRepository {
+            /** @var list<int> */
+            public array $ttls = [];
+
+            public function remember($key, $ttl, \Closure $callback): mixed
+            {
+                $this->ttls[] = (int) $ttl;
+
+                return parent::remember($key, $ttl, $callback);
+            }
+        };
+
+        for ($i = 0; $i < 40; $i++) {
+            $cache->forget(JwksClient::CACHE_KEY);
+            (new JwksClient($this->http, $cache, self::URL, 3600))->keys();
+        }
+
+        $this->assertGreaterThan(1, count(array_unique($cache->ttls)), 'Every process would expire together.');
+
+        foreach ($cache->ttls as $ttl) {
+            // Spread, not randomised into uselessness — a key set living for an
+            // arbitrary length of time would make a rotation window unpredictable.
+            $this->assertGreaterThanOrEqual(3240, $ttl);
+            $this->assertLessThanOrEqual(3960, $ttl);
+        }
+    }
+
+    public function test_a_short_ttl_is_left_alone(): void
+    {
+        // Below ten seconds the spread would be rounding noise, and it would make any
+        // test that pins a TTL flap for no benefit.
+        $this->http->fake(['*' => $this->http->response($this->jwks(), 200)]);
+
+        $cache = new class(new ArrayStore()) extends CacheRepository {
+            /** @var list<int> */
+            public array $ttls = [];
+
+            public function remember($key, $ttl, \Closure $callback): mixed
+            {
+                $this->ttls[] = (int) $ttl;
+
+                return parent::remember($key, $ttl, $callback);
+            }
+        };
+
+        (new JwksClient($this->http, $cache, self::URL, 5))->keys();
+
+        $this->assertSame([5], $cache->ttls);
+    }
 }
