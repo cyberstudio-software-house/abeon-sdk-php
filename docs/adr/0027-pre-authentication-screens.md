@@ -103,8 +103,42 @@ hop.
   The same is already true of Auth itself for refresh.
 - **A third repository moves for one feature** when a flow changes: an endpoint in `abeon-auth`, a screen
   here, and possibly a redirect target in the boilerplate.
-- Rejected alongside the other two shapes: putting the screens in `@abeon/ui` as components. That would
-  make every application carry them again, which is the cost this ADR exists to avoid.
+- Rejected alongside the other two shapes: putting the **flows** in `@abeon/ui` as components. That would
+  make every application carry them again, which is the cost this ADR exists to avoid. See the amendment
+  below for the line this draws — it is narrower than "screens".
+
+## Amendment 2026-08-14 — the visual layer
+
+As first written, this ADR rejected "putting the screens in `@abeon/ui` as components" without saying
+what a screen is made of. Read literally that also bans the *look* of the front door from the design
+system, and that reading is wrong. The rejection was about **duplication of flows**, not about where a
+card and a form field are styled.
+
+The line is drawn between two things:
+
+| Layer | Owner |
+|---|---|
+| Layout, form markup, tokens, dark mode, the versioned reference on design.abeon.pl | `@abeon/ui` |
+| Routing, CSRF, the POST to Auth, the `redirect` allowlist, sessions, cookies | `abeon-auth-ui` |
+
+`@abeon/ui` now ships `AuthLayout`, `LoginForm` and `ForgotPasswordForm`. They are **presentational
+only**: a real `<form method action>` with named fields and a slot for hidden inputs. They hold no
+route, no token and no call to Auth. Nothing about the arrangement this ADR chose changes — there is
+still exactly one host for the flows, and the screens are still not copied across sixteen templates.
+
+Two reasons the visual layer belongs there and not here:
+
+- **Tokens live in one place.** The invented palette in `login.blade.php` (`--accent: #2f4b8f`) is not
+  derived from `tokens.css`, so the one screen every user sees first is the one screen that does not
+  match the platform. A design system that excludes the front door cannot fix that.
+- **Pre-auth is a set of screens, and it grows.** Reset, invitation, verification, MFA challenge — the
+  same argument that made this one application also makes one layout.
+
+**Known debt this does not close.** Per §Shape, `abeon-auth-ui` is Laravel + Blade with no frontend
+build, so it cannot import these React components. Its two screens still carry ~90 lines of duplicated
+inline `<style>` and the local palette. `@abeon/ui` is the reference the Blade should be brought onto —
+either by consuming `@abeon/ui/dist/tokens.css` from a shared `layouts/auth.blade.php`, or by giving
+auth-ui a build, which would need its own amendment to §Shape. Neither is decided here.
 
 ## References
 
