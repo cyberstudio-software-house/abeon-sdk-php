@@ -160,3 +160,30 @@ silently on the synchronous path.**
 - Chrome consumer: `abeon-shared/src/react/use-notifications.ts`
 - Related: ADR-0002 (event envelope), ADR-0004 (REST envelope), ADR-0005 (service-to-service auth), ADR-0008 (broadcasting auth), ADR-0010 (auth /me + /apps)
 - Implementation home: `abeon-notifications/` (separate repo, built in Phase 0.5 Sprint S5)
+
+**2026-08-15 — the bell is cross-organisation on purpose, and that is now written down somewhere other
+than a migration comment.**
+
+A user who belongs to Acme and to Bravo sees one feed, and switching tenant (ADR-0017) does not change
+it. That follows from this ADR describing the bell as a per-user cross-application feed, and from
+`schemas/dto/notification.json` having no `org_id` while being `additionalProperties: false` — but the
+only place it was ever stated was a comment in `create_notifications_table`, which is not where anyone
+looks for a contract.
+
+It is worth knowing what that means in practice: an accountant working in Bravo sees a title and body
+about an Acme client, and a user removed from Acme keeps that history in their bell indefinitely, since
+nothing in `abeon-unified` learns about membership changes.
+
+**ADR-0018 does not settle this either way.** Its rule — a missing tenant never means "all tenants" —
+governs tenant-scoped models, and `Notification` is not one. The migration comment cited it as
+justification; it neither permits nor forbids this.
+
+`notifications.org_id` now records which organisation the emitting service was acting for, taken from
+the verified service token's `org_id` claim (ADR-0016) and never from the request body. **Nothing reads
+it.** It is not in the DTO, nothing filters on it, and there is no index — an index no query uses is a
+cost on every insert into the one table here that grows without a ceiling.
+
+It exists so this decision stays reversible. Without the column there is nothing to write a corrective
+migration *from*: `source_app` cannot stand in for a tenant, because the same application runs in many
+organisations. Scoping the bell is still an ADR decision; it is now one that can be implemented at any
+time rather than one that quietly expired.

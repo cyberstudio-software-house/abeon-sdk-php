@@ -29,6 +29,19 @@ class ServiceAuthMiddleware
     /** Request attribute carrying the verified caller, for per-route policy. */
     public const ATTRIBUTE = 'abeon_service_name';
 
+    /**
+     * The organisation the calling service is acting for, or null.
+     *
+     * `schemas/auth/jwt-service.json` has carried this claim since ADR-0016 and nothing
+     * read it — so a route that wanted to record which tenant an internal call was made
+     * on behalf of had to take the caller's word for it in the request body, which is
+     * the shape of defect this middleware exists to prevent for `service_name`.
+     *
+     * Null means **no organisation**, never "all organisations" (ADR-0018). A route that
+     * requires a tenant must refuse a null rather than widen it.
+     */
+    public const ATTRIBUTE_ORG_ID = 'abeon_service_org_id';
+
     public function __construct(private readonly JwtValidator $validator)
     {
     }
@@ -57,6 +70,9 @@ class ServiceAuthMiddleware
         }
 
         $request->attributes->set(self::ATTRIBUTE, $serviceName);
+
+        $orgId = $claims['org_id'] ?? null;
+        $request->attributes->set(self::ATTRIBUTE_ORG_ID, is_int($orgId) ? $orgId : null);
 
         return $next($request);
     }
