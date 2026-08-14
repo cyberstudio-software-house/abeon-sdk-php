@@ -134,7 +134,7 @@ All public APIs live under `/api/v1`. Version bumps follow strict rules:
   error format above described a shape the platform mostly did not emit. A validation failure came back
   in Laravel's own `{"message":..., "errors":{...}}`, and without an `Accept: application/json` header it
   came back as a **302 to `/`** — from services that have no `web` group, no session and no page there.
-  `tests/fixtures/contract/problem-details.json` had pinned the correct validation shape since the
+  `schemas/fixtures/problem-details.json` had pinned the correct validation shape since the
   beginning and nothing produced it.
 
   `ProblemDetailsRenderer::register()` now covers `AbeonException`, `ValidationException` (422 with the

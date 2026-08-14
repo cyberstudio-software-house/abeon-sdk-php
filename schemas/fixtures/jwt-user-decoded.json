@@ -1,0 +1,14 @@
+{
+    "sub": "42",
+    "exp": 9999999999,
+    "iat": 1735689600,
+    "iss": "abeon-auth",
+    "aud": "abeon",
+    "type": "user",
+    "email": "jan@example.com",
+    "name": "Jan",
+    "roles": ["sales_manager"],
+    "permissions": ["crm.contacts.read"],
+    "org_id": 1,
+    "jti": "770e8400-e29b-41d4-a716-446655440002"
+}

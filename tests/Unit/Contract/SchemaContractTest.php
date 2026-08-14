@@ -15,15 +15,26 @@ use Opis\JsonSchema\Validator;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Proves the PHP DTOs serialize to exactly the shape declared in `schemas/`,
- * and that the golden fixtures (byte-identical to `@abeon/shared`'s) validate
- * against those same schemas. This is the PHP half of the cross-language
- * contract: schemas are the single source of truth, both packages conform.
+ * Proves the PHP DTOs serialize to exactly the shape declared in `schemas/`, and that
+ * the golden fixtures validate against those same schemas. This is the PHP half of the
+ * cross-language contract: schemas are the single source of truth, both packages
+ * conform.
+ *
+ * **The fixtures are byte-identical to `@abeon/shared`'s because they are the same
+ * files.** Until 2026-08-15 that was a claim in this docblock held up by nothing:
+ * the fixtures lived in `tests/fixtures/contract/`, `sync-schemas.ts` only copies
+ * `schemas/`, and its orphan detection explicitly skipped `fixtures/` — so the two
+ * copies could drift with `sync-schemas:check` still reporting `orphaned: 0`. They had
+ * not drifted, but the sets were not even equal: six here against eleven there, five
+ * validated on one side only.
+ *
+ * They now live under `schemas/fixtures/`, inside the tree the sync copies and checks.
+ * The claim is a mechanism.
  */
 final class SchemaContractTest extends TestCase
 {
     private const SCHEMA_ROOT  = __DIR__.'/../../../schemas';
-    private const FIXTURE_ROOT = __DIR__.'/../../fixtures/contract';
+    private const FIXTURE_ROOT = __DIR__.'/../../../schemas/fixtures';
     private const SCHEMA_NS    = 'https://schemas.abeon.pl/';
 
     private Validator $validator;
@@ -63,6 +74,33 @@ final class SchemaContractTest extends TestCase
     public function test_envelope_fixture_matches_schema(): void
     {
         $this->assertValid('events/_envelope.json', $this->fixture('envelope.json'));
+    }
+
+    public function test_pagination_fixture_matches_schema(): void
+    {
+        // These five were validated only by `@abeon/shared` — the PHP side had no copy
+        // to check, which is precisely how a fixture drifts without anything going red.
+        $this->assertValid('dto/pagination.json', $this->fixture('pagination.json'));
+    }
+
+    public function test_permission_fixture_matches_schema(): void
+    {
+        $this->assertValid('dto/permission.json', $this->fixture('permission.json'));
+    }
+
+    public function test_rest_envelope_fixture_matches_schema(): void
+    {
+        $this->assertValid('http/envelope.json', $this->fixture('envelope-rest.json'));
+    }
+
+    public function test_decoded_user_token_fixture_matches_schema(): void
+    {
+        $this->assertValid('auth/jwt-user.json', $this->fixture('jwt-user-decoded.json'));
+    }
+
+    public function test_decoded_service_token_fixture_matches_schema(): void
+    {
+        $this->assertValid('auth/jwt-service.json', $this->fixture('jwt-service-decoded.json'));
     }
 
     public function test_tenant_fixture_matches_schema(): void

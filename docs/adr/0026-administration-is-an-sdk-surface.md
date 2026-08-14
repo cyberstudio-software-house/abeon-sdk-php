@@ -61,7 +61,7 @@ screens copied per application, the hooks are a package that every application d
 endpoints carry the same obligations as the chrome data plane:
 
 - **Versioned** under `/api/v1/`, additive change only; a breaking change is an ADR.
-- **Covered by golden fixtures** shared byte-for-byte between `abeon-sdk-php/tests/fixtures/contract/`
+- **Covered by golden fixtures** shared byte-for-byte between `abeon-sdk-php/schemas/fixtures/`
   and `abeon-shared/tests/contract/`, as ADR-0010's endpoints are.
 - **Part of the swap-out set** (`abeon-auth-spec.md` NFR-10). A replacement Auth must serve
   administration too, or the hooks and screens are rewritten against whatever it exposes.

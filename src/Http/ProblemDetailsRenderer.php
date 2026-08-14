@@ -128,7 +128,7 @@ class ProblemDetailsRenderer
     }
 
     /**
-     * The shape ADR-0004 specifies and `tests/fixtures/contract/problem-details.json`
+     * The shape ADR-0004 specifies and `schemas/fixtures/problem-details.json`
      * pins: field errors ride as the `errors` extension member, and `detail` carries
      * the first message so a client with no interest in fields still has something to
      * show.
