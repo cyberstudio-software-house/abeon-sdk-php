@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.abeon.pl/events/app-registered.json",
+  "$id": "https://schemas.abeon.pl/events/unified.app.registered.json",
   "title": "unified.app.registered payload",
-  "description": "Payload for `unified.app.registered`, emitted by AbeonUnified when an application completes registration and is assigned an identity. Consumed by Auth to provision the owner user for a new organisation, or to attach the application to an existing one. Per ADR-0019; organisation provisioning per ADR-0016.\n\nPlacement note: ADR-0002 federates per-event payload schemas into each owning service's repository. AbeonUnified does not exist as a repository yet, so this ships in the SDK alongside `notification-requested.json` — the same exception, for the same reason. Move it to `abeon-unified/schemas/events/` when that repository exists.",
+  "description": "Payload for `unified.app.registered`, emitted by AbeonUnified when an application completes registration and is assigned an identity. Consumed by Auth to provision the owner user for a new organisation, or to attach the application to an existing one. Per ADR-0019; organisation provisioning per ADR-0016.\n\nPlacement note: ADR-0002 federates per-event payload schemas into each owning service's repository. AbeonUnified does not exist as a repository yet, so this ships in the SDK alongside `notification-requested.json` — the same exception, for the same reason. Move it to `abeon-unified/schemas/events/` when that repository exists.\n\nRenamed from `app-registered.json` on 2026-08-15: `SchemaDiscovery` keys the catalog by file name, so under the old name this schema was never discoverable and `EventCatalog::for('unified.app.registered')` returned null — a contract that existed as a file and not as a contract.",
   "type": "object",
   "required": ["id", "name", "owner_email"],
   "properties": {

@@ -41,6 +41,9 @@
             "providers": [
                 "Abeon\\SDK\\AbeonServiceProvider"
             ]
+        },
+        "abeon": {
+            "event-schemas": "schemas/events"
         }
     },
     "minimum-stability": "stable",

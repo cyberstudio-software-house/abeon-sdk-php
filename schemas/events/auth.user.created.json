@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/auth.user.created.json",
+  "title": "auth.user.created payload",
+  "description": "Payload for `auth.user.created`, published by Auth when an invitation creates a new account. Published at creation rather than at acceptance: that is where the rows are written, and the only point where an authenticated administrator gives the envelope its `org_id` (ADR-0002). Acceptance only flips statuses.\n\nThe file name is the routing key — that is how `SchemaDiscovery` keys the catalog, so renaming this file silently removes the contract.",
+  "type": "object",
+  "required": ["user_id", "email", "org_id"],
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Platform-wide user identity, as a string. Users are global; memberships are what scope them to an organisation (ADR-0016)."
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Normalised address the account was created for — lowercased and trimmed, as stored."
+    },
+    "org_id": {
+      "type": "integer",
+      "description": "Organisation the invitation was issued in. Never null here: an account is always created into a tenant, so a consumer refusing a null (ADR-0018) never has to handle one on this event."
+    }
+  },
+  "additionalProperties": false
+}

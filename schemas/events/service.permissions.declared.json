@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/service.permissions.declared.json",
+  "title": "service.permissions.declared payload",
+  "description": "Payload for `service.permissions.declared`, published by every service through the SDK's `PermissionsDeclarator` to announce the permissions it defines. This is the data source ADR-0024 §2 builds the permission catalogue on — the catalogue is what makes a role meaning \"everything\" expressible without a wildcard on the wire.\n\nNote the routing key: the literal `service` is the first segment, not the publishing service's name. It is a platform-level declaration rather than one service's domain event, and the publisher is carried in the envelope's `source`.\n\nThe file name is the routing key — that is how `SchemaDiscovery` keys the catalog.",
+  "type": "object",
+  "required": ["service", "permissions"],
+  "properties": {
+    "service": {
+      "type": "string",
+      "description": "Name of the declaring service, matching the first segment of every permission below and the `service_name` in its service token (ADR-0005)."
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+      },
+      "description": "Every permission this service defines, each fully literal. Wildcards are refused on the wire (ADR-0024), so a declaration cannot say `crm.*` — the catalogue exists precisely so that nothing has to."
+    }
+  },
+  "additionalProperties": false
+}

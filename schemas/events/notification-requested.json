@@ -2,25 +2,58 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.abeon.pl/events/notification-requested.json",
   "title": "notification.requested payload",
-  "description": "Payload for `*.notification.requested` events consumed by abeon-notifications. Per ADR-0006.",
+  "description": "Payload for `*.notification.requested` events consumed by abeon-notifications. Per ADR-0006.\n\nNot discoverable, deliberately. `SchemaDiscovery` keys the catalog by file name and `RoutingKey` refuses a wildcard, so `*.notification.requested` cannot be a file name here — it is a *subscription* pattern, not a publishable key. Each emitting service publishes `{service}.notification.requested` and should ship its own copy of this payload schema under that name; this file is the shared definition they copy, and the reason it keeps a human-readable name rather than a routing-key one.",
   "type": "object",
-  "required": ["target", "type", "title", "body", "source_app"],
+  "required": [
+    "target",
+    "type",
+    "title",
+    "body",
+    "source_app"
+  ],
   "properties": {
     "target": {
       "type": "object",
-      "required": ["user_id"],
+      "required": [
+        "user_id"
+      ],
       "properties": {
-        "user_id": { "type": "integer" }
+        "user_id": {
+          "type": "integer"
+        }
       },
       "additionalProperties": false
     },
-    "type":       { "type": "string" },
-    "title":      { "type": "string", "maxLength": 200 },
-    "body":       { "type": "string", "maxLength": 2000 },
-    "icon":       { "type": ["string", "null"] },
-    "action_url": { "type": ["string", "null"] },
-    "source_app": { "type": "string" },
-    "metadata":   { "type": "object", "additionalProperties": true }
+    "type": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "body": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "icon": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "action_url": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_app": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
   },
   "additionalProperties": false
 }

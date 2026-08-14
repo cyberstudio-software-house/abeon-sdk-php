@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/auth.membership.created.json",
+  "title": "auth.membership.created payload",
+  "description": "Payload for `auth.membership.created`, published by Auth when a user is attached to an organisation. Emitted in both cases the invitation flow can take: a brand-new account, and an existing account added to a further organisation (where no credential link is issued at all). A consumer must therefore not treat this event as implying the user is new.\n\nThe file name is the routing key — that is how `SchemaDiscovery` keys the catalog.",
+  "type": "object",
+  "required": ["user_id", "org_id", "roles"],
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Platform-wide user identity, as a string."
+    },
+    "org_id": {
+      "type": "integer",
+      "description": "Organisation the membership belongs to."
+    },
+    "roles": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Role names on this membership at the moment it was created. Roles are per membership, not per user (ADR-0016), so this list is scoped to `org_id` and says nothing about the same user elsewhere. It is a snapshot: later changes come as their own events."
+    }
+  },
+  "additionalProperties": false
+}

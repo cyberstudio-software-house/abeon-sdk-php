@@ -17,7 +17,7 @@ The concept-meeting graph does describe it, in two side notes:
 > użytkownika-ownera tenanta · 3. wysłanie danych dostępowych
 > **2'. Jeśli istnieje — przypisanie nowej aplikacji** → do tenanta zostaje dopisana kolejna aplikacja
 
-And the contract for the first half already exists: `schemas/events/app-registered.json` specifies
+And the contract for the first half already exists: `schemas/events/unified.app.registered.json` specifies
 `unified.app.registered` with `{ id, name, owner_email, org_id, metadata }` and states in its own
 description that Auth consumes it *"to provision the owner user for a new organisation, or to attach the
 application to an existing one"*.
@@ -82,7 +82,7 @@ registration that triggered it, does have a tenant).
 
 Per ADR-0002 domain event schemas are federated into their owning service's repository, so
 `org-created.json` ships with `abeon-auth` when that repository exists. It is specified here rather
-than in the SDK because — unlike `app-registered.json`, which had to live somewhere to be a contract at
+than in the SDK because — unlike `unified.app.registered.json`, which had to live somewhere to be a contract at
 all — this one has a named home in the same slice that first emits it.
 
 **Rejected: Auth calls Unified synchronously** with the new `org_id`. It makes the dependency a cycle
@@ -177,7 +177,7 @@ reordering the platform so that Unified ships first.
   [ADR-0019](0019-abeon-unified-service.md) (registry and `tenant_apps` ownership),
   [ADR-0002](0002-event-envelope.md) (envelope, outbox, idempotent consume)
 - Exception recorded against: [ADR-0018](0018-tenant-scoping.md) — *Decision → "Where the tenant comes from"*
-- Contract consumed: `schemas/events/app-registered.json` (`unified.app.registered`)
+- Contract consumed: `schemas/events/unified.app.registered.json` (`unified.app.registered`)
 - Contract introduced: `auth.org.created` — schema ships with `abeon-auth` per ADR-0002 federation
 - Plan: `abeon-auth-plan.md` §A0 (capability), §D5–D6 (the decisions this closes)
 - **Amended 2026-08-13:** §6 generalised from "the provisioning command prints the link" to "any user

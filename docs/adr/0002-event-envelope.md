@@ -197,3 +197,31 @@ versioning rules above are binding again.
   `org_id`. **ADR-0018 (tenant scoping) depends on it** — without it, event handlers have no source of
   tenant at all. The amendment was applied to envelope 1.0 in place rather than bumping to 2.0; the
   reasoning is recorded under *Versioning* above.
+- **2026-08-15 — the federation mechanism was never switched on.** This ADR federates payload schemas
+  through `extra.abeon.event-schemas`, and `SchemaDiscovery` keys the catalog by **file name**. Neither
+  half was true in the tree: this package declared no `extra.abeon`, so `EventCatalog::all()` returned
+  an empty array in every service; and the two schemas that existed were named `app-registered.json`
+  and `notification-requested.json`, neither of which is a routing key, so they would not have been
+  discovered even with the declaration in place. Meanwhile three keys were being published with no
+  schema at all — `auth.user.created`, `auth.membership.created`, `service.permissions.declared`.
+
+  Nothing failed, because "schema not enforced on publish in v1" (above) means the catalog is unread
+  today. That is precisely what made it invisible: the cost of the gap is zero until validation is
+  turned on, at which point every publisher breaks at once.
+
+  Now: the declaration exists, the three missing schemas are written, `app-registered.json` is
+  `unified.app.registered.json`, and two tests hold it — one in this package asserting that every
+  published key has a discoverable schema and that no routing-key-shaped file is an unlisted promise,
+  and one in `abeon-auth` driving the real discovery path through `vendor/composer/installed.json`
+  and comparing what actually lands in the outbox against the schema's declared fields. The second one
+  can only live in a service: this package is not in its own vendor tree.
+
+  `notification-requested.json` keeps its human-readable name deliberately. Its key,
+  `*.notification.requested`, is a subscription pattern and `RoutingKey` refuses a wildcard, so it
+  cannot be a discoverable file — each emitting service publishes `{service}.notification.requested`
+  and ships its own copy under that name.
+
+  Still open, and not fixed here: nothing drains the outbox. There is no broker, `abeon:events:outbox-drain`
+  runs nowhere, and no `EventHandler` implementation exists — so this ADR's at-least-once guarantee has
+  never been exercised end to end. `abeon-auth` now mounts `OutboxLagCheck`, so readiness reports
+  `degraded` once rows accumulate instead of staying green against a promise nothing keeps.
