@@ -37,9 +37,11 @@ return [
         // via @abeon/shared) read them. Frontends MUST swap from cookie → Authorization
         // Bearer header before calling downstream services, since AuthMiddleware only
         // reads the header (not cookies).
+        // Platform constants rather than environment values — see
+        // `Abeon\SDK\Auth\PlatformCookies` for why the variables had to go.
         'cookies' => [
-            'access'  => env('ABEON_JWT_COOKIE_NAME', 'abeon_token'),
-            'refresh' => env('ABEON_REFRESH_COOKIE_NAME', 'abeon_refresh'),
+            'access'  => \Abeon\SDK\Auth\PlatformCookies::ACCESS,
+            'refresh' => \Abeon\SDK\Auth\PlatformCookies::REFRESH,
         ],
         'service_jwt' => [
             'private_key' => env('ABEON_SERVICE_JWT_PRIVATE_KEY'),
