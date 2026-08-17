@@ -149,3 +149,63 @@ auth-ui a build, which would need its own amendment to §Shape. Neither is decid
   [ADR-0001](0001-jwt-format.md) (cookie names and the httpOnly access cookie this app sets)
 - Not the owner: [ADR-0014](0014-suite-dashboard-composition.md) (`abeon-home` is the signed-in dashboard)
 - Requirements: `abeon-auth-spec.md` FR-2 (login), FR-3 (reset), FR-16 (invitations), FR-4 (verification)
+
+## Amendment 2026-08-17 — §Shape gains a frontend build
+
+The 2026-08-14 amendment assigned the visual layer to `@abeon/ui` and then named what it
+could not close: §Shape says "Laravel + Blade, no frontend build", so `abeon-auth-ui` could not
+import the React components that had just been written for it. It offered two ways out —
+consume `dist/tokens.css` from a shared Blade layout, or give the app a build — and decided
+neither.
+
+**This amendment takes the second.** `abeon-auth-ui` is Laravel + Inertia + React, mirroring
+`abeon-boilerplate-inertia`, and its two screens are `AuthLayout` + `LoginForm` and
+`AuthLayout` + `SetPasswordForm`. The ~90 lines of duplicated inline `<style>` and the invented
+palette (`--accent: #2f4b8f`) are gone; the front door now renders from the same tokens as
+every other screen on the platform, which was the whole point.
+
+§Shape's "no frontend build" no longer holds. Everything else in it does: no database, no
+queue, no events, no state of its own, and every screen still a form that posts to this app's
+own backend.
+
+**The form submission stays native.** `LoginForm` and `SetPasswordForm` render a real
+`<form method action>`, and the pages use them that way rather than through Inertia's
+`useForm()`. This is not caution: on success both controllers answer `redirect()->away()` to
+another origin while relaying Auth's `Set-Cookie`, and an XHR submit would follow that redirect
+in CORS mode carrying `X-Inertia` — failing *after* the browser had already stored the cookies.
+The user would be signed in, looking at a form that appeared to do nothing, and a refresh would
+"fix" it. No PHP test can see that: Laravel's test client has no CORS semantics and never sends
+`X-Inertia`.
+
+**What this costs, stated rather than discovered later.**
+
+- The Consequences section already lists "a single point of failure for signing in". Extend it:
+  a missing or corrupt `public/build/manifest.json` now means **every login on the platform
+  returns 500**. Before this, `GET /login` had no build dependency at all.
+- The front door no longer renders without JavaScript. The *form* still submits without it,
+  which is why the native POST above is part of the trade rather than a detail.
+- Dark mode is no longer free. `@abeon/ui` is `darkMode: ["class"]` and the Blade screens
+  followed the OS through `prefers-color-scheme`, so the root view carries a pre-paint script
+  that sets `.dark` from `matchMedia`. It reads the OS and nothing else — the stored preference
+  lives behind `@abeon/shared`, which needs a session this application by definition does not
+  have.
+
+**Inertia specifically is a deliberate choice, not an inherited one.** This application will not
+make a single Inertia visit: two pages, no `<Link>`, native POSTs, and every success path leaves
+the origin. The protocol is installed for one thing — `errors` as a shared prop — while bringing
+a middleware, an asset-version 409 path and `assertInertia` in the tests. The reason is that one
+shape across the suite is worth more than a bespoke React mount that the next person has to read
+from scratch. Anyone revisiting this should know it was weighed.
+
+**`SetPasswordForm` is markup, not a flow.** The original Consequences section rejects "putting
+the **flows** in `@abeon/ui` as components", and that still stands: the routing, the CSRF token,
+the POST to Auth, the `redirect` allowlist and the cookie relay all remain here. What moved is a
+card with two password fields. The 2026-08-14 amendment's table is the line, and this component
+sits on the `@abeon/ui` side of it.
+
+`ForgotPasswordForm` remains unwired. Auth has no password-reset endpoint, and a link to a screen
+that cannot work — or worse, a stub telling a locked-out user that a mail is on its way — is
+worse than its absence.
+
+- Related: ADR-0026 (Auth ships no frontend — unchanged; its prohibition on `abeon-ui` growing
+  screens is scoped to the *administration* surface, which this is not).
