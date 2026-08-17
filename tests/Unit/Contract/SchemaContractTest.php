@@ -108,6 +108,43 @@ final class SchemaContractTest extends TestCase
         $this->assertValid('dto/tenant.json', $this->fixture('tenant.json'));
     }
 
+    public function test_organisation_member_fixture_matches_schema(): void
+    {
+        $this->assertValid('dto/organisation-member.json', $this->fixture('organisation-member.json'));
+    }
+
+    public function test_an_organisation_member_carries_no_permissions(): void
+    {
+        // Same reasoning as the tenant list above. An administrative listing shows who
+        // holds which *role*; permissions are resolved at token issue and a client that
+        // read them from here would be deriving authorisation from a response.
+        $bad = $this->fixtureArray('organisation-member.json');
+        $bad['permissions'] = ['core.users.manage'];
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/organisation-member.json',
+        );
+
+        $this->assertFalse($result->isValid());
+    }
+
+    public function test_an_organisation_member_status_is_a_membership_status(): void
+    {
+        // `users.status` has values a membership does not. Accepting one here would let
+        // a global decision be presented as an organisation's own, which is the exact
+        // confusion the whole administration surface is built to avoid.
+        $bad = $this->fixtureArray('organisation-member.json');
+        $bad['status'] = 'deleted';
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/organisation-member.json',
+        );
+
+        $this->assertFalse($result->isValid());
+    }
+
     public function test_tenant_dto_conforms_and_roundtrips(): void
     {
         $fixture = $this->fixtureArray('tenant.json');

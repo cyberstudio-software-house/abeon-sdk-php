@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/organisation-member.json",
+  "title": "Abeon Organisation Member DTO",
+  "description": "One row of an organisation's member list. Deliberately NOT a User DTO: `status` here is the status of the *membership*, and a person's standing in one organisation says nothing about their standing in another, or about the account itself. A schema that reused `dto/user.json` would make that distinction invisible to every consumer.",
+  "type": "object",
+  "required": ["id", "email", "status", "roles"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The user's id. There is no membership id on the wire — a membership is identified by (user, organisation), and the organisation is never a parameter."
+    },
+    "email": { "type": "string", "format": "email" },
+    "name": { "type": ["string", "null"] },
+    "status": {
+      "type": "string",
+      "enum": ["active", "suspended", "invited"],
+      "description": "The membership's status in THIS organisation. Never `users.status`."
+    },
+    "roles": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Role names within this organisation, not permissions. Permissions are resolved from roles at token issue and are not part of an administrative listing."
+    },
+    "joined_at": { "type": ["string", "null"], "format": "date-time" },
+    "last_used_at": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "additionalProperties": false
+}

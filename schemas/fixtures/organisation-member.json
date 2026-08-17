@@ -1,0 +1,9 @@
+{
+  "id": "42",
+  "email": "viewer@abeon.dev",
+  "name": "Viewer",
+  "status": "suspended",
+  "roles": ["viewer"],
+  "joined_at": "2026-03-01T09:15:00+00:00",
+  "last_used_at": "2026-08-16T18:02:31+00:00"
+}
