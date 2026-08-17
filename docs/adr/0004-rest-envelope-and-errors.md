@@ -145,5 +145,5 @@ All public APIs live under `/api/v1`. Version bumps follow strict rules:
 
   It is **opt-in**, taken up by `abeon-auth` and `abeon-unified` only. `abeon-boilerplate-inertia` needs
   validation failures to return as a redirect carrying the errors in the session, because that is how
-  Inertia forms work, and `abeon-auth-ui` posts Blade forms. Gating on `$request->expectsJson()` would
+  Inertia forms work, and `abeon-auth-ui` posts native (non-JSON) forms — Blade until 2026-08-17, Inertia-rendered React since, still submitting as ordinary browser POSTs. Gating on `$request->expectsJson()` would
   have fixed nothing: the redirect happens precisely when the caller omits that header.

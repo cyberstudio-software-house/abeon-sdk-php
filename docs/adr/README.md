@@ -37,7 +37,7 @@ ADR-0004 (REST shape), ADR-0002 (events). The rest are reachable from those.
 | [0024](0024-permission-expansion.md) | Permission expansion | Accepted | No wildcards on the wire; Auth expands roles at issue time; 4 KB token budget |
 | [0025](0025-auth-service-invariants.md) | Auth service invariants | Accepted | Six edge behaviours: no-organisation refusal, default org, over-budget refusal, JWKS degradation, audit immutability, rate-limit precedence |
 | [0026](0026-administration-is-an-sdk-surface.md) | Administration surface | Accepted | Auth ships no frontend: API + hooks in the packages, screens in the boilerplate |
-| [0027](0027-pre-authentication-screens.md) | Pre-authentication screens | Accepted | Login, reset and invitation acceptance live in one dedicated app; the return-to parameter is allowlisted |
+| [0027](0027-pre-authentication-screens.md) | Pre-authentication screens | Accepted | Login, reset and invitation acceptance live in one dedicated app; the return-to parameter is allowlisted. **Amended 2026-08-14** (visual layer is `@abeon/ui`'s) and **2026-08-17** (§Shape gains a frontend build) |
 
 ## Supersessions
 

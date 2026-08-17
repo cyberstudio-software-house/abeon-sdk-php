@@ -33,7 +33,9 @@ class ProblemDetailsRenderer
      * `AbeonServiceProvider` would break the two applications that have a frontend:
      * Inertia's form handling in `abeon-boilerplate-inertia` depends on a validation
      * failure coming back as a redirect with the errors in the session, and
-     * `abeon-auth-ui` posts Blade forms. A redirect is the right answer there and the
+     * `abeon-auth-ui` posts native, non-JSON forms — Blade until 2026-08-17 and
+     * Inertia-rendered React since, but ordinary browser POSTs either way, which is what
+     * this branch turns on. A redirect is the right answer there and the
      * wrong answer in a service that has no `web` group, no session and no page to
      * redirect to — `POST /api/v1/auth/login` with a malformed body answered **302 to
      * `/`** until this existed.

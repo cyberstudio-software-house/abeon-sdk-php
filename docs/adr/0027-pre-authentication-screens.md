@@ -60,6 +60,10 @@ login screen inside Auth would have to be rebuilt against whatever that service 
 ### Shape
 
 - **Laravel + Blade, no frontend build, no database, no queue, no events.** It has no state of its own:
+  > **Superseded in part by the amendment of 2026-08-17.** The application is Laravel + Inertia +
+  > React and *does* have a frontend build. Everything else in this bullet still holds — no database,
+  > no queue, no events, no state of its own, and every screen still a form that posts to this app's
+  > own backend.
   every screen is a form that posts to the app's own backend, which calls Auth's public API.
 - **The form does not post cross-origin to Auth.** The backend calls Auth server-side and forwards
   Auth's `Set-Cookie` to the browser, exactly as `AuthProxyController` already does in the boilerplate.
@@ -121,7 +125,8 @@ The line is drawn between two things:
 | Layout, form markup, tokens, dark mode, the versioned reference on design.abeon.pl | `@abeon/ui` |
 | Routing, CSRF, the POST to Auth, the `redirect` allowlist, sessions, cookies | `abeon-auth-ui` |
 
-`@abeon/ui` now ships `AuthLayout`, `LoginForm` and `ForgotPasswordForm`. They are **presentational
+`@abeon/ui` now ships `AuthLayout`, `LoginForm` and `ForgotPasswordForm` — joined on 2026-08-17 by
+`SetPasswordForm`, for invitation acceptance. They are **presentational
 only**: a real `<form method action>` with named fields and a slot for hidden inputs. They hold no
 route, no token and no call to Auth. Nothing about the arrangement this ADR chose changes — there is
 still exactly one host for the flows, and the screens are still not copied across sixteen templates.
@@ -134,11 +139,11 @@ Two reasons the visual layer belongs there and not here:
 - **Pre-auth is a set of screens, and it grows.** Reset, invitation, verification, MFA challenge — the
   same argument that made this one application also makes one layout.
 
-**Known debt this does not close.** Per §Shape, `abeon-auth-ui` is Laravel + Blade with no frontend
+**Known debt this does not close.** ~~Per §Shape, `abeon-auth-ui` is Laravel + Blade with no frontend
 build, so it cannot import these React components. Its two screens still carry ~90 lines of duplicated
-inline `<style>` and the local palette. `@abeon/ui` is the reference the Blade should be brought onto —
-either by consuming `@abeon/ui/dist/tokens.css` from a shared `layouts/auth.blade.php`, or by giving
-auth-ui a build, which would need its own amendment to §Shape. Neither is decided here.
+inline `<style>` and the local palette.~~ **Closed on 2026-08-17** by the amendment below, which took
+the second of the two options named here: auth-ui was given a build. The duplicated `<style>` and the
+invented palette are gone.
 
 ## References
 
