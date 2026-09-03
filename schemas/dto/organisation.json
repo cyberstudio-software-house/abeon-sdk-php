@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/organisation.json",
+  "title": "Abeon Organisation DTO",
+  "description": "The organisation record as Auth holds it (FR-12). Auth is the source of truth; every other service holds a projection and refreshes it from `GET /api/v1/internal/auth/orgs/{id}`.\n\nDeliberately NOT `dto/tenant.json`. That one is the switcher entry a browser sees — identity and display only, plus `current`, which is a property of the caller's token rather than of the organisation. This one is the row: it carries `status` and `source_registration_id`, neither of which a browser has any business seeing, and it has no `current` because a service call is not scoped to one.",
+  "type": "object",
+  "required": ["id", "name", "slug", "status"],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "Organisation id. Matches the `org_id` claim (ADR-0001) and is the key a projection stores."
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name, e.g. \"Acme Sp. z o.o.\"."
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "URL-safe identifier. Unique and stable."
+    },
+    "logo_url": { "type": ["string", "null"] },
+    "status": {
+      "type": "string",
+      "enum": ["active", "suspended", "archived"],
+      "description": "The organisation's own status. A projection MUST treat anything other than `active` as \"do not serve this tenant\" rather than deleting the row — the states are reversible and the id keeps being referenced."
+    },
+    "source_registration_id": {
+      "type": ["string", "null"],
+      "description": "The registration this organisation was provisioned from (ADR-0022), unique where present. Null for organisations created by other means, and never reused as an alternative key."
+    }
+  },
+  "additionalProperties": false
+}

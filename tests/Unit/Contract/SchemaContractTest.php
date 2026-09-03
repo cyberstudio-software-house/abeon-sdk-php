@@ -145,6 +145,44 @@ final class SchemaContractTest extends TestCase
         $this->assertFalse($result->isValid());
     }
 
+    public function test_organisation_fixture_matches_schema(): void
+    {
+        $this->assertValid('dto/organisation.json', $this->fixture('organisation.json'));
+    }
+
+    public function test_an_organisation_is_not_a_tenant(): void
+    {
+        // `dto/tenant.json` is what a browser sees in the switcher, and `current` is a
+        // property of the caller's token rather than of the organisation. A service
+        // reading the record is not scoped to one, so the field has no meaning here —
+        // and a projection that stored it would be storing somebody else's session.
+        $bad = $this->fixtureArray('organisation.json');
+        $bad['current'] = true;
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/organisation.json',
+        );
+
+        $this->assertFalse($result->isValid());
+    }
+
+    public function test_an_organisation_status_has_its_own_vocabulary(): void
+    {
+        // Three states, and none of them is a membership's. `suspended` appears in both
+        // enums meaning different things — one organisation-wide, one per person — which
+        // is precisely why the two schemas may not be merged.
+        $bad = $this->fixtureArray('organisation.json');
+        $bad['status'] = 'invited';
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/organisation.json',
+        );
+
+        $this->assertFalse($result->isValid());
+    }
+
     public function test_tenant_dto_conforms_and_roundtrips(): void
     {
         $fixture = $this->fixtureArray('tenant.json');
