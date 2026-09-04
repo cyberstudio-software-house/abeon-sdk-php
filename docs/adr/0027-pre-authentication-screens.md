@@ -214,3 +214,58 @@ worse than its absence.
 
 - Related: ADR-0026 (Auth ships no frontend — unchanged; its prohibition on `abeon-ui` growing
   screens is scoped to the *administration* surface, which this is not).
+
+## Amendment 2026-09-04 — one repository, still two applications
+
+`abeon-auth-ui` now lives at **`abeon-auth/auth-ui/`**. The application, the deployment, the
+container and port 8140 are all unchanged; what disappeared is a seventh git repository.
+
+### What changed the premise
+
+The §Decision reasoning and the "Why not a frontend inside Auth" section both lean on one thing:
+ADR-0026 keeps Auth free of a frontend so that replacing it with a company-wide Auth stays a
+deployment change, and pre-authentication screens must survive that replacement. Co-locating them
+with the service designed to be replaced was therefore backwards.
+
+**That premise is retired.** `abeon-auth` is the platform's Auth — one multi-tenant instance
+serving every organisation, differentiated at most by per-organisation branding on the login
+screen. There is no later swap for the screens to survive.
+
+### What this does not change
+
+- **NFR-10 is untouched.** It enumerates the API surface a replacement must serve — JWKS, both JWT
+  schemas, FR-22…FR-25 with FR-2/FR-8/FR-14, and FR-28 — and says nothing about repository layout.
+  The objection above was about ergonomics, not the contract, and it was weaker than it was stated.
+- **ADR-0026 holds as written.** Auth the *service* still ships no frontend: no Blade, no Inertia,
+  no Vite, no `package.json` at the repository root, and nothing under `app/` importing from
+  `auth-ui/`. The repository now contains a frontend build; the service does not. `abeon-auth`'s
+  README states that distinction explicitly, because it is exactly the kind of sentence that goes
+  quietly false.
+- **Every other line of this ADR stands.** One host for the flows, one target for invitation and
+  reset links, screens not copied across sixteen templates, the `redirect` allowlist rules 1-4,
+  and the 2026-08-14 line between `@abeon/ui` markup and `abeon-auth-ui` routing.
+
+### Consequences, revised
+
+- The Consequences entry "**A third repository moves for one feature**" is now wrong: an endpoint
+  in `abeon-auth` and a screen in `abeon-auth/auth-ui/` are one repository and one commit. The
+  boilerplate redirect target, when it changes, is still a second.
+- "**One more service to deploy, watch and route**" is unchanged and still accepted. This amendment
+  removes a repository, not a service.
+- **Reversible at low cost.** `git filter-repo --path auth-ui` extracts the directory with its
+  history if this is ever wrong. That is not a hypothetical: the same tool ran against this
+  repository on 2026-09-04 to purge a signing key before the first push.
+
+### Mechanics worth recording
+
+- All 11 commits were preserved, rewritten under `auth-ui/` by `git filter-repo
+  --to-subdirectory-filter` before an unrelated-histories merge, so `git blame` still reaches the
+  reasoning behind each change — including "refuse return-to URLs that two parsers read
+  differently", which is rule 3 of §The return-to contract.
+- Two path dependencies went one level deeper: `composer.json` to `../../abeon-sdk-php` and
+  `package.json` to `file:../../../abeon-ui`. `repositories` feeds composer's content-hash, so
+  the lock was rewritten with `composer update --lock` — path and hash only, no version resolved.
+- No tooling collision. `abeon-auth`'s `phpstan.neon` and `phpunit.xml` resolve their paths
+  relative to themselves and never descend into `auth-ui/`; the nested `auth-ui/.gitignore`
+  anchors `/vendor`, `/node_modules` and `/public/build` to its own directory, which is how git
+  reads an anchored pattern in a subdirectory.
