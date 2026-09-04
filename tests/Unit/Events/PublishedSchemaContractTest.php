@@ -38,6 +38,8 @@ final class PublishedSchemaContractTest extends TestCase
         'auth.user.created'            => 'abeon-auth/app/Auth/Invitations.php',
         'auth.membership.created'      => 'abeon-auth/app/Auth/Invitations.php',
         'auth.org.created'             => 'abeon-auth/app/Auth/ProvisionOrganisation.php',
+        'auth.membership.revoked'      => 'abeon-auth/app/Http/Controllers/Admin/UserController.php',
+        'auth.user.updated'            => 'abeon-auth/app/Auth/Invitations.php',
         'service.permissions.declared' => 'abeon-sdk-php/src/Auth/PermissionsDeclarator.php',
         // Specified by ADR-0022 and not yet published by anything. Listed because the
         // contract half is what this test is about, and ADR-0022's loop cannot be built

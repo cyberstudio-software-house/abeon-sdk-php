@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/auth.membership.revoked.json",
+  "title": "auth.membership.revoked payload",
+  "description": "Payload for `auth.membership.revoked`, published by Auth when a membership stops granting access to its organisation — today that means an organisation administrator suspended it (FR-29).\n\n**About the membership, never the account.** A person is one record across the platform and a membership is their standing in one organisation, so this says nothing about that user anywhere else: they may be signed in to another organisation at the moment this arrives, and that is correct. A consumer that treats it as a global account event reproduces exactly the seam this service's account-takeover bug sat on.\n\n**Suspension is what revocation means here.** `RefreshToken::REASON_MEMBERSHIP_REVOKED` has carried that reading since before this event existed, and there is no other operation in Auth that takes a membership's access away — no membership is ever deleted.\n\n**There is no reinstatement event.** Nothing is published when a suspended membership is made active again, because FR-34.1 does not name one and inventing a routing key on the way past is how event vocabularies rot. A consumer must therefore treat this as \"access ended now\", not as a permanent fact, and re-derive standing from the token on the next sign-in.\n\nThe file name is the routing key — `SchemaDiscovery` keys the catalog by it.",
+  "type": "object",
+  "required": ["user_id", "org_id", "reason"],
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Platform-wide user identity, as a string. Users are global; memberships are what scope them (ADR-0016)."
+    },
+    "org_id": {
+      "type": "integer",
+      "description": "The organisation this membership belonged to, matching the envelope's own `org_id`. Present in the payload as well because a consumer reading a stored envelope should not have to unwrap it to know what the row is about."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Why access ended, in the same vocabulary the refresh-token family uses — `membership_revoked` today. A free string rather than an enum: the set grows with the operations that can end access, and a consumer should log an unfamiliar value rather than refuse the event."
+    },
+    "sessions_revoked": {
+      "type": "integer",
+      "description": "How many live refresh-token families were ended in this organisation. Zero is normal — the person may simply not have been signed in — and is not a sign the revocation failed."
+    }
+  },
+  "additionalProperties": false
+}

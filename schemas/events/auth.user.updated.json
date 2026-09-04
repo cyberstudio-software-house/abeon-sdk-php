@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/auth.user.updated.json",
+  "title": "auth.user.updated payload",
+  "description": "Payload for `auth.user.updated`, published by Auth when the account record itself changes — as opposed to a membership, which has its own events.\n\nToday there is exactly one such change: **accepting an invitation**, which sets the password, moves the account from `pending` to `active`, and marks the address verified because redeeming a link sent to it proves control of it. Auth has no other write path to a user's own fields; a name or an address cannot be edited anywhere in this service yet, so this event is currently the account becoming usable and nothing else.\n\n**No credential material, ever.** `changed` names `password` as a fact — the account now has one — and the value is not here and never will be. The same rule as FR-10's for responses.\n\nThe envelope's `org_id` is the organisation the invitation was issued in, matching `auth.user.created`. The user is global (ADR-0016) and the event is scoped anyway, because a consumer scopes on the envelope and ADR-0018 forbids a null standing in for \"everyone\".\n\nThe file name is the routing key — `SchemaDiscovery` keys the catalog by it.",
+  "type": "object",
+  "required": ["user_id", "org_id", "changed"],
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Platform-wide user identity, as a string."
+    },
+    "org_id": {
+      "type": "integer",
+      "description": "The organisation this change was made in the context of."
+    },
+    "changed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Names of the fields that changed, so a consumer can act on the ones it cares about without diffing a projection it may not keep. Names only — a value appears in this payload only if it has its own property below."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "active", "suspended"],
+      "description": "The account's status after the change. This is `users.status`, the global axis — **not** a membership's, which says whether one organisation's access is open and is carried by `auth.membership.*` instead. Confusing the two is how an administrator of one organisation ends up appearing to sign somebody out of another."
+    },
+    "email_verified": {
+      "type": "boolean",
+      "description": "Whether the address is verified after the change."
+    }
+  },
+  "additionalProperties": false
+}
