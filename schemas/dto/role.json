@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/role.json",
+  "title": "Abeon Role DTO",
+  "description": "One role an organisation can assign. Returned by `GET /api/v1/auth/admin/roles` so an administrator can see what is assignable before assigning it.\n\n**Roles are per organisation** (ADR-0016): two organisations both have an `admin`, and they are different rows with independently editable grants. The `name` is what a token carries and what `PUT /admin/users/{id}/roles` accepts, because the numeric id is internal, organisation-scoped, and would let a caller name a row belonging to somebody else's tenant.\n\n`permissions` is here because an administrator choosing between `admin` and `member` is choosing what somebody can do, and a name alone does not say that. It is descriptive, never authoritative: a client that derived its own authorisation from this list would be deriving it from a response instead of from the token (ADR-0010).",
+  "type": "object",
+  "required": ["name", "label", "permissions"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Role name within this organisation, e.g. `admin`. This is the value a JWT's `roles` claim carries and the value the assignment endpoint accepts."
+    },
+    "label": {
+      "type": ["string", "null"],
+      "description": "Human-readable name for a screen. Null falls back to `name`."
+    },
+    "permissions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Grants this role confers, in ADR-0001's permission grammar. Descriptive only — see above."
+    },
+    "system": {
+      "type": ["boolean", "null"],
+      "description": "True for the roles every organisation is seeded with (`owner`, `admin`, `member`). A screen may want to stop somebody deleting one; nothing in Auth deletes roles yet, so this is advisory."
+    }
+  },
+  "additionalProperties": false
+}

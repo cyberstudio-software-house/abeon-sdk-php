@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/auth.user.role_changed.json",
+  "title": "auth.user.role_changed payload",
+  "description": "Payload for `auth.user.role_changed`, published by Auth when an administrator changes which roles a membership holds (FR-30).\n\n**A membership's roles, not a user's.** The routing key says `user` because FR-34.1 names it that way, and the distinction matters more than the name: roles are per organisation (ADR-0016), so this says nothing about the same person's standing anywhere else. A consumer that caches \"what can this user do\" without an organisation beside it will get this wrong.\n\nBoth the old and the new list are carried. A consumer holding no projection cannot diff, and the interesting question — was privilege *reduced* — is unanswerable from the new list alone. Auth asks it too: a reduction ends that organisation's sessions immediately (FR-9.3), because fifteen minutes of a permission you have just taken away is not taking it away.\n\nThe file name is the routing key — `SchemaDiscovery` keys the catalog by it.",
+  "type": "object",
+  "required": ["user_id", "org_id", "roles", "previous_roles"],
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Platform-wide user identity, as a string."
+    },
+    "org_id": {
+      "type": "integer",
+      "description": "The organisation whose membership changed, matching the envelope's own `org_id`."
+    },
+    "roles": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Role names after the change."
+    },
+    "previous_roles": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Role names before it."
+    },
+    "sessions_revoked": {
+      "type": "integer",
+      "description": "How many refresh-token families were ended in this organisation. Non-zero only when the change removed a permission; adding one revokes nothing, because logging somebody out in order to *give* them access is hostile and the next token refresh picks it up anyway."
+    }
+  },
+  "additionalProperties": false
+}

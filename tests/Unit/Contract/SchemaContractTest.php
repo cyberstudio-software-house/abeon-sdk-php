@@ -183,6 +183,27 @@ final class SchemaContractTest extends TestCase
         $this->assertFalse($result->isValid());
     }
 
+    public function test_role_fixture_matches_schema(): void
+    {
+        $this->assertValid('dto/role.json', $this->fixture('role.json'));
+    }
+
+    public function test_a_role_is_addressed_by_name_not_by_id(): void
+    {
+        // A role id is internal and organisation-scoped. Putting one on the wire would
+        // let a caller name a row belonging to somebody else's tenant and learn whether
+        // it exists; the name is also what the token carries.
+        $bad = $this->fixtureArray('role.json');
+        $bad['id'] = 7;
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/role.json',
+        );
+
+        $this->assertFalse($result->isValid());
+    }
+
     public function test_tenant_dto_conforms_and_roundtrips(): void
     {
         $fixture = $this->fixtureArray('tenant.json');

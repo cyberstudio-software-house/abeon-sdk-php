@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/auth.org.updated.json",
+  "title": "auth.org.updated payload",
+  "description": "Payload for `auth.org.updated`, published by Auth when an organisation's own record changes (FR-31). Auth is the source of truth for that record and every other service holds a projection, so this is how a projection stays current without polling.\n\nThe whole record is carried, not a diff, so a consumer can write the row straight through — `changed` is there for the ones that act on specific fields. `slug` and `status` appear because a projection stores them; neither is editable by an organisation administrator. The slug is stable on purpose (deep links and log lines are full of it), and status is a platform-operator decision, not a tenant's own.\n\nThe file name is the routing key — `SchemaDiscovery` keys the catalog by it.",
+  "type": "object",
+  "required": ["org_id", "name", "slug", "status", "changed"],
+  "properties": {
+    "org_id": { "type": "integer" },
+    "name": { "type": "string" },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Unchanged by this event — carried so a projection can write the row without a second lookup."
+    },
+    "logo_url": { "type": ["string", "null"] },
+    "status": {
+      "type": "string",
+      "enum": ["active", "suspended", "archived"],
+      "description": "Also unchanged by this event: an organisation cannot suspend or archive itself."
+    },
+    "changed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Names of the fields this change actually touched."
+    }
+  },
+  "additionalProperties": false
+}

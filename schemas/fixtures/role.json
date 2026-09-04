@@ -1,0 +1,6 @@
+{
+  "name": "admin",
+  "label": "Administrator",
+  "permissions": ["core.apps.manage", "core.audit.read", "core.roles.manage", "core.users.manage"],
+  "system": true
+}
