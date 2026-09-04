@@ -193,9 +193,9 @@ class AbeonServiceProvider extends ServiceProvider
                 correlation: $app->make(CorrelationContext::class),
                 config:      $app->make(AbeonConfig::class),
                 // Closure, not an instance: this binding is a singleton and
-                // AuthContext is scoped. Resolving per call keeps each request's
+                // TenantContext is scoped. Resolving per call keeps each request's
                 // organisation its own (ADR-0016).
-                authResolver: static fn (): AuthContext => $app->make(AuthContext::class),
+                tenantResolver: static fn (): TenantContext => $app->make(TenantContext::class),
             );
         });
     }

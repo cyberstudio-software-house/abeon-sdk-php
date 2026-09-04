@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Abeon\SDK\Client;
 
-use Abeon\SDK\Auth\AuthContext;
 use Abeon\SDK\Config\AbeonConfig;
 use Abeon\SDK\Http\CorrelationIdMiddleware;
 use Abeon\SDK\Logging\CorrelationContext;
 use Abeon\SDK\Support\Uuid;
+use Abeon\SDK\Tenancy\TenantContext;
 use GuzzleHttp\Exception\ConnectException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
@@ -39,18 +39,18 @@ use Illuminate\Http\Client\Response;
 class ServiceClient
 {
     /**
-     * @param  (\Closure(): ?AuthContext)|null  $authResolver  Resolves the *current*
-     *        request's AuthContext. A closure, not an instance: this client is bound
-     *        as a singleton while `AuthContext` is request-scoped, so holding one
-     *        would pin the first request's organisation for the life of the process
-     *        and send every later tenant's calls under it.
+     * @param  (\Closure(): ?TenantContext)|null  $tenantResolver  Resolves the *current*
+     *        `TenantContext`. A closure, not an instance: this client is bound as a
+     *        singleton while `TenantContext` is request-scoped, so holding one would pin
+     *        the first request's organisation for the life of the process and send every
+     *        later tenant's calls under it.
      */
     public function __construct(
         private readonly HttpFactory $http,
         private readonly ServiceTokenProvider $tokens,
         private readonly CorrelationContext $correlation,
         private readonly AbeonConfig $config,
-        private readonly ?\Closure $authResolver = null,
+        private readonly ?\Closure $tenantResolver = null,
     ) {
     }
 
@@ -98,20 +98,31 @@ class ServiceClient
      * bugs (validation, auth, not-found) — retry doesn't help.
      */
     /**
-     * Organisation of the request currently being served, or null outside one.
+     * Organisation this call is being made on behalf of, or null.
      *
-     * Resolved on every call — see the constructor note on why this must not be a
-     * held instance.
+     * **From `TenantContext`, not `AuthContext`.** It read the latter until 2026-09-04,
+     * which meant every outbound call made from inside `TenantContext::runFor()` — an
+     * event consumer, a queued job, a console command, `abeon:registry:import` — minted
+     * a token carrying no organisation, silently, from a unit of work that had one.
+     * `TenantContext` falls back to the authenticated user, so the HTTP path is
+     * unchanged; the paths that have no authenticated user are the ones that were wrong.
+     *
+     * The identical defect was fixed in `EnvelopeBuilder` on the same day. This is its
+     * other half: the envelope's `org_id` and the service token's `org_id` are the two
+     * places the tenant crosses a service boundary (ADR-0005, ADR-0016).
+     *
+     * Resolved on every call — see the constructor note on why this must not be a held
+     * instance.
      */
     private function currentOrgId(): ?int
     {
-        if ($this->authResolver === null) {
+        if ($this->tenantResolver === null) {
             return null;
         }
 
-        $auth = ($this->authResolver)();
+        $tenants = ($this->tenantResolver)();
 
-        return $auth instanceof AuthContext ? $auth->orgId() : null;
+        return $tenants instanceof TenantContext ? $tenants->current() : null;
     }
 
     private function shouldRetry(\Throwable $exception): bool

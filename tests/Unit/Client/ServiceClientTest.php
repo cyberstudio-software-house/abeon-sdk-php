@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Abeon\SDK\Tests\Unit\Client;
 
 use Abeon\SDK\Auth\AuthContext;
+use Abeon\SDK\Tenancy\TenantContext;
 use Abeon\SDK\Client\ServiceClient;
 use Abeon\SDK\Client\ServiceCallException;
 use Abeon\SDK\Client\ServiceTokenProvider;
@@ -64,9 +65,13 @@ final class ServiceClientTest extends TestCase
             roles: [], permissions: [], orgId: 7,
         ));
 
+        // The real binding passes the same `AuthContext` through `TenantContext`, so
+        // this exercises the fallback path rather than a second, quieter one.
+        $tenants = new TenantContext($auth);
+
         $client = new ServiceClient(
             $this->http, $this->tokens, $this->correlation, $this->config,
-            static fn (): AuthContext => $auth,
+            static fn (): TenantContext => $tenants,
         );
 
         $client->service('crm')->get('/x');
@@ -74,28 +79,70 @@ final class ServiceClientTest extends TestCase
         $this->assertSame([7], $this->tokens->requestedOrgIds);
     }
 
+    public function test_propagates_an_explicit_tenant_where_there_is_no_authenticated_user(): void
+    {
+        // The case this was wrong about until 2026-09-04. A consumer, a queued job and a
+        // console command have no `AuthContext`, so reading the tenant from it meant every
+        // outbound call from inside `runFor()` minted an organisation-less token — from a
+        // unit of work that had one. `EnvelopeBuilder` was fixed the same day; this is the
+        // other half.
+        $this->http->fake(['*' => $this->http->response(['ok' => true], 200)]);
+
+        $tenants = new TenantContext(new AuthContext());
+        $client  = new ServiceClient(
+            $this->http, $this->tokens, $this->correlation, $this->config,
+            static fn (): TenantContext => $tenants,
+        );
+
+        $tenants->runFor(9, fn () => $client->service('crm')->get('/x'));
+
+        $this->assertSame([9], $this->tokens->requestedOrgIds);
+    }
+
+    public function test_an_explicit_absence_of_tenant_beats_the_ambient_user(): void
+    {
+        // `runFor(null)` is "this is platform-level work" and must win over whoever
+        // happens to be authenticated, or a maintenance task inside a request stamps that
+        // request's organisation on a call belonging to none (ADR-0018).
+        $this->http->fake(['*' => $this->http->response(['ok' => true], 200)]);
+
+        $auth = new AuthContext();
+        $auth->set(new User(id: '1', email: 'a@b.c', name: null, roles: [], permissions: [], orgId: 3));
+        $tenants = new TenantContext($auth);
+
+        $client = new ServiceClient(
+            $this->http, $this->tokens, $this->correlation, $this->config,
+            static fn (): TenantContext => $tenants,
+        );
+
+        $tenants->runFor(null, fn () => $client->service('crm')->get('/x'));
+
+        $this->assertSame([null], $this->tokens->requestedOrgIds);
+    }
+
     public function test_requests_an_organisation_less_token_outside_a_request(): void
     {
         $this->http->fake(['*' => $this->http->response(['ok' => true], 200)]);
 
-        // Console commands, queued jobs and consumers have no AuthContext. Null
-        // means "no organisation" — never "all organisations".
+        // Console commands, queued jobs and consumers have no authenticated user and no
+        // explicit tenant. Null means "no organisation" — never "all organisations".
         $this->client()->service('crm')->get('/x');
 
         $this->assertSame([null], $this->tokens->requestedOrgIds);
     }
 
-    public function test_resolves_the_auth_context_per_call_not_once(): void
+    public function test_resolves_the_tenant_per_call_not_once(): void
     {
         $this->http->fake(['*' => $this->http->response(['ok' => true], 200)]);
 
-        // ServiceClient is a singleton while AuthContext is request-scoped, so a
+        // ServiceClient is a singleton while TenantContext is request-scoped, so a
         // held instance would pin the first request's organisation and send every
         // later tenant's calls under it. The resolver must be consulted each time.
         $current = new AuthContext();
+        $tenants = new TenantContext($current);
         $client  = new ServiceClient(
             $this->http, $this->tokens, $this->correlation, $this->config,
-            static fn (): AuthContext => $current,
+            static fn (): TenantContext => $tenants,
         );
 
         $current->set(new User(id: '1', email: 'a@b.c', name: null, roles: [], permissions: [], orgId: 1));

@@ -56,8 +56,15 @@ The service token therefore carries an **optional `org_id`**:
 }
 ```
 
-- **Present** when the call originates from an organisation-scoped context — propagate the `org_id` of
-  the inbound user token (`AuthContext::orgId()`).
+- **Present** when the call originates from an organisation-scoped context — propagate
+  `TenantContext::current()`, which falls back to the inbound user token in an HTTP request and is set
+  explicitly by `runFor()` everywhere else.
+
+  *Amended 2026-09-04:* this said `AuthContext::orgId()`, and `ServiceClient` implemented it faithfully.
+  That is correct only for HTTP. An event consumer, a queued job or a console command has no
+  `AuthContext`, so every outbound call from inside `runFor()` minted an organisation-less token from a
+  unit of work that had an organisation — silently, because the claim is optional. `TenantContext` is
+  the one source that answers for all four contexts, and ADR-0018's table already said so.
 - **Absent** for genuinely organisation-less work: registry self-registration, health probes, scheduled
   maintenance. Absent means "no organisation", never "all organisations" — a callee that needs a tenant
   and finds none must refuse, consistent with ADR-0018's fail-closed rule.
