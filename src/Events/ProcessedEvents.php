@@ -33,11 +33,10 @@ class ProcessedEvents
      * Record that an event was processed. Returns true if newly inserted,
      * false if already present (duplicate delivery).
      *
-     * HI-3 fix (code review 2026-05-15): only catches integrity-constraint
-     * violations (SQLSTATE 23000) as duplicate; all other QueryExceptions
-     * (connection refused, deadlock, syntax error, permission denied) rethrow
-     * so the EventConsumer can nack the message instead of silently acking
-     * a "phantom processed" row.
+     * Only integrity-constraint violations (SQLSTATE 23000) count as a duplicate; every
+     * other QueryException (connection refused, deadlock, syntax error, permission
+     * denied) rethrows, so the EventConsumer can nack the message instead of silently
+     * acking a "phantom processed" row.
      */
     public function markProcessed(string $eventId, string $routingKey): bool
     {

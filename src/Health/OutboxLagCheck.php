@@ -33,7 +33,7 @@ class OutboxLagCheck implements Check
         try {
             $connection = $this->db->connection($this->config->outboxConnection());
 
-            // MD-7 fix: graceful degradation when migrations haven't run yet
+            // Degrade rather than fail when migrations have not run yet
             // (init container race or fresh deploy). Returning `degraded`
             // instead of `down` lets readiness pass-with-warning rather than
             // bouncing the pod.

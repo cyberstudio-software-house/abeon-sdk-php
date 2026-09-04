@@ -15,7 +15,7 @@ use Throwable;
  *     php artisan abeon:config:validate
  *     # → exit 0 when OK, 1 when any required key is missing/invalid.
  *
- * MD-9 from code review: previously misconfiguration was discovered only
+ * Misconfiguration used to be discovered only
  * when a code path used the missing key (lazy validation). For services
  * that publish events daily but call ServiceClient rarely, a missing
  * `ABEON_SERVICE_JWT_PRIVATE_KEY` could go unnoticed for weeks.

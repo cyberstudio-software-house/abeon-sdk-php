@@ -27,7 +27,7 @@ class EventConsumer
     /** @var list<EventHandler> */
     private array $handlers = [];
 
-    /** @var list<EventHandler>|null Memoized resolved handler list (LO-3). */
+    /** @var list<EventHandler>|null Memoized resolved handler list. */
     private ?array $cachedHandlers = null;
 
     private LoggerInterface $logger;
@@ -205,7 +205,7 @@ class EventConsumer
     /**
      * Memoize the materialized handler list.
      *
-     * LO-3 from code review: previously `$container->tagged('abeon.event_handler')`
+     * `$container->tagged('abeon.event_handler')` used to be
      * was called on every matchingHandlers() and subscriptions() pass. Worse,
      * Laravel's tagged() returns a RewindableGenerator that can be one-shot
      * in some container configurations — re-iterating could silently yield
@@ -238,7 +238,7 @@ class EventConsumer
      *   `*` — exactly one segment (e.g. `crm.*.created` matches `crm.contact.created`).
      *   `#` — zero or more segments (e.g. `crm.#` matches `crm`, `crm.contact`, `crm.contact.created`).
      *
-     * HI-4 fix (code review 2026-05-15): `#` was previously `.+` (one+ chars) which
+     * `#` was once translated to `.+` (one or more characters), which
      * (a) treated it as "one+ segments" (off-by-one vs AMQP spec) and (b) failed
      * to match the empty suffix case. Now uses `.*` to allow zero+.
      */

@@ -36,7 +36,7 @@ class OutboxPublisher implements EventPublisher
     ): string {
         $connection = $this->db->connection($this->config->outboxConnection());
 
-        // HI-1 fix (code review 2026-05-15): without an enclosing transaction,
+        // Without an enclosing transaction,
         // the outbox row commits independently of the caller's business write,
         // breaking the atomicity guarantee that motivated the outbox pattern.
         if ($this->enforceTransaction && $connection->transactionLevel() === 0) {

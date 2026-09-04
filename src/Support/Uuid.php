@@ -8,7 +8,7 @@ namespace Abeon\SDK\Support;
  * UUIDv4 generation without external dependency.
  *
  * Consolidates what was previously duplicated across CorrelationContext,
- * EnvelopeBuilder, and ServiceTokenProvider (MD-3 from code review).
+ * EnvelopeBuilder, and ServiceTokenProvider.
  */
 final class Uuid
 {

@@ -27,8 +27,6 @@ interface Check
      * Built-in checks (DbCheck, RabbitMqCheck, OutboxLagCheck) follow these
      * rules. See ADR notes / docs/usage.md for adding custom checks.
      *
-     * (LO-4 from code review: documenting expectations rather than wrapping
-     * checks in a brittle framework-level timeout.)
      */
     public function run(): CheckResult;
 }

@@ -17,11 +17,11 @@ use Firebase\JWT\JWT;
  *
  * Lifetime: bound as `$app->singleton()` — process-wide cache.
  *
- * Octane / Swoole compatibility (LO-5):
+ * Octane / Swoole compatibility:
  *   - Cache is intentionally process-wide so worker reuse avoids re-signing
  *     on every request. Worker boundary = token rotation boundary.
  *   - On 401 from any downstream, `ServiceClient` calls `flush()` so the
- *     stale token is dropped (MD-5 from code review).
+ *     stale token is dropped.
  *   - Process restart (deploy / OOM / scale event) naturally rotates the
  *     cached token within at most TTL seconds.
  *

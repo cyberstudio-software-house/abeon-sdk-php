@@ -21,7 +21,7 @@ use Illuminate\Http\Client\Response;
  *
  * Usage: `$client->service('crm')->get('/api/v1/contacts/42')`.
  *
- * Behavior — Sprint 4 (MD-4, MD-5, MD-10 from code review):
+ * Behaviour:
  *
  *   - Auto-injects service JWT (`Authorization: Bearer ...`) and the current
  *     `X-Correlation-ID` on every call.
@@ -82,7 +82,7 @@ class ServiceClient
                 throw: false,
             )
             ->throw(function (Response $response, RequestException $exception): void {
-                // MD-5: flush service-token cache on 401 so next call retries
+                // Flush the service-token cache on 401 so the next call retries
                 // with a freshly minted token — covers key rotation windows.
                 if ($response->status() === 401) {
                     $this->tokens->flush();

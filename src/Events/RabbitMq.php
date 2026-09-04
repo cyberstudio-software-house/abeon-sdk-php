@@ -17,7 +17,7 @@ use RuntimeException;
  *
  * Lifetime: bound as `$app->singleton()` — one connection per process.
  *
- * Octane / Swoole compatibility (LO-5):
+ * Octane / Swoole compatibility:
  *   - One AMQP connection per worker process — desired (connection pooling).
  *   - Long-running workers (drainer, consumer) call `channel()` once at
  *     startup; subsequent message handling reuses the same channel.
@@ -83,7 +83,7 @@ class RabbitMq
     }
 
     /**
-     * MD-6 fix: explicit `connection_timeout` and `read_write_timeout` so
+     * Explicit `connection_timeout` and `read_write_timeout` so
      * RabbitMQ unreachable doesn't hang the caller for OS-default 60+ seconds.
      * The probe timeout is shorter than the workload timeout — health checks
      * should fail fast.

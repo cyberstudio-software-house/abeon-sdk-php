@@ -18,10 +18,10 @@ use Psr\Log\NullLogger;
  * Federation contract (M2/M3): SDK ships only generic schemas; domain
  * event schemas live in each owning service's repo.
  *
- * MD-2 (code review): path traversal hardened — every resolved path must
+ * Path traversal is guarded — every resolved path must
  * stay inside its declaring package directory after realpath().
  *
- * MD-8 (code review): error-suppressed file reads removed; failures are
+ * File reads are not error-suppressed; failures are
  * reported via the injected PSR-3 logger (NullLogger by default).
  */
 class SchemaDiscovery
@@ -83,7 +83,7 @@ class SchemaDiscovery
                 continue;
             }
 
-            // MD-2: path-traversal guard — resolved dir MUST live inside the
+            // Path-traversal guard — resolved dir MUST live inside the
             // declaring package's own realpath. Symlinks resolve here too.
             if (! str_starts_with($dir.DIRECTORY_SEPARATOR, $packageDir.DIRECTORY_SEPARATOR)) {
                 $this->logger->warning('abeon.schema_discovery.path_escape', [

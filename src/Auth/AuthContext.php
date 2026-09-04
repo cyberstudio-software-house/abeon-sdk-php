@@ -13,7 +13,7 @@ use Abeon\SDK\Exceptions\AuthException;
  * Bound as `$app->scoped()` in AbeonServiceProvider — fresh per HTTP request
  * in php-fpm.
  *
- * Octane / Swoole compatibility (LO-5):
+ * Octane / Swoole compatibility:
  *   - Scoped bindings are reset between requests by Octane.
  *   - Custom long-lived workers MUST call `clear()` between requests, or
  *     leak the previous request's auth into the next one.

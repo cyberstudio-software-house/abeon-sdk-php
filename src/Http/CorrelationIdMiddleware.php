@@ -33,7 +33,7 @@ class CorrelationIdMiddleware
     /**
      * Accept inbound `X-Correlation-ID` only if it's a valid UUIDv4 string.
      * Reject CRLF / oversized / malformed values silently — generate a
-     * fresh ID instead. (MD-1 from code review.)
+     * fresh ID instead.
      */
     private function resolveCorrelationId(Request $request): string
     {

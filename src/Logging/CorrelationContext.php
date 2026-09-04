@@ -12,7 +12,7 @@ use Abeon\SDK\Support\Uuid;
  * Lifetime: bound via `$app->scoped()` in AbeonServiceProvider, which means
  * a fresh instance per HTTP request in php-fpm.
  *
- * Octane / Swoole / RoadRunner compatibility (LO-5):
+ * Octane / Swoole / RoadRunner compatibility:
  *   - `$app->scoped()` is reset between requests by Octane's flush hook —
  *     verified safe under Octane 2.x.
  *   - For other long-lived workers (custom Swoole servers), the host MUST

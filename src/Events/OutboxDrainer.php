@@ -39,7 +39,7 @@ class OutboxDrainer
     /**
      * Run one drain pass. Returns the number of rows processed (success + failure).
      *
-     * CR-1: the fetch + publish + mark cycle runs inside one transaction, so the
+     * The fetch + publish + mark cycle runs inside one transaction, so the
      * fetched rows stay locked (see fetchBatch) until commit. A second drainer
      * replica therefore cannot fetch and republish the same events.
      */
@@ -139,7 +139,7 @@ class OutboxDrainer
     }
 
     /**
-     * CR-1: lock the fetched rows so a concurrent drainer replica cannot pick
+     * Lock the fetched rows so a concurrent drainer replica cannot pick
      * the same events. Held until drainOnce()'s transaction commits. `SKIP
      * LOCKED` (opt-in) lets peers move past locked rows on MariaDB 10.6+/MySQL
      * 8/PostgreSQL. SQLite and SQL Server have no row-level locking, so we skip
