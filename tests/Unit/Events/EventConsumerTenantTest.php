@@ -79,6 +79,42 @@ final class EventConsumerTenantTest extends TestCase
         $this->assertNull($tenants->current());
     }
 
+    public function test_a_delivery_that_matches_no_handler_is_not_silent(): void
+    {
+        // The broker matched this message to a queue we bound; `matches()` then re-derived
+        // the same decision in PHP and disagreed. Those two implementations have diverged
+        // before — `#` meant "one or more segments" here and "zero or more" to AMQP — and
+        // the message is acked either way. Silence is what makes such a divergence cost a
+        // debugging session instead of a log line.
+        $logger  = new class extends \Psr\Log\AbstractLogger
+        {
+            /** @var list<string> */
+            public array $warnings = [];
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                if ($level === \Psr\Log\LogLevel::WARNING) {
+                    $this->warnings[] = (string) $message;
+                }
+            }
+        };
+
+        $tenants  = new TenantContext(new AuthContext());
+        $consumer = (new EventConsumer(
+            rabbit:      $this->createMock(RabbitMq::class),
+            processed:   $this->neverProcessed(),
+            correlation: new CorrelationContext(),
+            tenants:     $tenants,
+            container:   new Container(),
+            config:      new AbeonConfig(new Repository(['abeon' => ['service' => ['name' => 'unified']]])),
+            logger:      $logger,
+        ))->withHandlers([]);
+
+        $this->deliver($consumer, orgId: 7);
+
+        $this->assertSame(['event-consumer.no-matching-handler'], $logger->warnings);
+    }
+
     /**
      * @return array{0: EventConsumer, 1: TenantContext, 2: object}
      */

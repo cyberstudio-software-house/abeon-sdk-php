@@ -167,11 +167,32 @@ class EventConsumer
             // A null `org_id` is passed through rather than refused: a platform-level
             // event legitimately has none, and it is the *handler* that knows whether it
             // needs a tenant (ADR-0018).
-            $this->tenants->runFor($event->orgId, function () use ($event): void {
+            $handled = $this->tenants->runFor($event->orgId, function () use ($event): int {
+                $handled = 0;
+
                 foreach ($this->matchingHandlers($event->eventType) as $handler) {
                     $handler->handle($event);
+                    $handled++;
                 }
+
+                return $handled;
             });
+
+            if ($handled === 0) {
+                // The broker already matched this message to a queue we bound, and then
+                // `matches()` re-derived the same decision in PHP and disagreed. Those two
+                // implementations have diverged before — `#` meant "one or more segments"
+                // here while meaning "zero or more" to AMQP — and when they disagree the
+                // message is acked with nothing done and nothing said.
+                //
+                // Not an error: a handler removed while its queue still exists produces
+                // this legitimately, and nacking would dead-letter a message nobody wants.
+                // But it should never be silent.
+                $this->logger->warning('event-consumer.no-matching-handler', [
+                    'event_id'   => $event->eventId,
+                    'event_type' => $event->eventType,
+                ]);
+            }
 
             $this->processed->markProcessed($event->eventId, $event->eventType);
             $channel->basic_ack($deliveryTag);
