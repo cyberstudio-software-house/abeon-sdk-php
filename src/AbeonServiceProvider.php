@@ -208,9 +208,17 @@ class AbeonServiceProvider extends ServiceProvider
 
     private function registerEvents(): void
     {
-        $this->app->singleton(EnvelopeBuilder::class);
+        // **Scoped, not singleton.** `EnvelopeBuilder` holds `AuthContext`,
+        // `TenantContext` and `CorrelationContext`, all three of which are scoped — so a
+        // singleton captures the first request's user, organisation and correlation id
+        // and stamps them on every event the process publishes afterwards. Invisible
+        // under php-fpm, wrong under Octane and in any long-lived worker.
+        //
+        // `OutboxPublisher` goes with it: a singleton holding a scoped collaborator pins
+        // it just as effectively one level up.
+        $this->app->scoped(EnvelopeBuilder::class);
 
-        $this->app->singleton(OutboxPublisher::class, function ($app) {
+        $this->app->scoped(OutboxPublisher::class, function ($app) {
             return new OutboxPublisher(
                 builder: $app->make(EnvelopeBuilder::class),
                 db:      $app->make(DatabaseManager::class),
@@ -238,6 +246,7 @@ class AbeonServiceProvider extends ServiceProvider
                 rabbit:      $app->make(RabbitMq::class),
                 processed:   $app->make(ProcessedEvents::class),
                 correlation: $app->make(CorrelationContext::class),
+                tenants:     $app->make(TenantContext::class),
                 container:   $app,
                 config:      $app->make(AbeonConfig::class),
                 logger:      $app->bound(\Psr\Log\LoggerInterface::class)

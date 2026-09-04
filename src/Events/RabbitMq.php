@@ -109,7 +109,7 @@ class RabbitMq
             port:               $parts['port'] ?? 5672,
             user:               isset($parts['user']) ? urldecode($parts['user']) : 'guest',
             password:           isset($parts['pass']) ? urldecode($parts['pass']) : 'guest',
-            vhost:              isset($parts['path']) ? ltrim($parts['path'], '/') : '/',
+            vhost:              $this->vhostFrom($parts),
             connection_timeout: $connectionTimeout,
             read_write_timeout: $this->config->rabbitMqReadWriteTimeout(),
         );
@@ -132,5 +132,30 @@ class RabbitMq
             durable:     true,
             auto_delete: false,
         );
+    }
+
+    /**
+     * The vhost named by the DSN, defaulting to `/`.
+     *
+     * `amqp://guest:guest@host:5672/` — the form every runbook and every example writes —
+     * parses to a path of `"/"`, which `ltrim()` reduced to the empty string. RabbitMQ
+     * answers `NOT_ALLOWED - vhost  not found`, with the two spaces where the name should
+     * be, and the only way to connect was to leave the trailing slash off. Nothing caught
+     * it because nothing on this platform had connected to a broker yet.
+     *
+     * `amqp://host/name` still selects `name`, and `amqp://host//name` selects `/name`,
+     * which is a legal vhost name and the reason this trims exactly one leading slash.
+     *
+     * @param  array<string, mixed>  $parts
+     */
+    private function vhostFrom(array $parts): string
+    {
+        $path = isset($parts['path']) ? (string) $parts['path'] : '';
+
+        if ($path === '' || $path === '/') {
+            return '/';
+        }
+
+        return str_starts_with($path, '/') ? substr($path, 1) : $path;
     }
 }

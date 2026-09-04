@@ -11,19 +11,27 @@ use Abeon\SDK\DTO\User;
 use Abeon\SDK\Events\EnvelopeBuilder;
 use Abeon\SDK\Exceptions\ContractViolationException;
 use Abeon\SDK\Logging\CorrelationContext;
+use Abeon\SDK\Tenancy\TenantContext;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\TestCase;
 
 final class EnvelopeBuilderTest extends TestCase
 {
-    private function builder(?CorrelationContext $correlation = null, ?AuthContext $auth = null): EnvelopeBuilder
-    {
+    private function builder(
+        ?CorrelationContext $correlation = null,
+        ?AuthContext $auth = null,
+        ?TenantContext $tenants = null,
+    ): EnvelopeBuilder {
         $config = new AbeonConfig(new Repository(['abeon' => ['service' => ['name' => 'crm']]]));
+        $auth ??= new AuthContext();
 
         return new EnvelopeBuilder(
             $config,
             $correlation ?? new CorrelationContext(),
-            $auth ?? new AuthContext(),
+            $auth,
+            // The real binding passes the same `AuthContext`, so the fallback path is
+            // the one under test rather than a second, quieter one.
+            $tenants ?? new TenantContext($auth),
         );
     }
 
@@ -126,5 +134,48 @@ final class EnvelopeBuilderTest extends TestCase
         $envelope = $this->builder()->build('crm.contact.created', []);
 
         $this->assertArrayNotHasKey('causation_id', $envelope['metadata']);
+    }
+
+    // ------------------------------------------- where the organisation comes from
+
+    public function test_the_organisation_comes_from_the_tenant_context(): void
+    {
+        // A consumer, a queued job and a console command have no authenticated user, so
+        // `TenantContext::runFor()` is the only way any of them can say which tenant the
+        // work belongs to. This read `AuthContext` directly until 2026-09-04, which meant
+        // every event published from all three carried `org_id: null` — inside `runFor()`
+        // as much as outside it — and ADR-0002 requires the envelope to carry it.
+        $tenants = new TenantContext(new AuthContext());
+
+        $envelope = $tenants->runFor(7, fn (): array => $this->builder(tenants: $tenants)
+            ->build('crm.contact.created', ['contact_id' => 1]));
+
+        $this->assertSame(7, $envelope['org_id']);
+    }
+
+    public function test_it_still_falls_back_to_the_authenticated_user(): void
+    {
+        // In an HTTP request nothing calls `runFor()`, and nothing should have to.
+        $auth = new AuthContext();
+        $auth->set(new User(id: '1', email: 'a@b.test', name: 'A', roles: [], permissions: [], orgId: 3));
+
+        $envelope = $this->builder(auth: $auth)->build('crm.contact.created', []);
+
+        $this->assertSame(3, $envelope['org_id']);
+    }
+
+    public function test_an_explicit_absence_of_tenant_is_not_the_users_organisation(): void
+    {
+        // `runFor(null)` means "this is platform-level work", and it has to beat the
+        // ambient user — otherwise a maintenance task run inside a request would stamp
+        // that request's organisation on an event belonging to none (ADR-0018).
+        $auth = new AuthContext();
+        $auth->set(new User(id: '1', email: 'a@b.test', name: 'A', roles: [], permissions: [], orgId: 3));
+        $tenants = new TenantContext($auth);
+
+        $envelope = $tenants->runFor(null, fn (): array => $this->builder(auth: $auth, tenants: $tenants)
+            ->build('crm.contact.created', []));
+
+        $this->assertNull($envelope['org_id']);
     }
 }

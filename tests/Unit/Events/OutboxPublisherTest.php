@@ -10,6 +10,7 @@ use Abeon\SDK\Events\EnvelopeBuilder;
 use Abeon\SDK\Events\OutboxPublisher;
 use Abeon\SDK\Exceptions\ContractViolationException;
 use Abeon\SDK\Logging\CorrelationContext;
+use Abeon\SDK\Tenancy\TenantContext;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager as Capsule;
@@ -53,8 +54,10 @@ final class OutboxPublisherTest extends TestCase
             ],
         ]));
 
+        $auth = new AuthContext();
+
         $this->publisher = new OutboxPublisher(
-            new EnvelopeBuilder($config, new CorrelationContext(), new AuthContext()),
+            new EnvelopeBuilder($config, new CorrelationContext(), $auth, new TenantContext($auth)),
             $this->capsule->getDatabaseManager(),
             $config,
         );
@@ -99,7 +102,7 @@ final class OutboxPublisherTest extends TestCase
         ]));
 
         $publisher = new OutboxPublisher(
-            new EnvelopeBuilder($config, new CorrelationContext(), new AuthContext()),
+            new EnvelopeBuilder($config, new CorrelationContext(), $a = new AuthContext(), new TenantContext($a)),
             $this->capsule->getDatabaseManager(),
             $config,
             enforceTransaction: false,

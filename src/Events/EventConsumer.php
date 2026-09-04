@@ -6,6 +6,7 @@ namespace Abeon\SDK\Events;
 
 use Abeon\SDK\Config\AbeonConfig;
 use Abeon\SDK\Logging\CorrelationContext;
+use Abeon\SDK\Tenancy\TenantContext;
 use Illuminate\Contracts\Container\Container;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
@@ -35,6 +36,7 @@ class EventConsumer
         private readonly RabbitMq $rabbit,
         private readonly ProcessedEvents $processed,
         private readonly CorrelationContext $correlation,
+        private readonly TenantContext $tenants,
         private readonly Container $container,
         private readonly AbeonConfig $config,
         ?LoggerInterface $logger = null,
@@ -155,9 +157,22 @@ class EventConsumer
         }
 
         try {
-            foreach ($this->matchingHandlers($event->eventType) as $handler) {
-                $handler->handle($event);
-            }
+            // **The tenant comes from the envelope, and nothing else can supply it.**
+            // A consumer has no request and therefore no `AuthContext` to fall back on,
+            // so before this a handler ran with no organisation at all — `require()`
+            // threw, and any handler that instead treated "no tenant" as "no filter"
+            // read every organisation's rows. `TenantContext`'s own docblock has always
+            // named this call as the way in; nothing made it.
+            //
+            // A null `org_id` is passed through rather than refused: a platform-level
+            // event legitimately has none, and it is the *handler* that knows whether it
+            // needs a tenant (ADR-0018).
+            $this->tenants->runFor($event->orgId, function () use ($event): void {
+                foreach ($this->matchingHandlers($event->eventType) as $handler) {
+                    $handler->handle($event);
+                }
+            });
+
             $this->processed->markProcessed($event->eventId, $event->eventType);
             $channel->basic_ack($deliveryTag);
         } catch (Throwable $e) {

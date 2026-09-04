@@ -37,6 +37,7 @@ final class PublishedSchemaContractTest extends TestCase
     private const PUBLISHED = [
         'auth.user.created'            => 'abeon-auth/app/Auth/Invitations.php',
         'auth.membership.created'      => 'abeon-auth/app/Auth/Invitations.php',
+        'auth.org.created'             => 'abeon-auth/app/Auth/ProvisionOrganisation.php',
         'service.permissions.declared' => 'abeon-sdk-php/src/Auth/PermissionsDeclarator.php',
         // Specified by ADR-0022 and not yet published by anything. Listed because the
         // contract half is what this test is about, and ADR-0022's loop cannot be built
