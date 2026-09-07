@@ -5,6 +5,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.0] — 2026-09-07
+
+First tagged version. Everything below was already in use — four services and the
+boilerplate consume this package through a symlink, so the code has been exercised
+continuously — but nothing pointed at a fixed reference, so a fresh checkout could only
+track a moving branch. The tag exists so the boilerplate can pin.
+
 ### 2026-08-12 — per-organisation preferences, registry ownership, config
 
 #### Changed
