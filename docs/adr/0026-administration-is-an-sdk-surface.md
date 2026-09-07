@@ -22,7 +22,7 @@ precedent is the argument:
 | Layer | Where it lives today (Store, ADR-0015) |
 |---|---|
 | HTTP endpoints | Auth serves `/api/v1/auth/store` |
-| Data access | `useStore()` in `@abeon/shared` |
+| Data access | `useStore()` in `@abeon/sdk-ts` |
 | Screen | `resources/js/Pages/Store.tsx` in `abeon-boilerplate-inertia`, routed at `/store` |
 
 The Store is an administrative surface in every meaningful sense: it is gated on `core.apps.manage`, it
@@ -37,9 +37,9 @@ is org-scoped, and it changes entitlement. Its UI is a boilerplate page, not a p
 - **PHP:** base controllers under `Abeon\SDK\Auth\Endpoints\` for `/api/v1/auth/admin/*`, which
   `abeon-auth` mounts and extends. Same pattern as `UserController`, `PreferencesController` and
   `AppsController` today.
-- **TypeScript:** data hooks in `@abeon/shared` — the administrative sibling of `useStore()` and
+- **TypeScript:** data hooks in `@abeon/sdk-ts` — the administrative sibling of `useStore()` and
   `useApps()`. Fetching, caching, error shape and correlation-id forwarding live here, once.
-- **No UI components.** `abeon-ui` and `@abeon/shared` do **not** grow admin screens, tables or forms.
+- **No UI components.** `abeon-ui` and `@abeon/sdk-ts` do **not** grow admin screens, tables or forms.
 
 ### In the boilerplate — the screens
 
@@ -56,13 +56,13 @@ frontend that decided its own permissions would be deriving authorization from t
 
 ### The consequence that makes this a decision rather than a preference
 
-**`/api/v1/auth/admin/*` is a shared contract, because `@abeon/shared` consumes it.** Even with the
+**`/api/v1/auth/admin/*` is a shared contract, because `@abeon/sdk-ts` consumes it.** Even with the
 screens copied per application, the hooks are a package that every application depends on. So the
 endpoints carry the same obligations as the chrome data plane:
 
 - **Versioned** under `/api/v1/`, additive change only; a breaking change is an ADR.
 - **Covered by golden fixtures** shared byte-for-byte between `abeon-sdk-php/schemas/fixtures/`
-  and `abeon-shared/tests/contract/`, as ADR-0010's endpoints are.
+  and `abeon-sdk-ts/tests/contract/`, as ADR-0010's endpoints are.
 - **Part of the swap-out set** (`abeon-auth-spec.md` NFR-10). A replacement Auth must serve
   administration too, or the hooks and screens are rewritten against whatever it exposes.
 
@@ -88,7 +88,7 @@ endpoints carry the same obligations as the chrome data plane:
   — materially more expensive per change than an internal API for one panel.
 - **The swap-out set grows** from roughly ten endpoints to ten plus administration.
 - **Two repositories move together** for one feature: an endpoint in `abeon-sdk-php`, a hook in
-  `abeon-shared`, a page in `abeon-boilerplate-inertia`. Worth watching — if administration keeps
+  `abeon-sdk-ts`, a page in `abeon-boilerplate-inertia`. Worth watching — if administration keeps
   growing, a dedicated application (option 2) becomes right again, and this ADR should be superseded
   rather than stretched.
 

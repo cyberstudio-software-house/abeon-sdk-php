@@ -10,7 +10,7 @@ The chrome therefore needs a tenant switcher, and something has to decide which 
 request belongs to.
 
 **Nothing in the platform does this today.** A search for `switch-tenant`, `switchTenant`,
-`currentTenant` and `current_tenant` across `abeon-sdk-php/src`, `abeon-shared/src` and the dev
+`currentTenant` and `current_tenant` across `abeon-sdk-php/src`, `abeon-sdk-ts/src` and the dev
 `abeon-auth-stub` returns **zero hits**, and no prior ADR covers it. The React MVP kept
 `currentTenantId` in `localStorage` and re-fetched `tenant_apps` on change — which was safe there only
 because tenancy was not an authorization dimension. Under ADR-0016 it is, so a client-side selection is
@@ -53,7 +53,7 @@ for the organisations the caller belongs to, with `current: true` on the active 
 
 Settled 2026-08-12 in favour of a separate endpoint rather than widening `GET /api/v1/auth/user`:
 
-- The `User` DTO is contract-frozen, mirrored in `@abeon/shared` and covered by golden fixtures shared
+- The `User` DTO is contract-frozen, mirrored in `@abeon/sdk-ts` and covered by golden fixtures shared
   byte-for-byte between the two packages. Adding a nested collection to it is a breaking change to a
   working contract, for data with a different cardinality and a different refresh cadence.
 - The switcher needs the list once per session; the user object is read on every chrome render.
@@ -95,6 +95,6 @@ the entire point of choosing this option.
 - Depends on: ADR-0016 (multi-tenant organisations)
 - Related: ADR-0001 (JWT format, cookie names), ADR-0004 (Problem Details), ADR-0008 (broadcasting auth
   — `private-org.{id}`), ADR-0009 (preferences are per-tenant), ADR-0010 (`/auth/user`, `/auth/apps`)
-- Implementation delta: `abeon-sdk-delta-2026-08-12.md` items 13–15 (`abeon-shared` tenant state and
+- Implementation delta: `abeon-sdk-delta-2026-08-12.md` items 13–15 (`abeon-sdk-ts` tenant state and
   switch flow — the piece that exists nowhere today)
 - MVP precedent (and why it is not sufficient): `unified-shell-spec.md` FR-2

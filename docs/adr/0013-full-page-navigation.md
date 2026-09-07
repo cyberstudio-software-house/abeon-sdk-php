@@ -9,7 +9,7 @@ The MVP was a single SPA that composed all apps in one React tree: switching app
 in-memory state was shared across them. The new platform is a set of **independently-deployed
 services**, each serving its own frontend, with **no host "Shell App"** (arch doc §3.7,
 "Ponieważ nie ma Shell App"). The chrome is *federated* — every app embeds the same `@abeon/ui`
-components fed by `@abeon/shared` hooks.
+components fed by `@abeon/sdk-ts` hooks.
 
 The consequence is a navigation model very different from the MVP's, and it deserves an explicit
 record because it sets expectations for every app author (what state survives an app switch, and
@@ -47,4 +47,4 @@ Smoothness comes from, not from a shared runtime, but from:
 ## References
 
 - Arch doc §3.4 (federated chrome), §3.6 (app registry), §3.7 (transitions)
-- `@abeon/shared` `crossAppHref()`; ADR-0009 (preferences as the durable cross-app state)
+- `@abeon/sdk-ts` `crossAppHref()`; ADR-0009 (preferences as the durable cross-app state)

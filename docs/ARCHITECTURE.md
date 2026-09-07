@@ -22,7 +22,7 @@ SDK maintainers, and platform reviewers evaluating SDK changes.
 
 `abeon/sdk` is a **Composer package** installed by every PHP/Laravel service
 in the Abeon Unified platform. It is the **bottom half** of the
-cross-service contract (the top half is `@abeon/shared` for TypeScript
+cross-service contract (the top half is `@abeon/sdk-ts` for TypeScript
 frontends). Its job is to make 16+ independent microservices behave like
 one coherent system — without imposing a service mesh, a shared monolith, or
 a runtime container.
@@ -43,7 +43,7 @@ The SDK **does not**:
 - Implement business logic, persistence schemas beyond its own infrastructure tables, or domain models.
 - Implement the Auth service itself (`abeon-auth` repo, Phase 1).
 - Implement AbeonUnified — notifications, app registry, org↔app assignment (`abeon-unified` repo, Phase 0.5 / 1; ADR-0019).
-- Ship a frontend — that's `@abeon/shared` + `@abeon/ui`.
+- Ship a frontend — that's `@abeon/sdk-ts` + `@abeon/ui`.
 - Manage Kubernetes resources, Helm charts, or deploy pipelines.
 
 ---
@@ -764,7 +764,7 @@ Out of scope, by deliberate choice:
   repo. The SDK is the *contract*; the services are the *bodies*.
 - **Helm charts, Dockerfiles, CI pipelines** — `abeon-infra/` repo
   (planned).
-- **Frontend chrome implementation** — `@abeon/shared` and `@abeon/ui` in
+- **Frontend chrome implementation** — `@abeon/sdk-ts` and `@abeon/ui` in
   sibling repos.
 - **Business-domain event catalogues** — each service ships its own JSON
   schemas; the platform-wide catalogue is `docs/events-catalog.md` plus

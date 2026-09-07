@@ -38,7 +38,7 @@ A UUIDv4 **correlation ID** propagates end-to-end via:
 
 ### Frontend SSR forwarding
 
-Next.js SSR forwards the inbound `X-Correlation-ID` from `headers()` when making downstream calls, generating a new UUID only when the inbound is absent. This matches V3 (Next.js readiness) decision in `@abeon/shared` plan v1.1. Without forwarding, Browser↔SSR↔backend correlation is severed.
+Next.js SSR forwards the inbound `X-Correlation-ID` from `headers()` when making downstream calls, generating a new UUID only when the inbound is absent. This matches V3 (Next.js readiness) decision in `@abeon/sdk-ts` plan v1.1. Without forwarding, Browser↔SSR↔backend correlation is severed.
 
 ### Forward-compatibility with OpenTelemetry
 

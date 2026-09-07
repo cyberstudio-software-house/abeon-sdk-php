@@ -130,7 +130,7 @@ No row is created until the first `PATCH`.
 - Schema: `schemas/dto/preferences.json` (Sprint S1)
 - Migration: `database/migrations/2026_05_18_000001_create_user_preferences_table.php`
 - Base controller: `src/Auth/Endpoints/PreferencesController.php`
-- Chrome consumer: `abeon-shared/src/react/use-preferences.ts`, `use-app-order.ts`
+- Chrome consumer: `abeon-sdk-ts/src/react/use-preferences.ts`, `use-app-order.ts`
 - Related: ADR-0010 (Auth /me + /apps endpoints), arch doc §3.6
 - **Amended 2026-08-12 by ADR-0016** (multi-tenant organisations): preferences are keyed
   `(user_id, org_id)`, and ADR-0017's tenant switch must re-fetch them. MVP precedent:

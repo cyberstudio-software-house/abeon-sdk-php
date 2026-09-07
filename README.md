@@ -31,7 +31,7 @@ observability, and operational concerns.
 - Business logic — that's the consumer service's responsibility.
 - Auth service implementation — see `abeon-auth` (Faza 1).
 - AbeonUnified implementation — notifications, app registry, org↔app assignment; see `abeon-unified` (Faza 1, ADR-0019).
-- Frontend code — see `@abeon/shared` (TypeScript counterpart in sibling repo `abeon-shared/`).
+- Frontend code — see `@abeon/sdk-ts` (TypeScript counterpart in sibling repo `abeon-sdk-ts/`).
 - Boilerplate Laravel application — separate workstream.
 - @abeon/ui design system — separate workstream (existing `abeon-ui` repo).
 
@@ -185,7 +185,7 @@ Each higher layer may depend on lower layers, **never the reverse**. This makes 
 - **Folder name:** `abeon-sdk-php` — the `-php` stack suffix leaves room for a parallel `abeon-sdk-ts` (or similar) for a future TypeScript counterpart variant.
 - **Composer package name:** `abeon/sdk` — stable, matches the architecture document. Folder name and package name are intentionally decoupled.
 
-The TypeScript counterpart `@abeon/shared` lives in a separate repository (`abeon-shared/`).
+The TypeScript counterpart `@abeon/sdk-ts` lives in a separate repository (`abeon-sdk-ts/`).
 
 ---
 

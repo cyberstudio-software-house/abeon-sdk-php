@@ -76,7 +76,7 @@ Implementation: `Abeon\SDK\Auth\JwtValidator` + `Abeon\SDK\Auth\JwksClient`.
 
 ### Cookie ↔ Authorization translation (frontend boilerplate)
 
-The Auth service issues the access token as an httpOnly cookie on `.abeon.pl` (cookie name from `auth.cookies.access`, default `abeon_token`). Frontend backends (Laravel + Inertia or Next.js SSR) **must read this cookie and attach the JWT as `Authorization: Bearer <value>`** before calling downstream services. `Abeon\SDK\Auth\AuthMiddleware` only reads the `Authorization` header — it does **not** inspect cookies. See [`@abeon/shared`](../../../abeon-shared/) for the TypeScript helper `createServerApiClient(cookies, headers)` that performs this translation.
+The Auth service issues the access token as an httpOnly cookie on `.abeon.pl` (cookie name from `auth.cookies.access`, default `abeon_token`). Frontend backends (Laravel + Inertia or Next.js SSR) **must read this cookie and attach the JWT as `Authorization: Bearer <value>`** before calling downstream services. `Abeon\SDK\Auth\AuthMiddleware` only reads the `Authorization` header — it does **not** inspect cookies. See [`@abeon/sdk-ts`](../../../abeon-sdk-ts/) for the TypeScript helper `createServerApiClient(cookies, headers)` that performs this translation.
 
 > **Amended 2026-08-13: Auth performs the translation for itself.** The rule above covers services a
 > frontend backend calls *on the user's behalf*. Auth is also reachable **directly from a browser** —
@@ -98,7 +98,7 @@ The Auth service issues the access token as an httpOnly cookie on `.abeon.pl` (c
 - Type claim distinguishes user vs service in audit logs and policy decisions.
 
 **Negative / accepted:**
-- 15-minute user token requires refresh token flow (separate refresh cookie). Mitigated by `@abeon/shared` `refreshTokenIfExpired()` helper. **Refresh tokens rotate and reuse kills the family — ADR-0023.**
+- 15-minute user token requires refresh token flow (separate refresh cookie). Mitigated by `@abeon/sdk-ts` `refreshTokenIfExpired()` helper. **Refresh tokens rotate and reuse kills the family — ADR-0023.**
 - Compromised service private key has 5-minute exposure until JWKS rotation propagates.
 - Permission catalog is federated (each service declares its own via `service.permissions.declared` event) — no central RBAC table. Single source of truth requires aggregation in Auth.
 

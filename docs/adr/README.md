@@ -106,6 +106,13 @@ an owner for the one screen every user meets first.
 
 ## Conventions
 
+> **Naming note, 2026-09-07.** The TypeScript SDK was called `abeon-shared` / `@abeon/shared` until
+> that date and is now `abeon-sdk-ts` / `@abeon/sdk-ts`. Every ADR here that names it uses the new
+> name, including ADRs written before the rename — they describe a contract that is still in force,
+> and leaving a dead name in a contract of record is worse than the small anachronism. Documents
+> that record a *state on a date* (the dated status and plan files at the repository root) keep the
+> old name on purpose.
+
 - **Amend in place** for changes that refine a decision; add a dated note to `## References` naming the
   amending ADR. The reader of an ADR must see the current rule in the body, not a trail of appendices.
 - **Supersede with a new ADR** for reversals. Never edit the original's reasoning — the record of why a

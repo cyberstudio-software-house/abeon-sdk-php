@@ -5,7 +5,7 @@
 
 ## Context
 
-The chrome's `useNotifications()` hook + `createEcho()` factory (in `@abeon/shared`) require every service mounting the chrome to expose a `/broadcasting/auth` endpoint that Laravel Echo can call before subscribing to private/presence channels.
+The chrome's `useNotifications()` hook + `createEcho()` factory (in `@abeon/sdk-ts`) require every service mounting the chrome to expose a `/broadcasting/auth` endpoint that Laravel Echo can call before subscribing to private/presence channels.
 
 The Reverb broadcaster sends a POST to `/broadcasting/auth` with `socket_id` and `channel_name`; the response must be a string token. The conventional Laravel `BroadcastController` reads `auth()->user()` — but Abeon services authenticate via JWT in the `Authorization` header (per ADR-0001), and Echo's auth call carries no header by default. The `abeon_token` cookie (`.abeon.pl`) **is** sent.
 
@@ -82,7 +82,7 @@ Services that need a custom channel pattern register it via Laravel's standard `
 
 ### XSRF / CSRF
 
-`/broadcasting/auth` mounts under Laravel's `web` middleware group, which includes CSRF. Echo's pusher-js automatically sends `X-XSRF-TOKEN` from the `XSRF-TOKEN` cookie — this is handled by `@abeon/shared` `createEcho()` already.
+`/broadcasting/auth` mounts under Laravel's `web` middleware group, which includes CSRF. Echo's pusher-js automatically sends `X-XSRF-TOKEN` from the `XSRF-TOKEN` cookie — this is handled by `@abeon/sdk-ts` `createEcho()` already.
 
 ### Configuration
 
@@ -105,6 +105,6 @@ No new config keys — the controller uses `config('abeon.auth.cookies.access')`
 ## References
 
 - Implementation: `src/Broadcasting/BroadcastingAuthController.php` (Sprint S1)
-- Used by chrome: `@abeon/shared` `createEcho({ authEndpoint })`, `useNotifications()`
+- Used by chrome: `@abeon/sdk-ts` `createEcho({ authEndpoint })`, `useNotifications()`
 - Related: ADR-0001 (JWT format & cookie translation), ADR-0006 (notifications channel `user.{id}`)
 - Reverb docs: https://reverb.laravel.com/docs/1.x/authorizing-channels

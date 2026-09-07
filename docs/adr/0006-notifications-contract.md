@@ -20,7 +20,7 @@ Without a single contract, 16 services would either:
 - emit notifications directly into their own UIs (no cross-app aggregation),
 - or each invent their own per-user persistence + WebSocket fan-out (drift, duplication).
 
-The chrome's `useNotifications()` hook (in `@abeon/shared/react`, Sprint D) already presumes a stable REST + WS shape — this ADR formalises it so Phase 1 can implement it.
+The chrome's `useNotifications()` hook (in `@abeon/sdk-ts/react`, Sprint D) already presumes a stable REST + WS shape — this ADR formalises it so Phase 1 can implement it.
 
 ## Decision
 
@@ -114,7 +114,7 @@ A single emitter may not exceed **100 notifications/sec for one user**. `abeon-n
 **2026-08-13 — implemented in `abeon-unified`, with three notes where reality differs from the text above.**
 
 1. **`unread-count` returns `unread_count`, as specified here.** The chrome hook
-   (`abeon-shared/src/react/use-notifications.ts`) read `data.count` from its first day, and the
+   (`abeon-sdk-ts/src/react/use-notifications.ts`) read `data.count` from its first day, and the
    boilerplate's dev stub was written against the hook rather than against this ADR — so the two agreed
    with each other and with nothing else, and no test could see it while both sides were ours. The hook
    now reads `unread_count` and treats the old field as a missing answer; its fallback of counting the
@@ -157,7 +157,7 @@ silently on the synchronous path.**
   `AuthContext` and fell back to the address on every request, with correct-looking headers throughout.
 
 - Schema: `schemas/dto/notification.json`, `schemas/events/notification-requested.json`
-- Chrome consumer: `abeon-shared/src/react/use-notifications.ts`
+- Chrome consumer: `abeon-sdk-ts/src/react/use-notifications.ts`
 - Related: ADR-0002 (event envelope), ADR-0004 (REST envelope), ADR-0005 (service-to-service auth), ADR-0008 (broadcasting auth), ADR-0010 (auth /me + /apps)
 - Implementation home: `abeon-notifications/` (separate repo, built in Phase 0.5 Sprint S5)
 

@@ -20,7 +20,7 @@ Option 1 is a Phase 2 effort (requires the ElasticSearch indexer service, schema
 
 ### Registry shape
 
-Each service registers commands via `@abeon/shared/react` `useRegisterCommands()` (Sprint S2). Commands have:
+Each service registers commands via `@abeon/sdk-ts/react` `useRegisterCommands()` (Sprint S2). Commands have:
 
 | Field | Type | Notes |
 |---|---|---|
@@ -97,7 +97,7 @@ Cmd+K (macOS) / Ctrl+K (everywhere else) opens the palette. `<CommandPalette>` o
 
 ## Update (2026-06-23) — implementation status
 
-- The per-service registry shipped in `@abeon/shared` (`command-registry.ts`), and nav-command
+- The per-service registry shipped in `@abeon/sdk-ts` (`command-registry.ts`), and nav-command
   seeding is now provided by **`useRegisterNavCommands(items, navigate)`** there — services/chrome map
   their nav config to commands instead of hand-rolling them. The boilerplate wires this in its
   `Chrome.tsx` and renders the palette via a thin `<CommandMenu>` bridge over `@abeon/ui`'s controlled
@@ -108,9 +108,9 @@ Cmd+K (macOS) / Ctrl+K (everywhere else) opens the palette. `<CommandPalette>` o
 
 ## References
 
-- Chrome consumer: `abeon-shared/src/react/command-registry.ts` (Sprint S2)
-- Nav seeding: `abeon-shared/src/react/nav-commands.ts` (`useRegisterNavCommands`)
-- Search provider: `abeon-shared/src/react/search-provider.ts` (`useRegisterSearchProvider`, ADR-0011)
+- Chrome consumer: `abeon-sdk-ts/src/react/command-registry.ts` (Sprint S2)
+- Nav seeding: `abeon-sdk-ts/src/react/nav-commands.ts` (`useRegisterNavCommands`)
+- Search provider: `abeon-sdk-ts/src/react/search-provider.ts` (`useRegisterSearchProvider`, ADR-0011)
 - UI: `abeon-ui/src/components/layout/command-palette.tsx`
 - Future Phase 2: `abeon-search` (ADR-0011) exposes `GET /api/v1/search`.
 - Related: ADR-0010 (apps endpoint feeds app-navigation commands), ADR-0011 (cross-app search)

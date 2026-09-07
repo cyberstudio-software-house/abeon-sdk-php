@@ -8,7 +8,7 @@
 ADR-0007 adopted a **per-service command registry** for Cmd+K in Phase 0.5 and explicitly
 deferred **cross-app full-text search** to Phase 2, noting it "will integrate as one more provider
 behind the same palette UI when ready." Phase 0.5 is now implemented: the registry lives in
-`@abeon/shared` (`command-registry.ts`), nav commands are seeded via `useRegisterNavCommands`, and
+`@abeon/sdk-ts` (`command-registry.ts`), nav commands are seeded via `useRegisterNavCommands`, and
 `@abeon/ui`'s `<CommandPalette>` already supports async `provider(query)` entries.
 
 What is still missing is the **contract** for the deferred search so services and the chrome can be
@@ -57,13 +57,13 @@ user can access its `source_app`.
 ```
 
 Schema: [`schemas/dto/search-result.json`](../../schemas/dto/search-result.json). PHP DTO:
-`Abeon\SDK\DTO\SearchResult`. TS type: `@abeon/shared` `SearchResult`. Golden fixtures are validated
+`Abeon\SDK\DTO\SearchResult`. TS type: `@abeon/sdk-ts` `SearchResult`. Golden fixtures are validated
 on both sides by the schema contract tests (`tests/Unit/Contract/SchemaContractTest.php`,
-`abeon-shared/tests/contract/schema-fixtures.test.ts`).
+`abeon-sdk-ts/tests/contract/schema-fixtures.test.ts`).
 
 ### Frontend integration
 
-`@abeon/shared` ships `useRegisterSearchProvider({ api, navigate, path?, group? })` (Sprint, this
+`@abeon/sdk-ts` ships `useRegisterSearchProvider({ api, navigate, path?, group? })` (Sprint, this
 ADR). It registers exactly one command whose `provider(query)` calls `GET /api/v1/search?q=…`,
 maps each `SearchResult` to a navigable `Command` (`run` → `navigate(url)`), and lets the palette
 merge those rows with the static per-app commands. A blank query short-circuits to `[]` without a

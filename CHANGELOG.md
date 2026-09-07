@@ -43,7 +43,7 @@ with the gateway.
 
   ADR-0017 left the shape open ("whether it is a separate endpoint"). Settled here in favour of a
   separate endpoint rather than widening `GET /api/v1/auth/user`: the `User` DTO is contract-frozen,
-  mirrored in `@abeon/shared` and covered by golden fixtures shared byte-for-byte, so nesting a
+  mirrored in `@abeon/sdk-ts` and covered by golden fixtures shared byte-for-byte, so nesting a
   collection into it is a breaking change to a working contract — for data with a different cardinality
   and refresh cadence.
 
@@ -144,7 +144,7 @@ Brings the recorded architecture back in line with the concept meeting. Plan:
   end to end yet.
 
 **Verified:** PHPUnit **194/194** (362 assertions, up from 171), PHPStan level 8 clean,
-`@abeon/shared` **154/154** with `sync-schemas:check` in sync and `tsc --noEmit` clean.
+`@abeon/sdk-ts` **154/154** with `sync-schemas:check` in sync and `tsc --noEmit` clean.
 
 ### 2026-05-27 — hardening & contract freeze
 
@@ -154,8 +154,8 @@ Made the package "stable enough" to build the Auth Service on. Full stage report
 #### Added
 - **`JwtValidatorTest`** (11 cases) and **`JwksClientTest`** (5 cases) — first coverage of the JWT/auth trust anchor, including an alg-confusion case that proves RS256 is pinned (HS256 rejected), unknown-`kid` flush+retry, and key-rotation recovery.
 - **`OutboxDrainerTest`** (4 cases) — publish-once + mark-processed, no-republish, failure recording, and the SQLite skip-lock no-op path.
-- **`SchemaContractTest`** (9 cases) — validates `User`, `AppDescriptor`, `ProblemDetails`, and the event envelope DTO serialization **against the JSON Schemas** in `schemas/` (via `opis/json-schema`), plus round-trip parity with golden fixtures shared with `@abeon/shared`.
-- `tests/fixtures/contract/*.json` — golden fixtures (byte-identical to `@abeon/shared`'s).
+- **`SchemaContractTest`** (9 cases) — validates `User`, `AppDescriptor`, `ProblemDetails`, and the event envelope DTO serialization **against the JSON Schemas** in `schemas/` (via `opis/json-schema`), plus round-trip parity with golden fixtures shared with `@abeon/sdk-ts`.
+- `tests/fixtures/contract/*.json` — golden fixtures (byte-identical to `@abeon/sdk-ts`'s).
 - `phpstan.neon` (**level 8**) + `phpstan-baseline.neon` (7 pre-existing findings captured as tracked debt).
 - Composer `scripts`: `composer test` (phpunit), `composer stan` (phpstan).
 - `.github/workflows/ci.yml` — CI on PHP 8.3 + 8.4 (install → phpstan → phpunit).

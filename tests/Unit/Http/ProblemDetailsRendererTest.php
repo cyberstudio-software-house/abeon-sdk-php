@@ -80,7 +80,7 @@ final class ProblemDetailsRendererTest extends TestCase
     public function test_a_validation_failure_matches_the_shared_golden_fixture(): void
     {
         // `schemas/fixtures/problem-details.json` is shared byte-for-byte with
-        // `@abeon/shared`. It described a validation error that no service had ever
+        // `@abeon/sdk-ts`. It described a validation error that no service had ever
         // emitted; this asserts the shape is now actually produced.
         $fixture = json_decode(
             (string) file_get_contents(__DIR__.'/../../../schemas/fixtures/problem-details.json'),

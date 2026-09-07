@@ -23,7 +23,7 @@ description that Auth consumes it *"to provision the owner user for a new organi
 application to an existing one"*.
 
 **Nothing implements it.** Verified 2026-08-13: `grep -rn "app\.registered\|AppRegistered"` across
-`abeon-sdk-php/src`, `abeon-shared/src`, `abeon-auth-stub/app` and `abeon-boilerplate-inertia/app`
+`abeon-sdk-php/src`, `abeon-sdk-ts/src`, `abeon-auth-stub/app` and `abeon-boilerplate-inertia/app`
 returns **zero hits**. The schema is a contract with a publisher that does not exist yet and a consumer
 nobody has written.
 

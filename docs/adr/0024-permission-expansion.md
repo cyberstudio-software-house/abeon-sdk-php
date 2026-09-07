@@ -21,7 +21,7 @@ the code agrees. Verified 2026-08-13:
 | | |
 |---|---|
 | `src/DTO/User.php:53` | `hasPermission()` is `in_array($permission, $this->permissions, true)` — exact match |
-| `abeon-shared/src/react/use-auth.ts:42` | `hasPermission` is `permissions.includes(permission)` — exact match, same semantics |
+| `abeon-sdk-ts/src/react/use-auth.ts:42` | `hasPermission` is `permissions.includes(permission)` — exact match, same semantics |
 | `schemas/auth/jwt-user.json:22` | the pattern above; `*.*.*` does not satisfy it |
 
 But `abeon-auth-stub/config/dev-users.php` seeds its superuser with `'permissions' => ['*.*.*']`, and
@@ -119,7 +119,7 @@ permission.
 - Related: [ADR-0016](0016-multi-tenant-organisations.md) (grants are per membership),
   [ADR-0017](0017-tenant-switching.md) (switch re-mints, so it re-expands),
   [ADR-0010](0010-auth-me-and-apps-endpoints.md) (`/auth/user` re-derives grants for display)
-- Code verified 2026-08-13: `src/DTO/User.php:53`, `abeon-shared/src/react/use-auth.ts:42`,
+- Code verified 2026-08-13: `src/DTO/User.php:53`, `abeon-sdk-ts/src/react/use-auth.ts:42`,
   `schemas/auth/jwt-user.json:18-24`, `abeon-auth-stub/config/dev-users.php`,
   `abeon-auth-stub/app/Http/Controllers/StubAppsController.php`
 - Catalog source: `src/Auth/PermissionsDeclarator.php` (`service.permissions.declared`)

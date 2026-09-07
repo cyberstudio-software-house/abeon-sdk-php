@@ -192,7 +192,7 @@ The user would be signed in, looking at a form that appeared to do nothing, and 
 - Dark mode is no longer free. `@abeon/ui` is `darkMode: ["class"]` and the Blade screens
   followed the OS through `prefers-color-scheme`, so the root view carries a pre-paint script
   that sets `.dark` from `matchMedia`. It reads the OS and nothing else — the stored preference
-  lives behind `@abeon/shared`, which needs a session this application by definition does not
+  lives behind `@abeon/sdk-ts`, which needs a session this application by definition does not
   have.
 
 **Inertia specifically is a deliberate choice, not an inherited one.** This application will not

@@ -89,7 +89,7 @@ spent, and lose the session.
 **A 429 MUST NOT consume the presented refresh token.** Rejection for rate limiting happens before the
 token is exchanged, so a retry after backoff is an ordinary refresh, not a reuse event.
 
-Clients should additionally single-flight refreshes; `refreshTokenIfExpired()` in `@abeon/shared` is
+Clients should additionally single-flight refreshes; `refreshTokenIfExpired()` in `@abeon/sdk-ts` is
 where that belongs. That is a mitigation, not the rule — the rule has to hold for a client that gets it
 wrong, because the failure mode is logging out an honest user.
 

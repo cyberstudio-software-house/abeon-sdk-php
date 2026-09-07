@@ -119,7 +119,7 @@ a datastore rather than through a contract.
   organisation may act in it for the remainder of their token's life.
 - **Reuse detection logs out honest users** who race two refreshes — a mobile client resuming on a flaky
   connection is the usual case. Mitigate in the client (single-flight the refresh, which
-  `@abeon/shared`'s `refreshTokenIfExpired()` is the natural place for), not by weakening the rule.
+  `@abeon/sdk-ts`'s `refreshTokenIfExpired()` is the natural place for), not by weakening the rule.
 - **Rotation makes the refresh endpoint stateful and write-heavy.** Every refresh is a write. At 15-minute
   access tokens that is one write per user per 15 minutes — cheap, but it is no longer a pure read path
   and it needs the same rate limiting as login.

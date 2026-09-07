@@ -9,7 +9,7 @@ Inter-service REST calls and frontend↔backend API calls need consistent respon
 
 - Success payloads should be self-describing (where is the data? where is pagination meta? where are filters echoed back?).
 - Error responses must be machine-parseable across services: `ServiceCallException` needs to lift typed details from upstream service failures into the local exception so middleware/error handlers downstream see consistent shapes.
-- TypeScript counterpart (`@abeon/shared`) must mirror the wire format with minimal mapping logic.
+- TypeScript counterpart (`@abeon/sdk-ts`) must mirror the wire format with minimal mapping logic.
 
 Without convention, every controller invents its own JSON layout, and clients write per-endpoint parsers.
 
@@ -112,7 +112,7 @@ All public APIs live under `/api/v1`. Version bumps follow strict rules:
 ## Consequences
 
 **Positive:**
-- Frontend `@abeon/shared` has one `PaginatedResponse<T>` type that fits all paginated endpoints.
+- Frontend `@abeon/sdk-ts` has one `PaginatedResponse<T>` type that fits all paginated endpoints.
 - `ServiceCallException::fromResponse()` mechanically lifts upstream Problem Details into the local exception — error context preserved across hops.
 - v1/v2 coexistence policy gives consumers time to migrate without big-bang upgrades.
 

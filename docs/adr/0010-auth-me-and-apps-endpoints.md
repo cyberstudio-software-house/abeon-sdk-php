@@ -10,7 +10,7 @@ The federated chrome needs two read-only endpoints from the Auth service:
 1. **Current user** — `<UserMenu>`, `<AbeonProvider initialAuth>` and `useAuth()` rely on a single source of truth for the active user's identity, roles, and permissions. While the JWT already carries these claims (ADR-0001), the chrome benefits from a server endpoint that re-derives them (single point of truth, future-proof for richer fields).
 2. **Visible apps** — `<AppSwitcher>` and `useApps()` need the list of apps the current user can access, with display metadata (`label`, `path`, `icon`).
 
-Both endpoints are referenced throughout `@abeon/shared` (`getServerAuthContext`, `useApps`, `useNotifications`) and the arch doc (§3.6), but until now had no formal schema.
+Both endpoints are referenced throughout `@abeon/sdk-ts` (`getServerAuthContext`, `useApps`, `useNotifications`) and the arch doc (§3.6), but until now had no formal schema.
 
 ## Decision
 
@@ -175,7 +175,7 @@ Both controllers require `AuthMiddleware`. Both return JSON in the ADR-0004 enve
 
 - Schemas: `schemas/dto/user.json`, `schemas/dto/app-descriptor.json`
 - Implementation: `src/Auth/Endpoints/UserController.php`, `src/Auth/Endpoints/AppsController.php` (Sprint S1)
-- Chrome consumers: `abeon-shared/src/react/use-auth.ts`, `use-apps.ts`, `_internal/`
+- Chrome consumers: `abeon-sdk-ts/src/react/use-auth.ts`, `use-apps.ts`, `_internal/`
 - Related: ADR-0001 (JWT), ADR-0004 (REST envelope), ADR-0009 (preferences alongside)
 - Arch doc: §3.6 (App Registry)
 - **Amended 2026-06-26 by ADR-0015**: filtering rule became org-enabled AND permission (was
@@ -189,7 +189,7 @@ Both controllers require `AuthMiddleware`. Both return JSON in the ADR-0004 enve
   > That never happened and was never the decision. **ADR-0017, written the same day, explicitly chose a
   > separate `GET /api/v1/auth/tenants` endpoint** rather than widening this one, precisely because the
   > `User` DTO is contract-frozen and mirrored in golden fixtures on both sides. The code agrees with
-  > ADR-0017: `schemas/dto/user.json`, `src/DTO/User.php` and `abeon-shared/src/types/user.ts` carry no
+  > ADR-0017: `schemas/dto/user.json`, `src/DTO/User.php` and `abeon-sdk-ts/src/types/user.ts` carry no
   > membership collection (verified 2026-08-13). The `User` DTO is unchanged by ADR-0016.
 
 - **Amended 2026-08-13 by [ADR-0025](0025-auth-service-invariants.md)** (Auth service invariants):
@@ -209,4 +209,4 @@ Both controllers require `AuthMiddleware`. Both return JSON in the ADR-0004 enve
 
 - **Amended 2026-08-13 by [ADR-0026](0026-administration-is-an-sdk-surface.md)**: the administration
   endpoints `/api/v1/auth/admin/*` join this ADR's endpoints as a shared, versioned, fixture-covered
-  contract, because `@abeon/shared` consumes them from every application.
+  contract, because `@abeon/sdk-ts` consumes them from every application.

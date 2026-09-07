@@ -34,7 +34,7 @@ return [
         // least this long plus one token lifetime (ADR-0005 as amended by ADR-0025).
         'jwks_cache_ttl' => (int) env('ABEON_JWKS_CACHE_TTL', 3600),
         // Canonical cookie names — Auth service issues them, frontends (Inertia + Next.js
-        // via @abeon/shared) read them. Frontends MUST swap from cookie → Authorization
+        // via @abeon/sdk-ts) read them. Frontends MUST swap from cookie → Authorization
         // Bearer header before calling downstream services, since AuthMiddleware only
         // reads the header (not cookies).
         // Platform constants rather than environment values — see

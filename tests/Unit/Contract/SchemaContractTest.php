@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
  * cross-language contract: schemas are the single source of truth, both packages
  * conform.
  *
- * **The fixtures are byte-identical to `@abeon/shared`'s because they are the same
+ * **The fixtures are byte-identical to `@abeon/sdk-ts`'s because they are the same
  * files.** Until 2026-08-15 that was a claim in this docblock held up by nothing:
  * the fixtures lived in `tests/fixtures/contract/`, `sync-schemas.ts` only copies
  * `schemas/`, and its orphan detection explicitly skipped `fixtures/` — so the two
@@ -49,7 +49,7 @@ final class SchemaContractTest extends TestCase
         $this->validator->resolver()?->registerPrefix(self::SCHEMA_NS, $root);
     }
 
-    // --- golden fixtures are valid against their schemas (parity with @abeon/shared) ---
+    // --- golden fixtures are valid against their schemas (parity with @abeon/sdk-ts) ---
 
     public function test_user_fixture_matches_schema(): void
     {
@@ -78,7 +78,7 @@ final class SchemaContractTest extends TestCase
 
     public function test_pagination_fixture_matches_schema(): void
     {
-        // These five were validated only by `@abeon/shared` — the PHP side had no copy
+        // These five were validated only by `@abeon/sdk-ts` — the PHP side had no copy
         // to check, which is precisely how a fixture drifts without anything going red.
         $this->assertValid('dto/pagination.json', $this->fixture('pagination.json'));
     }
