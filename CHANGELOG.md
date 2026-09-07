@@ -7,6 +7,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.3.0] — 2026-09-07
+
+### Changed
+
+- **`php` narrowed from `^8.3` to `^8.4`.** A minor rather than a patch, because it
+  removes a platform this package claimed to support. Nothing in the Abeon estate has
+  ever run on 8.3 — every container, runbook and test recipe is `php:8.4-cli` — and the
+  claim was actively costing something: this repository's CI ran a matrix of 8.3 and
+  8.4, and the 8.3 leg failed on **every run from 2026-05-28**, because the lock is
+  resolved on 8.4 and pulls packages requiring `>=8.4.1`. Four months of a permanently
+  half-red CI that reported nothing either way. The CI matrix is now 8.4 alone.
+- `orchestra/testbench` `^9.0` → `^10.0`, moving the test environment to Laravel 12 —
+  the same major every consumer runs. This is dev-only and invisible to consumers, but
+  it is what makes `composer audit` clean here: `testbench ^9` pins `laravel/framework
+  ^11.x`, and every 11.x release is subject to advisories.
+
 ## [0.2.0] — 2026-09-07
 
 ### Security
