@@ -185,7 +185,13 @@ final class JwtValidatorTest extends TestCase
     {
         // HS256 token carrying the same kid. The validator resolves an RS256 JWK,
         // so a symmetric-algorithm token must never verify (no alg downgrade).
-        $hsToken = JWT::encode($this->claims(), 'attacker-chosen-secret', 'HS256', self::KID);
+        //
+        // The secret is 32 bytes because php-jwt v7 refuses to sign HS256 with
+        // anything shorter ("Provided key is too short"). That check is the library's,
+        // not this validator's, and it fired inside `encode()` — so with a short
+        // secret this test threw while *building* the attacker's token and never
+        // reached the assertion at all.
+        $hsToken = JWT::encode($this->claims(), str_repeat('attacker-chosen-secret', 2), 'HS256', self::KID);
 
         $this->expectException(AuthException::class);
         $this->validator()->decode($hsToken);

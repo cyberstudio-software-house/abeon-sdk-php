@@ -7,6 +7,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.2.0] — 2026-09-07
+
+### Security
+
+- **`firebase/php-jwt` ^6.10 → ^7.0.** Every stable 6.x release carries CVE-2025-45769
+  ("weak encryption", severity low, affects `< 7.0.0`), which is why the estate's lock files
+  all sat on `6.x-dev`: `minimum-stability: dev` was the only way to get a version Composer
+  would not block. Nothing in this repository depended on that being a dev branch — it was
+  the shape of the constraint, not a decision.
+
+### Changed
+
+- v7 enforces a minimum HMAC key length. That surfaced in one test rather than in the
+  validator: `JwtValidatorTest::test_rejects_an_algorithm_confusion_token` built its attacker
+  token with a 23-byte secret, so under v7 it threw inside `JWT::encode()` and never reached
+  the assertion. The secret is 32+ bytes now and the test asserts what it always claimed to —
+  verified by making the validator take `alg` from the token header, which turns it red.
+
 ## [0.1.0] — 2026-09-07
 
 First tagged version. Everything below was already in use — four services and the
