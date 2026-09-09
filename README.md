@@ -39,9 +39,24 @@ observability, and operational concerns.
 
 ## Installation
 
-```bash
-composer require abeon/sdk
+This package is **not on packagist.org**. Add the repository, then require a released version:
+
+```jsonc
+// composer.json
+"repositories": [
+  { "type": "vcs", "url": "https://github.com/cyberstudio-software-house/abeon-sdk-php.git" }
+],
+"require": { "abeon/sdk": "^0.3.0" }
 ```
+
+```bash
+composer install --ignore-platform-req=ext-sockets
+```
+
+The repository is public, so this needs no credentials. The flag is needed because neither the
+`composer:2` nor the `php:8.4-cli` image ships `ext-sockets`, which `php-amqplib` declares —
+**the runtime image must install it** (`docker-php-ext-install sockets`); the event consumer needs
+it at run time.
 
 Laravel's package auto-discovery picks up `Abeon\SDK\AbeonServiceProvider`. No manual provider registration needed.
 
@@ -196,22 +211,16 @@ The TypeScript counterpart `@abeon/sdk-ts` lives in a separate repository (`abeo
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Comprehensive architectural reference — layers, contracts, lifecycle, extension points |
 | [`docs/usage.md`](docs/usage.md) | Getting-started walkthrough + cookbook + troubleshooting |
 | [`docs/events-catalog.md`](docs/events-catalog.md) | How services declare and discover event schemas (federation) |
-| [`docs/adr/0001-jwt-format.md`](docs/adr/0001-jwt-format.md) | JWT format (user + service tokens) |
-| [`docs/adr/0002-event-envelope.md`](docs/adr/0002-event-envelope.md) | Event envelope contract |
-| [`docs/adr/0003-correlation-id.md`](docs/adr/0003-correlation-id.md) | Correlation ID propagation |
-| [`docs/adr/0004-rest-envelope-and-errors.md`](docs/adr/0004-rest-envelope-and-errors.md) | REST `{data, meta}` envelope + RFC 7807 errors |
-| [`docs/adr/0005-service-to-service-auth.md`](docs/adr/0005-service-to-service-auth.md) | Service-to-service authentication |
-| [`docs/adr/0006-notifications-contract.md`](docs/adr/0006-notifications-contract.md) | Notifications service contract (REST + Reverb + RabbitMQ fan-in) |
-| [`docs/adr/0007-search-and-command-registry.md`](docs/adr/0007-search-and-command-registry.md) | Cmd+K per-service command registry |
-| [`docs/adr/0008-broadcasting-auth.md`](docs/adr/0008-broadcasting-auth.md) | `/broadcasting/auth` (cookie → JWT → Reverb) |
-| [`docs/adr/0009-user-preferences.md`](docs/adr/0009-user-preferences.md) | Versioned user-preferences blob in Auth |
-| [`docs/adr/0010-auth-me-and-apps-endpoints.md`](docs/adr/0010-auth-me-and-apps-endpoints.md) | `/api/v1/auth/{user,apps}` schemas + filtering |
+| [`docs/adr/`](docs/adr/README.md) | **27 decision records**, indexed. The four that everything else rests on: [0001](docs/adr/0001-jwt-format.md) JWT format · [0002](docs/adr/0002-event-envelope.md) event envelope · [0004](docs/adr/0004-rest-envelope-and-errors.md) REST envelope and RFC 7807 errors · [0005](docs/adr/0005-service-to-service-auth.md) service-to-service authentication |
+
+Where an ADR and this code disagree, the ADR is the intent and the code is the bug.
 
 Higher-level project docs (Phase 0 plan, architecture):
 
 - `../abeon-unified-architecture.md` — overall platform architecture
 - `../abeon-sdk-phase0-plan.md` — detailed Phase 0 SDK plan
-- `../abeon-shared-phase0-plan.md` — TypeScript counterpart plan
+- `../abeon-shared-phase0-plan.md` — the TypeScript counterpart plan. It keeps that filename on
+  purpose: the package was called `@abeon/shared` when it was written, and is `@abeon/sdk-ts` now
 - `../abeon-phase0-summary.md` — consolidated decisions snapshot
 
 ---
@@ -314,23 +323,29 @@ For integration tests with real RabbitMQ + DB, the SDK's `tests/integration/` (p
 ## Dependencies
 
 Runtime:
-- `php` ^8.3
-- `firebase/php-jwt` ^6.10 — JWT sign + verify (JWKS)
+- `php` ^8.4
+- `firebase/php-jwt` ^7.0 — JWT sign + verify (JWKS). 6.x is not an option: every stable
+  release of it is subject to CVE-2025-45769 and Composer refuses to install one.
 - `php-amqplib/php-amqplib` ^3.7 — RabbitMQ AMQP client
 - `illuminate/{contracts,support,console,http,database}` ^11.0|^12.0 — Laravel framework
 
 Dev:
 - `phpunit/phpunit` ^11.0
 - `phpstan/phpstan` ^1.11
-- `orchestra/testbench` ^9.0
+- `orchestra/testbench` ^10.0 — Laravel 12, the same major every consumer runs
 
 ---
 
 ## Status
 
-**Phase 0 implementation in progress.** SDK Sprint 0-2 complete; Sprint 3 (this current work — VersionHeadersMiddleware + ADRs + docs) wraps up the PHP side.
+**Released and in use.** `v0.3.0` is the current tag; four applications consume it —
+`abeon-auth`, `abeon-auth/auth-ui`, `abeon-unified` and `abeon-boilerplate-inertia` — each through
+the `vcs` repository above rather than a path to a sibling directory, so each of them installs on
+its own.
 
-This is a private platform package — published to GitHub Packages, not to packagist.org.
+Not published to any registry. It does not need to be: Composer resolves a tag straight from the
+public repository, and the one registry the platform has available requires a token even for public
+packages.
 
 ## License
 
