@@ -7,6 +7,8 @@ namespace Abeon\SDK\Events;
 use Abeon\SDK\Config\AbeonConfig;
 use Abeon\SDK\DTO\Actor;
 use Abeon\SDK\Exceptions\ContractViolationException;
+use DateTimeImmutable;
+use DateTimeZone;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Query\Builder;
 
@@ -49,9 +51,22 @@ class OutboxPublisher implements EventPublisher
             'event_id'    => $envelope['event_id'],
             'routing_key' => $envelope['event_type'],
             'envelope'    => json_encode($envelope, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-            'created_at'  => $envelope['timestamp'],
+            'created_at'  => self::columnTimestamp($envelope['timestamp']),
         ]);
 
         return $envelope['event_id'];
+    }
+
+    /**
+     * The envelope carries ISO 8601 with milliseconds and a `Z`, which is the wire format
+     * (ADR-0002). A DATETIME/TIMESTAMP column takes `Y-m-d H:i:s`: SQLite stored the ISO
+     * string as text and nobody noticed, MariaDB in strict mode rejects it — and with it
+     * the business write in the same transaction.
+     */
+    private static function columnTimestamp(string $iso): string
+    {
+        return (new DateTimeImmutable($iso))
+            ->setTimezone(new DateTimeZone('UTC'))
+            ->format('Y-m-d H:i:s');
     }
 }

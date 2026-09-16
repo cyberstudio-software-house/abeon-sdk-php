@@ -13,11 +13,14 @@ use Abeon\SDK\Logging\CorrelationContext;
 use Abeon\SDK\Tenancy\TenantContext;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
+use Abeon\SDK\Tests\Support\UsesMariaDb;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use PHPUnit\Framework\TestCase;
 
 final class OutboxPublisherTest extends TestCase
 {
+    use UsesMariaDb;
+
     private Capsule $capsule;
     private OutboxPublisher $publisher;
 
@@ -26,12 +29,7 @@ final class OutboxPublisherTest extends TestCase
         parent::setUp();
 
         $container = Container::getInstance();
-        $this->capsule = new Capsule($container);
-        $this->capsule->addConnection([
-            'driver'   => 'sqlite',
-            'database' => ':memory:',
-            'prefix'   => '',
-        ]);
+        $this->capsule = $this->connectTestDatabase($container);
         $this->capsule->setAsGlobal();
         $this->capsule->bootEloquent();
 
@@ -89,6 +87,10 @@ final class OutboxPublisherTest extends TestCase
 
         $envelope = json_decode($row->envelope, true);
         $this->assertSame($eventId, $envelope['event_id']);
+        $this->assertSame(
+            (new \DateTimeImmutable($envelope['timestamp']))->format('Y-m-d H:i:s'),
+            (string) $row->created_at,
+        );
         $this->assertSame(['contact_id' => 1], $envelope['data']);
     }
 
