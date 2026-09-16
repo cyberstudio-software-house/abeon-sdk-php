@@ -11,6 +11,7 @@ use Abeon\SDK\Exceptions\AuthException;
 use Illuminate\Contracts\Routing\ResponseFactory as ResponseFactoryContract;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Container\Container;
+use Abeon\SDK\Tests\Support\UsesMariaDb;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
@@ -25,6 +26,8 @@ use PHPUnit\Framework\TestCase;
  */
 final class PreferencesControllerTest extends TestCase
 {
+    use UsesMariaDb;
+
     private Capsule $capsule;
 
     protected function setUp(): void
@@ -40,12 +43,7 @@ final class PreferencesControllerTest extends TestCase
             $this->createMock(Redirector::class),
         ));
 
-        $this->capsule = new Capsule($container);
-        $this->capsule->addConnection([
-            'driver'   => 'sqlite',
-            'database' => ':memory:',
-            'prefix'   => '',
-        ]);
+        $this->capsule = $this->connectTestDatabase($container);
 
         $this->capsule->getConnection()->getSchemaBuilder()->create(
             PreferencesController::TABLE,

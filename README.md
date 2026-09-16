@@ -316,7 +316,16 @@ $publisher = app(EventPublisher::class);
 expect($publisher->publishedForRoutingKey('crm.contact.created'))->toHaveCount(1);
 ```
 
-For integration tests with real RabbitMQ + DB, the SDK's `tests/integration/` (planned) provides a `docker-compose.yml` with RabbitMQ + MariaDB.
+### This repository's own tests
+
+The database tests run against **MariaDB 11.8**, the production engine — not SQLite. Start the
+suite-wide container with `./db-up.sh` in the `abeon-suit` root (database `abeon_sdk_test`, user
+`abeon_sdk`), or point `ABEON_TEST_DB_HOST`, `_PORT`, `_DATABASE`, `_USERNAME` and `_PASSWORD` at
+another server. Each test empties the database before it starts. PHP needs `pdo_mysql`:
+
+```bash
+docker run --rm --network host -v "$PWD":/app -w /app abeon-php:8.4 vendor/bin/phpunit
+```
 
 ---
 

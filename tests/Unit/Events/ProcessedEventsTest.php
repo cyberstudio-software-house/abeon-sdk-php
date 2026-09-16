@@ -8,12 +8,15 @@ use Abeon\SDK\Config\AbeonConfig;
 use Abeon\SDK\Events\ProcessedEvents;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
+use Abeon\SDK\Tests\Support\UsesMariaDb;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\QueryException;
 use PHPUnit\Framework\TestCase;
 
 final class ProcessedEventsTest extends TestCase
 {
+    use UsesMariaDb;
+
     private Capsule $capsule;
     private ProcessedEvents $processed;
 
@@ -22,12 +25,7 @@ final class ProcessedEventsTest extends TestCase
         parent::setUp();
 
         $container = Container::getInstance();
-        $this->capsule = new Capsule($container);
-        $this->capsule->addConnection([
-            'driver'   => 'sqlite',
-            'database' => ':memory:',
-            'prefix'   => '',
-        ]);
+        $this->capsule = $this->connectTestDatabase($container);
         $this->capsule->setAsGlobal();
         $this->capsule->bootEloquent();
 
@@ -56,7 +54,7 @@ final class ProcessedEventsTest extends TestCase
     public function test_mark_processed_returns_false_on_duplicate(): void
     {
         $this->processed->markProcessed('event-1', 'crm.contact.created');
-        // SQLite unique-constraint violation → caught and returns false.
+        // Duplicate-key violation → caught and returns false.
         $this->assertFalse($this->processed->markProcessed('event-1', 'crm.contact.created'));
     }
 

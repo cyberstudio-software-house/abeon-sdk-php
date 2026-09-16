@@ -10,19 +10,21 @@ use Abeon\SDK\Health\CheckResult;
 use Abeon\SDK\Health\OutboxLagCheck;
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
+use Abeon\SDK\Tests\Support\UsesMariaDb;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use PHPUnit\Framework\TestCase;
 
 final class OutboxLagCheckTest extends TestCase
 {
+    use UsesMariaDb;
+
     private Capsule $capsule;
     private AbeonConfig $config;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->capsule = new Capsule(Container::getInstance());
-        $this->capsule->addConnection(['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
+        $this->capsule = $this->connectTestDatabase(Container::getInstance());
         $this->capsule->setAsGlobal();
         $this->capsule->bootEloquent();
 

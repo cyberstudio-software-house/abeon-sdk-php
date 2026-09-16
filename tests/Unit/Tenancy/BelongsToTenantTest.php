@@ -9,6 +9,7 @@ use Abeon\SDK\Tenancy\BelongsToTenant;
 use Abeon\SDK\Tenancy\TenantContext;
 use Abeon\SDK\Tenancy\TenantScope;
 use Illuminate\Container\Container;
+use Abeon\SDK\Tests\Support\UsesMariaDb;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Events\Dispatcher;
@@ -16,12 +17,14 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 /**
- * Exercises the scope against a real SQLite database rather than a mocked
+ * Exercises the scope against a real MariaDB database rather than a mocked
  * builder — the thing under test is the SQL that comes out, and a mock would
  * happily agree with a wrong implementation.
  */
 final class BelongsToTenantTest extends TestCase
 {
+    use UsesMariaDb;
+
     private Capsule $capsule;
 
     private TenantContext $tenants;
@@ -32,12 +35,7 @@ final class BelongsToTenantTest extends TestCase
 
         $container = Container::getInstance();
 
-        $this->capsule = new Capsule($container);
-        $this->capsule->addConnection([
-            'driver'   => 'sqlite',
-            'database' => ':memory:',
-            'prefix'   => '',
-        ]);
+        $this->capsule = $this->connectTestDatabase($container);
         // Eloquent model events (and so the creating hook that stamps org_id) only
         // fire when a dispatcher is set. A Laravel app always has one; Capsule does
         // not wire it by default.

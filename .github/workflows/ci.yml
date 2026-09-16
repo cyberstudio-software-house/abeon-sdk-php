@@ -18,6 +18,29 @@ jobs:
         # went to match reality rather than the lock going to match the claim.
         php: ['8.4']
 
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: abeon_sdk_test
+          MARIADB_USER: abeon_sdk
+          MARIADB_PASSWORD: abeon_sdk
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      ABEON_TEST_DB_HOST: 127.0.0.1
+      ABEON_TEST_DB_PORT: 3306
+      ABEON_TEST_DB_DATABASE: abeon_sdk_test
+      ABEON_TEST_DB_USERNAME: abeon_sdk
+      ABEON_TEST_DB_PASSWORD: abeon_sdk
+
     steps:
       - uses: actions/checkout@v4
 
@@ -25,7 +48,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mbstring, openssl, pdo_sqlite, sqlite3, sockets, bcmath
+          extensions: mbstring, openssl, pdo_mysql, sockets, bcmath
           coverage: none
 
       - name: Install dependencies
