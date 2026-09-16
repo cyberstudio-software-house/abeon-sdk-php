@@ -7,6 +7,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.3.1] — 2026-09-16
+
+### Fixed
+
+- **`OutboxPublisher` could not write to MariaDB.** It stored the envelope's ISO 8601 timestamp
+  (`2026-09-16T13:26:26.893Z`) directly in `abeon_event_outbox.created_at`. SQLite keeps whatever it is
+  given, so every test passed; MariaDB in strict mode rejects the value with error 1292, and because
+  the outbox write shares the business transaction, the business write was rolled back with it. The
+  column now gets `Y-m-d H:i:s` in UTC; the envelope keeps its wire format.
+
+### Changed
+
+- The database tests run on MariaDB 11.8 instead of in-memory SQLite, locally and in CI. The move is
+  what found the bug above. `OutboxDrainer`'s row locks are now exercised for real: one test asserts
+  the claim is `for update`, another `for update skip locked`.
+
 ## [0.3.0] — 2026-09-07
 
 ### Changed
