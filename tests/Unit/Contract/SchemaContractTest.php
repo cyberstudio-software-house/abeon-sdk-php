@@ -209,6 +209,21 @@ final class SchemaContractTest extends TestCase
         $this->assertFalse($result->isValid());
     }
 
+    public function test_a_pinned_section_needs_a_label(): void
+    {
+        // A section without a name renders as a header with nothing in it — the MVP
+        // accepted that and showed an empty row.
+        $bad = $this->fixtureArray('preferences.json');
+        unset($bad['chrome']['pinnedSections'][1]['label']);
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/preferences.json',
+        );
+
+        $this->assertFalse($result->isValid());
+    }
+
     public function test_a_role_is_addressed_by_name_not_by_id(): void
     {
         // A role id is internal and organisation-scoped. Putting one on the wire would

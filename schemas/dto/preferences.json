@@ -33,6 +33,20 @@
             }
           }
         },
+        "pinnedSections": {
+          "type": "array",
+          "description": "Named sections of the pinned list, in display order. The section with id `default` always exists and needs no entry; an entry with that id only renames it. Removing a section moves its pins to `default`.",
+          "items": {
+            "type": "object",
+            "required": ["id", "label", "order"],
+            "additionalProperties": false,
+            "properties": {
+              "id":    { "type": "string", "minLength": 1 },
+              "label": { "type": "string", "minLength": 1 },
+              "order": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
         "theme": {
           "type": "string",
           "enum": ["light", "dark", "system"]

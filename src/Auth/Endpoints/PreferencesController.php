@@ -161,6 +161,7 @@ class PreferencesController
             'version' => 1,
             'chrome'  => [
                 'pinned'           => [],
+                'pinnedSections'   => [],
                 'theme'            => 'system',
                 'sidebarCollapsed' => false,
                 'recents'          => [],

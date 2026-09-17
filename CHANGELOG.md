@@ -7,6 +7,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.3.4] — 2026-09-17
+
+### Added
+
+- **`chrome.pinnedSections`** in `dto/preferences.json` — named sections of the pinned list,
+  `{id, label, order}` — and `pinnedSections: []` in the defaults `PreferencesController` synthesises. The
+  `default` section needs no entry. ADR-0009 amended.
+
 ## [0.3.3] — 2026-09-17
 
 ### Removed

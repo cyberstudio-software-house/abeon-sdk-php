@@ -63,6 +63,13 @@ order is the catalogue's (`AppDescriptor.category` and `order` in AbeonUnified);
 one is ever wanted, starts from a concrete behaviour — for instance favourite applications above the
 categories — rather than from an unused field.
 
+**Pinned sections (amended 2026-09-17).** `chrome.pinnedSections` holds named sections of the pinned list
+as `{id, label, order}`. The section `default` always exists without an entry — an entry with that id only
+renames it — so a user who never creates a section has nothing stored. Each pin names its section in
+`sectionId`. Removing a section moves its pins to `default` in the same write, so no pin can point at a
+section that is gone. The MVP had sections too, but every pin went to `default` and empty sections were
+hidden, so a created section never appeared; here an empty section is shown with a drop hint.
+
 **Pins (amended 2026-09-17).** One list serves every application of the organisation, so a pin names
 the application it belongs to (`app`) and its id is namespaced by it (`crm.contacts`). `href` is the path
 as that application links to it. Each application shows only the pins it can open —
