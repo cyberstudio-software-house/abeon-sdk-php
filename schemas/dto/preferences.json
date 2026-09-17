@@ -22,14 +22,19 @@
         },
         "pinned": {
           "type": "array",
+          "description": "Pinned sidebar items for this user in this organisation, across every application of the organisation.",
           "items": {
             "type": "object",
-            "required": ["app", "path", "label"],
+            "required": ["id", "app", "label", "href", "iconName", "sectionId", "order"],
             "additionalProperties": false,
             "properties": {
-              "app":   { "type": "string" },
-              "path":  { "type": "string" },
-              "label": { "type": "string" }
+              "id":        { "type": "string", "minLength": 1, "description": "Unique across applications: `{app}.{item}`." },
+              "app":       { "type": "string", "minLength": 1, "description": "AppDescriptor name of the application the item belongs to." },
+              "label":     { "type": "string", "minLength": 1 },
+              "href":      { "type": "string", "description": "Path inside that application, resolved against its AppDescriptor path." },
+              "iconName":  { "type": "string" },
+              "sectionId": { "type": "string" },
+              "order":     { "type": "integer", "minimum": 0 }
             }
           }
         },

@@ -188,6 +188,27 @@ final class SchemaContractTest extends TestCase
         $this->assertValid('dto/role.json', $this->fixture('role.json'));
     }
 
+    public function test_preferences_fixture_matches_schema(): void
+    {
+        $this->assertValid('dto/preferences.json', $this->fixture('preferences.json'));
+    }
+
+    public function test_a_pin_says_which_application_it_belongs_to(): void
+    {
+        // Pins are stored once per user per organisation and shown by every application
+        // of it. Without the owning application, a pin to `/settings` opens whichever
+        // application happens to be rendering the sidebar.
+        $bad = $this->fixtureArray('preferences.json');
+        unset($bad['chrome']['pinned'][0]['app']);
+
+        $result = $this->validator->validate(
+            json_decode((string) json_encode($bad)),
+            self::SCHEMA_NS.'dto/preferences.json',
+        );
+
+        $this->assertFalse($result->isValid());
+    }
+
     public function test_a_role_is_addressed_by_name_not_by_id(): void
     {
         // A role id is internal and organisation-scoped. Putting one on the wire would

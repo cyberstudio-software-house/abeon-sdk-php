@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "chrome": {
+    "appOrder": [],
+    "pinned": [
+      {
+        "id": "boilerplate.settings",
+        "app": "boilerplate",
+        "label": "Settings",
+        "href": "/settings",
+        "iconName": "Settings",
+        "sectionId": "default",
+        "order": 0
+      },
+      {
+        "id": "crm.contacts",
+        "app": "crm",
+        "label": "Kontakty",
+        "href": "/contacts",
+        "iconName": "Users",
+        "sectionId": "default",
+        "order": 1
+      }
+    ],
+    "theme": "system",
+    "sidebarCollapsed": false,
+    "recents": []
+  }
+}
