@@ -43,8 +43,8 @@ Top-level JSON object with a versioned schema. The chrome cares about the `chrom
   "chrome": {
     "appOrder": ["crm", "pm", "finance", "cms", "helpdesk"],
     "pinned": [
-      { "app": "crm", "path": "/crm/contacts", "label": "Kontakty" },
-      { "app": "pm",  "path": "/pm/projects",  "label": "Projekty" }
+      { "id": "crm.contacts", "app": "crm", "label": "Kontakty", "href": "/contacts", "iconName": "Users", "sectionId": "default", "order": 0 },
+      { "id": "pm.projects",  "app": "pm",  "label": "Projekty", "href": "/projects", "iconName": "Briefcase", "sectionId": "default", "order": 1 }
     ],
     "theme": "system",
     "sidebarCollapsed": false,
@@ -56,6 +56,14 @@ Top-level JSON object with a versioned schema. The chrome cares about the `chrom
 ```
 
 Canonical schema: [`schemas/dto/preferences.json`](../../schemas/dto/preferences.json) (added in Sprint S1).
+
+**Pins (amended 2026-09-17).** One list serves every application of the organisation, so a pin names
+the application it belongs to (`app`) and its id is namespaced by it (`crm.contacts`). `href` is the path
+as that application links to it. Each application shows only the pins it can open —
+`resolvePins()` in `@abeon/sdk-ts/client`: its own pins are visited in place, another application's open
+with a full load under that application's `AppDescriptor.path`, and pins of applications the
+organisation does not have are hidden without being deleted. The example above used `{app, path, label}`
+until this date, which no pin ever had; a contract test now compares the schema with the TypeScript type.
 
 **Validation:** `PATCH` body merges into the existing blob (deep merge, top-level keys only). Unknown top-level namespaces are accepted (forward-compat). Unknown keys inside `chrome` are rejected (strict validation against the schema).
 
