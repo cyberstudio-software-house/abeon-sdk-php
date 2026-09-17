@@ -160,7 +160,6 @@ class PreferencesController
         return [
             'version' => 1,
             'chrome'  => [
-                'appOrder'         => [],
                 'pinned'           => [],
                 'theme'            => 'system',
                 'sidebarCollapsed' => false,

@@ -7,6 +7,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.3.3] — 2026-09-17
+
+### Removed
+
+- **`chrome.appOrder`** from `dto/preferences.json` and from the defaults `PreferencesController`
+  synthesises. It came from the MVP's app-order screen, which never saved anything; here nothing set it
+  and nothing read it. A patch rather than a minor, because no consumer used it — the app switcher is
+  ordered by the catalogue. A stored `appOrder` is left in place and ignored. ADR-0009 amended.
+
+### Changed
+
+- Pins in `dto/preferences.json` carry the application they belong to and describe the stored shape
+  (`id, app, label, href, iconName, sectionId, order`), checked by a contract test. ADR-0009 amended.
+
 ## [0.3.2] — 2026-09-17
 
 ### Added

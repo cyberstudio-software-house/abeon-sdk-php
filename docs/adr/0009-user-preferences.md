@@ -7,7 +7,6 @@
 
 The federated chrome lets each user customise their experience:
 
-- **App order** — order of pinned apps in the sidebar / app-switcher (the MVP demonstrates this via `src/components/settings/AppOrderSettings.tsx` with dnd-kit reordering).
 - **Pinned items** — which sub-app nav items are pinned to the sidebar top section.
 - **Theme** — light / dark / system (`next-themes` persists locally already, but should sync server-side eventually).
 
@@ -41,7 +40,6 @@ Top-level JSON object with a versioned schema. The chrome cares about the `chrom
 {
   "version": 1,
   "chrome": {
-    "appOrder": ["crm", "pm", "finance", "cms", "helpdesk"],
     "pinned": [
       { "id": "crm.contacts", "app": "crm", "label": "Kontakty", "href": "/contacts", "iconName": "Users", "sectionId": "default", "order": 0 },
       { "id": "pm.projects",  "app": "pm",  "label": "Projekty", "href": "/projects", "iconName": "Briefcase", "sectionId": "default", "order": 1 }
@@ -56,6 +54,14 @@ Top-level JSON object with a versioned schema. The chrome cares about the `chrom
 ```
 
 Canonical schema: [`schemas/dto/preferences.json`](../../schemas/dto/preferences.json) (added in Sprint S1).
+
+**No app order (amended 2026-09-17).** This ADR listed a per-user *app order* for the sidebar and app
+switcher, after the MVP's `AppOrderSettings.tsx` — which was a mock: its "save" only showed a toast and
+nothing read the order. The platform carried `chrome.appOrder` in the schema, the type and a setter for
+four months, with no screen to set it and no component reading it. It is removed. The app switcher's
+order is the catalogue's (`AppDescriptor.category` and `order` in AbeonUnified); a user-level ordering, if
+one is ever wanted, starts from a concrete behaviour — for instance favourite applications above the
+categories — rather than from an unused field.
 
 **Pins (amended 2026-09-17).** One list serves every application of the organisation, so a pin names
 the application it belongs to (`app`) and its id is namespaced by it (`crm.contacts`). `href` is the path
@@ -103,7 +109,6 @@ When the user has no row yet, the GET endpoint synthesises defaults:
 {
   "version": 1,
   "chrome": {
-    "appOrder": [],          // empty = chrome falls back to AppDescriptor declaration order
     "pinned": [],
     "theme": "system",
     "sidebarCollapsed": false,

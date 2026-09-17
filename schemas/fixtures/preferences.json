@@ -1,7 +1,6 @@
 {
   "version": 1,
   "chrome": {
-    "appOrder": [],
     "pinned": [
       {
         "id": "boilerplate.settings",

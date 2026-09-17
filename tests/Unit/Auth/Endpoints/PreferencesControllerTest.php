@@ -94,6 +94,12 @@ final class PreferencesControllerTest extends TestCase
         $this->assertSame('system', $prefs['chrome']['theme']);
     }
 
+    public function test_the_defaults_carry_no_app_order(): void
+    {
+        // Removed 2026-09-17: nothing set it and nothing read it (ADR-0009 amendment).
+        $this->assertArrayNotHasKey('appOrder', PreferencesController::defaults()['chrome']);
+    }
+
     public function test_preferences_are_isolated_between_organisations(): void
     {
         $this->patch($this->controller(1), ['chrome' => ['theme' => 'dark']]);
@@ -107,16 +113,16 @@ final class PreferencesControllerTest extends TestCase
 
     public function test_writing_in_one_organisation_does_not_clobber_the_other(): void
     {
-        $this->patch($this->controller(1), ['chrome' => ['theme' => 'dark', 'appOrder' => ['crm']]]);
-        $this->patch($this->controller(2), ['chrome' => ['theme' => 'light', 'appOrder' => ['cms']]]);
+        $this->patch($this->controller(1), ['chrome' => ['theme' => 'dark', 'sidebarCollapsed' => true]]);
+        $this->patch($this->controller(2), ['chrome' => ['theme' => 'light', 'sidebarCollapsed' => false]]);
 
         $one = $this->controller(1)->read(42, 1);
         $two = $this->controller(2)->read(42, 2);
 
         $this->assertSame('dark', $one['chrome']['theme']);
-        $this->assertSame(['crm'], $one['chrome']['appOrder']);
+        $this->assertTrue($one['chrome']['sidebarCollapsed']);
         $this->assertSame('light', $two['chrome']['theme']);
-        $this->assertSame(['cms'], $two['chrome']['appOrder']);
+        $this->assertFalse($two['chrome']['sidebarCollapsed']);
     }
 
     public function test_different_users_in_the_same_organisation_stay_separate(): void

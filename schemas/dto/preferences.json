@@ -15,11 +15,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "appOrder": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Ordered list of app names. Empty = falls back to AppDescriptor declaration order."
-        },
         "pinned": {
           "type": "array",
           "description": "Pinned sidebar items for this user in this organisation, across every application of the organisation.",
