@@ -7,6 +7,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.3.2] — 2026-09-17
+
+### Added
+
+- **`ABEON_OUTBOX_SKIP_LOCKED`** (`abeon.events.outbox.skip_locked`, default off). `OutboxDrainer` could
+  claim rows with `FOR UPDATE SKIP LOCKED` since 0.1, but the published config file never defined the
+  key, so no service could switch it on without its own config. With every service on MariaDB it now
+  has an engine to act on: several drainer replicas split the backlog instead of waiting on each
+  other's row locks.
+
 ## [0.3.1] — 2026-09-16
 
 ### Fixed
