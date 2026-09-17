@@ -7,6 +7,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.5.0] — 2026-09-17
+
+### Added
+
+- **`Http\QueryParser` and `Http\QuerySpec`** — the list conventions of ADR-0004 (`filter[field]`, `sort`,
+  `page`, `per_page`) with a per-endpoint allowlist; unsupported fields answer 422
+  (`Exceptions\InvalidQueryException`). Pagination stays opt-in for the caller. ADR-0004 amended.
+- **Event versions in `EventConsumer`.** Handlers accept major version 1 unless they implement
+  `Events\AcceptsEventVersions`; `Events\EventUpcaster` (tag `abeon.event_upcaster`) rewrites envelopes
+  before dispatch; an event no handler accepts is dead-lettered. ADR-0002 amended.
+
 ## [0.4.0] — 2026-09-17
 
 ### Added

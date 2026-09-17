@@ -109,6 +109,13 @@ All public APIs live under `/api/v1`. Version bumps follow strict rules:
 
 `Abeon\SDK\Http\QueryParser` (deferred to v0.2 as opt-in helper) will parse these into a query spec. Until then, services parse `$request->query('filter', [])` themselves but should respect these conventions.
 
+> **2026-09-17 — implemented in `abeon/sdk` 0.5.0.** `QueryParser::parse($request, $filters, $sorts,
+> $defaultSort)` returns a `QuerySpec`; `QuerySpec::apply($query, $columns)` maps public field names to
+> columns. Fields are **allowlisted per endpoint**: an unknown filter or sort field, a non-scalar filter,
+> a page below 1 or `per_page` above 100 answers **422** with field errors under `errors`, rather than
+> being ignored. Filters are equality only. `QuerySpec::isPaginated()` is true only when the caller sent
+> `page` or `per_page`, so an endpoint that returned full lists keeps doing so for callers that did not ask.
+
 ## Consequences
 
 **Positive:**

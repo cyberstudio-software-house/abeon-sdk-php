@@ -14,7 +14,7 @@ observability, and operational concerns.
 
 - **Auth** — JWT validator (RS256 + JWKS), `AuthMiddleware`, request-scoped `AuthContext`, Laravel Gate bridge, `abeon_user()` global helper.
 - **Service-to-service HTTP** — config-driven `ServiceClient` (`$client->service('crm')->get(...)`), service-JWT auto-issuance with in-process caching, correlation header propagation, RFC 7807 errors lifted into typed exceptions.
-- **Events (RabbitMQ)** — `EventPublisher` writes to outbox in the business transaction; `OutboxDrainer` worker drains to RabbitMQ asynchronously; `EventConsumer` with idempotency via `abeon_processed_events`, topic wildcards, DLX wiring.
+- **Events (RabbitMQ)** — `EventPublisher` writes to outbox in the business transaction; `OutboxDrainer` worker drains to RabbitMQ asynchronously; `EventConsumer` with idempotency via `abeon_processed_events`, topic wildcards, DLX wiring, version gating and upcasters (`AcceptsEventVersions`, `EventUpcaster`).
 - **Notifications** — `Notifier::notify(NotificationRequest)` publishes `{service}.notification.requested` through the outbox for AbeonUnified; `channels` with `in_app` required and `email` optional (ADR-0028).
 - **Service registry + self-registration** — `ServiceRegistry::register()` POSTs the service's `AppDescriptor` to Auth on demand (Artisan command).
 - **Permissions federation** — service declares its permissions in config; `abeon:permissions:declare` publishes `service.permissions.declared` to Auth.
@@ -22,6 +22,7 @@ observability, and operational concerns.
 - **Health checks** — `/health` (liveness) + `/health/ready` (readiness) with pluggable `Check` interface. Built-ins: db, rabbitmq, jwks, outbox_lag.
 - **Errors** — RFC 7807 `application/problem+json` renderer, typed `AbeonException` hierarchy.
 - **API response helpers** — `{data, meta}` envelope, paginated responses.
+- **List queries** — `QueryParser` for `filter[field]`, `sort=-a,b`, `page`, `per_page` with per-endpoint allowlists (ADR-0004).
 - **API versioning** — `VersionHeadersMiddleware` for `X-API-Version` + optional `Deprecation` / `Sunset`.
 - **Schema federation** — services declare their event payload schemas via composer metadata; SDK discovers and aggregates at runtime.
 - **JSON logging** — Loki-friendly structured logs with `correlation_id` + `service` fields (scaffold, full Monolog integration in v0.2).

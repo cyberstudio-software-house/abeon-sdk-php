@@ -161,6 +161,20 @@ Envelope is version 1.0. The `version` field exists for future-proofing: when a 
 
 Either path is supported by the contract. The choice depends on whether the new shape is "the same event, evolved" (envelope bump) or "logically a different event" (routing key suffix).
 
+#### What the consumer does with `version` (2026-09-17)
+
+`EventConsumer` enforces the second path instead of leaving it to each handler:
+
+- A handler accepts **major version 1** unless it implements `AcceptsEventVersions` and lists more.
+  An envelope whose major version no matching handler accepts is **dead-lettered** and logged as
+  `event-consumer.unsupported-version` — never handed to code written for another shape. An unparseable
+  `version` is treated the same way.
+- **Upcasters** (`EventUpcaster`, tagged `abeon.event_upcaster`) rewrite an envelope before handlers see
+  it, so a consumer can keep 1.0 handlers while a producer moves to 2.0. They run in a chain; one that
+  never settles is dead-lettered after ten steps.
+
+Nothing publishes anything but 1.0 today, so this changes no current behaviour.
+
 #### Why adding `org_id` took neither path (2026-08-12)
 
 Adding a required field to a schema declared `"additionalProperties": false` is a breaking change, so
