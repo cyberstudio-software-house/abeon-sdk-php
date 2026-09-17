@@ -62,6 +62,9 @@ return [
             'poll_interval' => (int) env('ABEON_OUTBOX_POLL_INTERVAL', 1),
             'max_attempts'  => (int) env('ABEON_OUTBOX_MAX_ATTEMPTS', 5),
             'lag_threshold' => (int) env('ABEON_OUTBOX_LAG_THRESHOLD', 60),
+            // Claim rows with FOR UPDATE SKIP LOCKED, so several drainer replicas split the
+            // backlog instead of queueing behind each other's locks. MariaDB 10.6+.
+            'skip_locked'   => (bool) env('ABEON_OUTBOX_SKIP_LOCKED', false),
         ],
         'consumer' => [
             'queue_prefix' => env('ABEON_QUEUE_PREFIX'), // defaults to service.name

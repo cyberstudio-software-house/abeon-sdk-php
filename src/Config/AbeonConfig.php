@@ -200,6 +200,7 @@ class AbeonConfig
      * When true, the drainer claims rows with `FOR UPDATE SKIP LOCKED` so a
      * second replica skips locked rows instead of blocking. Requires a driver
      * that supports it (MariaDB 10.6+/MySQL 8/PostgreSQL); ignored on SQLite.
+     * Set with `ABEON_OUTBOX_SKIP_LOCKED`.
      */
     public function outboxSkipLocked(): bool
     {
