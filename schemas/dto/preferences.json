@@ -31,7 +31,7 @@
               "id":        { "type": "string", "minLength": 1, "description": "Unique across applications: `{app}.{item}`." },
               "app":       { "type": "string", "minLength": 1, "description": "AppDescriptor name of the application the item belongs to." },
               "label":     { "type": "string", "minLength": 1 },
-              "href":      { "type": "string", "description": "Path inside that application, resolved against its AppDescriptor path." },
+              "href":      { "type": "string", "description": "The path as the owning application links to it. Another application opens it under that application's AppDescriptor path (a path already under it is kept)." },
               "iconName":  { "type": "string" },
               "sectionId": { "type": "string" },
               "order":     { "type": "integer", "minimum": 0 }
