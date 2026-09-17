@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/notification-preferences.json",
+  "title": "Abeon notification preferences",
+  "description": "A user's delivery preferences, owned by AbeonUnified and served at `/api/v1/notifications/preferences` (ADR-0028). Per user, across organisations, like the feed. A rule turns a channel on or off for one notification type, or for every type with `*`; a specific type wins over `*`. A channel the emitter did not request is never added. `in_app` is not configurable: the feed is the record.",
+  "type": "object",
+  "required": [
+    "preferences"
+  ],
+  "properties": {
+    "preferences": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "required": [
+        "type",
+        "channels"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "channels": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            }
+          },
+          "minProperties": 1,
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

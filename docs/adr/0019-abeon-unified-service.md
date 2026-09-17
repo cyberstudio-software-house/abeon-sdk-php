@@ -41,6 +41,10 @@ selection field and no email-specific payload. Closing it is Unified's work, def
 it becomes more pressing because credential delivery (ADR-0016 organisation provisioning) needs a mail
 path.
 
+> **2026-09-17:** the contract half of this gap is closed by [ADR-0028](0028-notification-channels-and-preferences.md)
+> (`channels`, preference rules, the event as the default path). Delivering email is still Unified's
+> open work.
+
 ### 2. App registry
 
 Unified persists the app catalogue and owns self-registration. The registry endpoint moves off Auth —

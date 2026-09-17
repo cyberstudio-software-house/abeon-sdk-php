@@ -187,3 +187,8 @@ It exists so this decision stays reversible. Without the column there is nothing
 migration *from*: `source_app` cannot stand in for a tenant, because the same application runs in many
 organisations. Scoping the bell is still an ADR decision; it is now one that can be implemented at any
 time rather than one that quietly expired.
+
+**2026-09-17 — channels, preferences and the emit path are decided in [ADR-0028](0028-notification-channels-and-preferences.md).**
+Requests carry `channels` (`in_app` required, `email` optional); Unified owns per-user preference rules at
+`/api/v1/notifications/preferences`; the asynchronous fan-in above is now built — `Notifier` in the SDK
+publishes, Unified consumes — and `NotificationDto` is unchanged.

@@ -224,6 +224,52 @@ final class SchemaContractTest extends TestCase
         $this->assertFalse($result->isValid());
     }
 
+    public function test_notification_requested_fixture_matches_schema(): void
+    {
+        $this->assertValid('events/notification-requested.json', $this->fixture('notification-requested.json'));
+    }
+
+    public function test_a_notification_request_without_channels_is_valid(): void
+    {
+        $request = $this->fixtureArray('notification-requested.json');
+        unset($request['channels']);
+
+        $this->assertValid('events/notification-requested.json', $request);
+    }
+
+    public function test_a_notification_request_must_keep_in_app(): void
+    {
+        $this->assertInvalid('events/notification-requested.json', ['channels' => ['email']], 'notification-requested.json');
+    }
+
+    public function test_a_notification_request_refuses_an_unknown_channel(): void
+    {
+        $this->assertInvalid('events/notification-requested.json', ['channels' => ['in_app', 'sms']], 'notification-requested.json');
+    }
+
+    public function test_notification_preferences_fixture_matches_schema(): void
+    {
+        $this->assertValid('dto/notification-preferences.json', $this->fixture('notification-preferences.json'));
+    }
+
+    public function test_in_app_is_not_a_configurable_preference(): void
+    {
+        $this->assertInvalid(
+            'dto/notification-preferences.json',
+            ['preferences' => [['type' => '*', 'channels' => ['in_app' => false]]]],
+            'notification-preferences.json',
+        );
+    }
+
+    public function test_a_preference_rule_must_set_a_channel(): void
+    {
+        $this->assertInvalid(
+            'dto/notification-preferences.json',
+            ['preferences' => [['type' => 'crm.deal.won', 'channels' => []]]],
+            'notification-preferences.json',
+        );
+    }
+
     public function test_a_role_is_addressed_by_name_not_by_id(): void
     {
         // A role id is internal and organisation-scoped. Putting one on the wire would
@@ -466,6 +512,17 @@ final class SchemaContractTest extends TestCase
         }
 
         $this->assertTrue($result->isValid());
+    }
+
+    /**
+     * @param  array<string, mixed>  $override
+     */
+    private function assertInvalid(string $schemaRelPath, array $override, string $fixture): void
+    {
+        $data = array_replace($this->fixtureArray($fixture), $override);
+        $payload = json_decode((string) json_encode($data, JSON_THROW_ON_ERROR));
+
+        $this->assertFalse($this->validator->validate($payload, self::SCHEMA_NS.$schemaRelPath)->isValid());
     }
 
     private function fixture(string $name): object

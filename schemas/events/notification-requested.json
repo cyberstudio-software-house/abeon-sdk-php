@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.abeon.pl/events/notification-requested.json",
   "title": "notification.requested payload",
-  "description": "Payload for `*.notification.requested` events consumed by abeon-notifications. Per ADR-0006.\n\nNot discoverable, deliberately. `SchemaDiscovery` keys the catalog by file name and `RoutingKey` refuses a wildcard, so `*.notification.requested` cannot be a file name here — it is a *subscription* pattern, not a publishable key. Each emitting service publishes `{service}.notification.requested` and should ship its own copy of this payload schema under that name; this file is the shared definition they copy, and the reason it keeps a human-readable name rather than a routing-key one.",
+  "description": "Payload for `*.notification.requested` events consumed by AbeonUnified. Per ADR-0006 and ADR-0028.\n\nNot discoverable, deliberately. `SchemaDiscovery` keys the catalog by file name and `RoutingKey` refuses a wildcard, so `*.notification.requested` cannot be a file name here — it is a *subscription* pattern, not a publishable key. Each emitting service publishes `{service}.notification.requested` and should ship its own copy of this payload schema under that name; this file is the shared definition they copy, and the reason it keeps a human-readable name rather than a routing-key one.",
   "type": "object",
   "required": [
     "target",
@@ -53,6 +53,22 @@
     "metadata": {
       "type": "object",
       "additionalProperties": true
+    },
+    "channels": {
+      "description": "Where the notification is delivered. Absent means [\"in_app\"]. `in_app` is required: the feed is the record of every notification, other channels are delivered in addition to it and a user can turn them off per type (ADR-0028).",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "in_app",
+          "email"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "contains": {
+        "const": "in_app"
+      }
     }
   },
   "additionalProperties": false

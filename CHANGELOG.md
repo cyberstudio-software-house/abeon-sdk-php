@@ -7,6 +7,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.4.0] — 2026-09-17
+
+### Added
+
+- **`channels`** in `events/notification-requested.json`: `in_app` (required) and `email`. Absent means
+  `["in_app"]`. ADR-0028.
+- **`dto/notification-preferences.json`** — per-user rules for which channels a notification type may use,
+  served by AbeonUnified at `/api/v1/notifications/preferences`. ADR-0028.
+- **`Abeon\SDK\Notifications\Notifier`** with `NotificationRequest` and `NotificationChannel`: publishes
+  `{service}.notification.requested` through the outbox, the default emit path. ADR-0028.
+- Fixtures `notification-requested.json` and `notification-preferences.json`, validated here and in
+  `@abeon/sdk-ts`.
+- **ADR-0029**: `@abeon/sdk-ts` is the frontend half of the contract; backend capabilities stay here.
+
 ## [0.3.4] — 2026-09-17
 
 ### Added

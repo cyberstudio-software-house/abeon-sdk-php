@@ -1,0 +1,18 @@
+{
+  "target": {
+    "user_id": 42
+  },
+  "type": "crm.deal.assigned",
+  "title": "Przypisano Ci szansę sprzedaży",
+  "body": "Acme Sp. z o.o. — 50 000 PLN",
+  "icon": "briefcase",
+  "action_url": "/crm/deals/abc-123",
+  "source_app": "crm",
+  "metadata": {
+    "deal_id": "abc-123"
+  },
+  "channels": [
+    "in_app",
+    "email"
+  ]
+}

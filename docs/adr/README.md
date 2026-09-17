@@ -16,7 +16,7 @@ ADR-0004 (REST shape), ADR-0002 (events). The rest are reachable from those.
 | [0003](0003-correlation-id.md) | Correlation ID | Accepted | End-to-end correlation propagation across HTTP, events and logs |
 | [0004](0004-rest-envelope-and-errors.md) | REST envelope and errors | Accepted | Response envelope, RFC 7807 problem details |
 | [0005](0005-service-to-service-auth.md) | Service-to-service auth | Accepted · *amended by 0016, 0025* | Per-service RS256 keys, short-lived service tokens, JWKS validation, rotation grace |
-| [0006](0006-notifications-contract.md) | Notifications contract | **Superseded by [0019](0019-abeon-unified-service.md)** | *The contract itself is still current* — only the owning service changed |
+| [0006](0006-notifications-contract.md) | Notifications contract | **Superseded by [0019](0019-abeon-unified-service.md)** · *amended by 0028* | *The contract itself is still current* — only the owning service changed |
 | [0007](0007-search-and-command-registry.md) | Search and command registry | Accepted | Cmd+K command registry, per-service search providers |
 | [0008](0008-broadcasting-auth.md) | Broadcasting auth | Accepted | Reverb channel authorisation, `private-org.{id}` guard |
 | [0009](0009-user-preferences.md) | User preferences | Accepted · *amended by 0016* | `/auth/me/preferences`, versioned blob, per-user-per-organisation |
@@ -29,7 +29,7 @@ ADR-0004 (REST shape), ADR-0002 (events). The rest are reachable from those.
 | [0016](0016-multi-tenant-organisations.md) | **Multi-tenant organisations** | Accepted · *amended by 0022, 0024* | One deployment, many client organisations. `org_id` is an authorization dimension |
 | [0017](0017-tenant-switching.md) | Tenant switching | Accepted | Switching organisation re-issues the token; clients never assert their own tenant |
 | [0018](0018-tenant-scoping.md) | Tenant scoping | Accepted · *amended by 0022* | The SDK owns row scoping; a missing tenant throws rather than returning everything |
-| [0019](0019-abeon-unified-service.md) | AbeonUnified service | Accepted · *amended by 0022* | `abeon-notifications` renamed and widened; the outbound-integration doctrine |
+| [0019](0019-abeon-unified-service.md) | AbeonUnified service | Accepted · *amended by 0022, 0028* | `abeon-notifications` renamed and widened; the outbound-integration doctrine |
 | [0020](0020-ai-gateway.md) | AI gateway | Accepted | OpenRouter only via Unified, platform key, per-organisation metering |
 | [0021](0021-object-storage-layout.md) | Object storage layout | Accepted | One OCS container per organisation, `{service}/` prefixes |
 | [0022](0022-organisation-provisioning.md) | Organisation provisioning | Accepted · *amended 2026-08-13* | `unified.app.registered` → Auth creates the organisation + owner → `auth.org.created` carries the id back; user creation returns the invitation link |
@@ -38,6 +38,8 @@ ADR-0004 (REST shape), ADR-0002 (events). The rest are reachable from those.
 | [0025](0025-auth-service-invariants.md) | Auth service invariants | Accepted | Six edge behaviours: no-organisation refusal, default org, over-budget refusal, JWKS degradation, audit immutability, rate-limit precedence |
 | [0026](0026-administration-is-an-sdk-surface.md) | Administration surface | Accepted | Auth ships no frontend: API + hooks in the packages, screens in the boilerplate |
 | [0027](0027-pre-authentication-screens.md) | Pre-authentication screens | Accepted | Login, reset and invitation acceptance live in one dedicated app; the return-to parameter is allowlisted. **Amended 2026-08-14** (visual layer is `@abeon/ui`'s) and **2026-08-17** (§Shape gains a frontend build) |
+| [0028](0028-notification-channels-and-preferences.md) | Notification channels and preferences | Accepted | `channels` on every request with `in_app` required; per-user preference rules in Unified; the event through the outbox is the default emit path (`Notifier`) |
+| [0029](0029-sdk-ts-is-the-frontend-half.md) | `@abeon/sdk-ts` scope | Accepted | The TypeScript package is the frontend half; service JWT, service client, events, outbox and health stay in `abeon/sdk` |
 
 ## Supersessions
 

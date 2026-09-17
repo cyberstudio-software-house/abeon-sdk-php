@@ -15,6 +15,7 @@ observability, and operational concerns.
 - **Auth** — JWT validator (RS256 + JWKS), `AuthMiddleware`, request-scoped `AuthContext`, Laravel Gate bridge, `abeon_user()` global helper.
 - **Service-to-service HTTP** — config-driven `ServiceClient` (`$client->service('crm')->get(...)`), service-JWT auto-issuance with in-process caching, correlation header propagation, RFC 7807 errors lifted into typed exceptions.
 - **Events (RabbitMQ)** — `EventPublisher` writes to outbox in the business transaction; `OutboxDrainer` worker drains to RabbitMQ asynchronously; `EventConsumer` with idempotency via `abeon_processed_events`, topic wildcards, DLX wiring.
+- **Notifications** — `Notifier::notify(NotificationRequest)` publishes `{service}.notification.requested` through the outbox for AbeonUnified; `channels` with `in_app` required and `email` optional (ADR-0028).
 - **Service registry + self-registration** — `ServiceRegistry::register()` POSTs the service's `AppDescriptor` to Auth on demand (Artisan command).
 - **Permissions federation** — service declares its permissions in config; `abeon:permissions:declare` publishes `service.permissions.declared` to Auth.
 - **Correlation ID** — `X-Correlation-ID` end-to-end across HTTP and events.
@@ -31,7 +32,7 @@ observability, and operational concerns.
 - Business logic — that's the consumer service's responsibility.
 - Auth service implementation — see `abeon-auth` (Faza 1).
 - AbeonUnified implementation — notifications, app registry, org↔app assignment; see `abeon-unified` (Faza 1, ADR-0019).
-- Frontend code — see `@abeon/sdk-ts` (TypeScript counterpart in sibling repo `abeon-sdk-ts/`).
+- Frontend code — see `@abeon/sdk-ts`, the frontend half of the contract (sibling repo `abeon-sdk-ts/`). Backend capabilities exist only here (ADR-0029).
 - Boilerplate Laravel application — separate workstream.
 - @abeon/ui design system — separate workstream (existing `abeon-ui` repo).
 
@@ -112,6 +113,22 @@ DB::transaction(function () use ($data, $publisher) {
         'contact_id' => $contact->id,
         'email'      => $contact->email,
     ]);
+});
+```
+
+### Notify a user
+
+```php
+DB::transaction(function () use ($deal, $notifier) {
+    $deal->assignTo($user);
+    $notifier->notify(new NotificationRequest(
+        userId: $user->id,
+        type: 'crm.deal.assigned',
+        title: 'Przypisano Ci szansę sprzedaży',
+        body: $deal->name,
+        actionUrl: "/crm/deals/{$deal->id}",
+        channels: [NotificationChannel::InApp, NotificationChannel::Email],
+    ));
 });
 ```
 

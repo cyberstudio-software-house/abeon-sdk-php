@@ -1,0 +1,16 @@
+{
+  "preferences": [
+    {
+      "type": "*",
+      "channels": {
+        "email": false
+      }
+    },
+    {
+      "type": "crm.deal.assigned",
+      "channels": {
+        "email": true
+      }
+    }
+  ]
+}
