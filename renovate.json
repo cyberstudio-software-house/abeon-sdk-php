@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Version drift between the shared packages and their consumers is the risk PRD §15 names, and it has already happened once (the template sat on @abeon/sdk-ts v0.5.0 while v0.6.0 was tagged).",
+  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommitsDisabled"],
+  "timezone": "Europe/Warsaw",
+  "schedule": ["before 7am on monday"],
+  "packageRules": [
+    {
+      "description": "The platform's own packages, installed from git tags. Raised immediately and on their own, because a consumer left behind is the failure this exists to catch.",
+      "matchPackageNames": ["abeon/sdk", "@abeon/sdk-ts", "@cyberstudio-software-house/ui"],
+      "groupName": "abeon packages",
+      "schedule": ["at any time"],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Everything else arrives as one weekly pull request.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "weekly dependencies"
+    }
+  ]
+}
