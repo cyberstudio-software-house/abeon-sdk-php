@@ -7,6 +7,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.6.0] — 2026-09-18
+
+### Added
+
+- **`Messaging\Messages` and `Messaging\MessageRequest`** — transactional e-mail as an event through the
+  outbox (`{service}.message.requested`), with the idempotency key coming from the business fact rather
+  than a generator. ADR-0030.
+- **`events/message-requested.json`** and **`dto/message.json`** with fixtures, validated here and in
+  `@abeon/sdk-ts`.
+- **`email_verified`** in `dto/user.json` and `DTO\User` (optional on the wire, default `false`) for FR-4.
+
 ## [0.5.0] — 2026-09-17
 
 ### Added

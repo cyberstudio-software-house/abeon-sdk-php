@@ -119,3 +119,8 @@ $notifier->notify(new NotificationRequest(
 - ADR-0006 (contract), ADR-0019 (owner and the recorded gap), ADR-0002 (envelope), ADR-0018 (tenant from
   the envelope), ADR-0009 (chrome preferences, deliberately separate).
 - Architecture doc §5A.2, §5A.3, §5A.6.
+
+**2026-09-18 — the `email` channel is delivered, by [ADR-0030](0030-email-channel.md).** `RecordNotification`
+queues a `unified.notification` message when `email` survives the preference rules. Rows recorded before
+that date are not mailed retroactively, as §1 said.
+

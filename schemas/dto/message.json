@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/message.json",
+  "title": "Abeon Message DTO",
+  "description": "One transactional message as AbeonUnified recorded it (ADR-0030).",
+  "type": "object",
+  "required": [
+    "id",
+    "template",
+    "to_email",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "template": {
+      "type": "string"
+    },
+    "to_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "locale": {
+      "type": "string",
+      "enum": [
+        "pl",
+        "en"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "sent",
+        "failed",
+        "suppressed"
+      ]
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sent_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

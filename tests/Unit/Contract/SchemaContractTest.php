@@ -270,6 +270,55 @@ final class SchemaContractTest extends TestCase
         );
     }
 
+    public function test_message_request_fixture_matches_schema(): void
+    {
+        $this->assertValid('events/message-requested.json', $this->fixture('message-requested.json'));
+    }
+
+    public function test_message_fixture_matches_schema(): void
+    {
+        $this->assertValid('dto/message.json', $this->fixture('message.json'));
+    }
+
+    public function test_a_message_needs_a_template_and_an_idempotency_key(): void
+    {
+        foreach (['template', 'idempotency_key'] as $field) {
+            $bad = $this->fixtureArray('message-requested.json');
+            unset($bad[$field]);
+
+            $result = $this->validator->validate(
+                json_decode((string) json_encode($bad)),
+                self::SCHEMA_NS.'events/message-requested.json',
+            );
+
+            $this->assertFalse($result->isValid(), "message without {$field} was accepted");
+        }
+    }
+
+    public function test_a_message_template_names_the_service_that_owns_it(): void
+    {
+        // `auth.invitation`, never a bare `invitation`: two services would otherwise
+        // fight over one template name in AbeonUnified.
+        $this->assertInvalid('events/message-requested.json', ['template' => 'invitation'], 'message-requested.json');
+    }
+
+    public function test_a_message_locale_is_one_of_the_two_we_render(): void
+    {
+        $this->assertInvalid('events/message-requested.json', ['locale' => 'de'], 'message-requested.json');
+    }
+
+    public function test_the_user_dto_carries_the_verification_flag(): void
+    {
+        $this->assertValid('dto/user.json', $this->fixture('user.json'));
+
+        // Optional on the wire: a producer that predates FR-4 still validates.
+        $legacy = $this->fixtureArray('user.json');
+        unset($legacy['email_verified']);
+        $this->assertValid('dto/user.json', $legacy);
+
+        $this->assertInvalid('dto/user.json', ['email_verified' => 'yes'], 'user.json');
+    }
+
     public function test_a_role_is_addressed_by_name_not_by_id(): void
     {
         // A role id is internal and organisation-scoped. Putting one on the wire would

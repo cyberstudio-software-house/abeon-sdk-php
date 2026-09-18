@@ -40,6 +40,7 @@ ADR-0004 (REST shape), ADR-0002 (events). The rest are reachable from those.
 | [0027](0027-pre-authentication-screens.md) | Pre-authentication screens | Accepted | Login, reset and invitation acceptance live in one dedicated app; the return-to parameter is allowlisted. **Amended 2026-08-14** (visual layer is `@abeon/ui`'s) and **2026-08-17** (§Shape gains a frontend build) |
 | [0028](0028-notification-channels-and-preferences.md) | Notification channels and preferences | Accepted | `channels` on every request with `in_app` required; per-user preference rules in Unified; the event through the outbox is the default emit path (`Notifier`) |
 | [0029](0029-sdk-ts-is-the-frontend-half.md) | `@abeon/sdk-ts` scope | Accepted | The TypeScript package is the frontend half; service JWT, service client, events, outbox and health stay in `abeon/sdk` |
+| [0030](0030-email-channel.md) | E-mail channel and transactional messages | Accepted | `{service}.message.requested` through the outbox, templates and delivery in Unified, idempotency from a business key, suppression list |
 
 ## Supersessions
 

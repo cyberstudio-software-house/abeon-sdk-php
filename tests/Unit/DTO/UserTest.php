@@ -18,6 +18,7 @@ final class UserTest extends TestCase
             'roles'       => ['admin', 'sales_manager'],
             'permissions' => ['crm.contacts.read', 'crm.contacts.write'],
             'org_id'      => 1,
+            'email_verified' => true,
         ];
 
         $user = User::fromArray($data);
@@ -28,6 +29,7 @@ final class UserTest extends TestCase
         $this->assertSame(['admin', 'sales_manager'], $user->roles);
         $this->assertSame(['crm.contacts.read', 'crm.contacts.write'], $user->permissions);
         $this->assertSame(1, $user->orgId);
+        $this->assertTrue($user->emailVerified);
 
         // Round-trip via toArray()
         $this->assertSame($data, $user->toArray());

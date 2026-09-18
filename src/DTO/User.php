@@ -17,6 +17,7 @@ final readonly class User
         public array $roles,
         public array $permissions,
         public ?int $orgId,
+        public bool $emailVerified = false,
     ) {
     }
 
@@ -32,6 +33,7 @@ final readonly class User
             roles:       self::stringList($data['roles'] ?? []),
             permissions: self::stringList($data['permissions'] ?? []),
             orgId:       isset($data['org_id']) ? (int) $data['org_id'] : null,
+            emailVerified: (bool) ($data['email_verified'] ?? false),
         );
     }
 
@@ -47,6 +49,7 @@ final readonly class User
             'roles'       => $this->roles,
             'permissions' => $this->permissions,
             'org_id'      => $this->orgId,
+            'email_verified' => $this->emailVerified,
         ];
     }
 

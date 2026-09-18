@@ -16,6 +16,7 @@ observability, and operational concerns.
 - **Service-to-service HTTP** — config-driven `ServiceClient` (`$client->service('crm')->get(...)`), service-JWT auto-issuance with in-process caching, correlation header propagation, RFC 7807 errors lifted into typed exceptions.
 - **Events (RabbitMQ)** — `EventPublisher` writes to outbox in the business transaction; `OutboxDrainer` worker drains to RabbitMQ asynchronously; `EventConsumer` with idempotency via `abeon_processed_events`, topic wildcards, DLX wiring, version gating and upcasters (`AcceptsEventVersions`, `EventUpcaster`).
 - **Notifications** — `Notifier::notify(NotificationRequest)` publishes `{service}.notification.requested` through the outbox for AbeonUnified; `channels` with `in_app` required and `email` optional (ADR-0028).
+- **Transactional e-mail** — `Messages::send(MessageRequest)` publishes `{service}.message.requested`; AbeonUnified renders the template and delivers it (ADR-0030). No mail credentials in any service.
 - **Service registry + self-registration** — `ServiceRegistry::register()` POSTs the service's `AppDescriptor` to Auth on demand (Artisan command).
 - **Permissions federation** — service declares its permissions in config; `abeon:permissions:declare` publishes `service.permissions.declared` to Auth.
 - **Correlation ID** — `X-Correlation-ID` end-to-end across HTTP and events.
