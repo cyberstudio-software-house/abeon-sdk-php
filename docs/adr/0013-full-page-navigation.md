@@ -48,3 +48,17 @@ Smoothness comes from, not from a shared runtime, but from:
 
 - Arch doc §3.4 (federated chrome), §3.6 (app registry), §3.7 (transitions)
 - `@abeon/sdk-ts` `crossAppHref()`; ADR-0009 (preferences as the durable cross-app state)
+
+## References
+
+**2026-09-18 — the three smoothness promises above are implemented in `@abeon/ui` 1.4.0.**
+
+- **Prefetch:** `Topbar` and `AppSwitcher` add `<link rel="prefetch">` on hover or focus of an
+  application tile — once per URL, same origin only, never under data-saver. `prefetchOnHover={false}`
+  turns it off; `prefetchOnce(href)` is exported for other cross-app links.
+- **Skeletons:** `AppShellSkeleton` and `PageSkeleton`. The boilerplate also carries the chrome's shape
+  in `app.blade.php`, because the first byte of HTML arrives before the bundle does.
+- **Context via URL:** `crossAppHref(appPath, path, query)` in `@abeon/sdk-ts/client` 0.7.0.
+- **Notifications** now link to their source application through the same helper (ADR-0006's
+  `action_url` resolved against the catalogue), so the bell obeys this ADR rather than swallowing clicks.
+

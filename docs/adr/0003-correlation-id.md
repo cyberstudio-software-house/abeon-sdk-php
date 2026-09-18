@@ -72,3 +72,11 @@ These are accepted in v1 because the alternative (OTEL) costs disproportionately
 - Used by: `src/Client/ServiceClient.php`, `src/Events/EnvelopeBuilder.php`, `src/Events/EventConsumer.php`
 - Helper: `abeon_correlation_id(): ?string` global function
 - Related: ADR-0002 (envelope), arch doc sekcja 10.2
+
+**2026-09-18 — the JSON channel is switched on, and the boilerplate's relay carries the id.**
+`JsonFormatter` existed from the start but no channel used it, so "one field to grep in Loki" was true of
+the code and false of every deployment. `abeon-auth`, `abeon-auth-ui`, `abeon-unified` and the boilerplate
+now ship a `json` channel (Monolog to `php://stderr`, `LOG_JSON_STREAM` to move it); select it with
+`LOG_STACK=json`. The boilerplate's same-origin proxy sends `X-Correlation-ID` upstream and returns the
+upstream's, so a page load and the calls it makes share one id.
+
