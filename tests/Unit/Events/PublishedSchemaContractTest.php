@@ -43,6 +43,7 @@ final class PublishedSchemaContractTest extends TestCase
         'auth.user.role_changed'       => 'abeon-auth/app/Http/Controllers/Admin/UserController.php',
         'auth.org.updated'             => 'abeon-auth/app/Http/Controllers/Admin/OrganisationController.php',
         'service.permissions.declared' => 'abeon-sdk-php/src/Auth/PermissionsDeclarator.php',
+        'auth.message.requested'       => 'abeon-auth/app/Auth/{Invitations,PasswordResets,EmailVerifications}.php',
         // Specified by ADR-0022 and not yet published by anything. Listed because the
         // contract half is what this test is about, and ADR-0022's loop cannot be built
         // against a schema nobody can look up.

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/auth.message.requested.json",
+  "title": "auth.message.requested payload",
+  "description": "Auth's copy of the shared transactional-message payload (ADR-0030). `SchemaDiscovery` keys the catalog by file name and `RoutingKey` refuses a wildcard, so `*.message.requested` cannot be a file name — each emitting service ships its own copy under its own routing key, and this is Auth's.",
+  "type": "object",
+  "required": [
+    "template",
+    "to",
+    "idempotency_key"
+  ],
+  "properties": {
+    "template": {
+      "description": "Template name known to AbeonUnified, `{service}.{name}`.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$",
+      "maxLength": 255
+    },
+    "to": {
+      "type": "object",
+      "required": [
+        "email"
+      ],
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 320
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        },
+        "user_id": {
+          "description": "Set when the recipient already has an account.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "locale": {
+      "type": "string",
+      "enum": [
+        "pl",
+        "en"
+      ]
+    },
+    "data": {
+      "description": "Variables the template renders. Never a password.",
+      "type": "object",
+      "additionalProperties": true
+    },
+    "idempotency_key": {
+      "description": "From the business fact that caused the message (`auth.invitation:1842`), never random — a redelivered event must not send a second mail.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    }
+  },
+  "additionalProperties": false
+}

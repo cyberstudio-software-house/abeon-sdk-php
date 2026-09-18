@@ -7,6 +7,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.6.1] — 2026-09-18
+
+### Added
+
+- `events/auth.message.requested.json` — Auth's copy of the transactional-message payload, so the key it
+  publishes is discoverable in the catalog (ADR-0002 keys schemas by file name, and a wildcard cannot be
+  one).
+
 ## [0.6.0] — 2026-09-18
 
 ### Added
