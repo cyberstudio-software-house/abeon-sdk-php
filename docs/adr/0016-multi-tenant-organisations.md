@@ -113,3 +113,4 @@ suite, many clients.
 - **Amended 2026-08-13 by [ADR-0024](0024-permission-expansion.md)** (permission expansion): because
   grants are per membership, Auth re-expands roles into literal permissions on every login, refresh and
   tenant switch. No wildcard stands in for "everything".
+- **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** business applications run one instance per client; Auth and AbeonUnified stay multi-tenant as decided here.

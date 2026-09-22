@@ -183,3 +183,4 @@ reordering the platform so that Unified ships first.
 - **Amended 2026-08-13:** §6 generalised from "the provisioning command prints the link" to "any user
   creation returns the link to its caller", so an organisation admin can create accounts before Unified
   has an email channel. See `abeon-auth-spec.md` FR-16 and finding A-10.
+- **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** an organisation gains a host (`{slug}.abeon.pl` or its own domain).

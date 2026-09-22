@@ -210,3 +210,4 @@ Both controllers require `AuthMiddleware`. Both return JSON in the ADR-0004 enve
 - **Amended 2026-08-13 by [ADR-0026](0026-administration-is-an-sdk-surface.md)**: the administration
   endpoints `/api/v1/auth/admin/*` join this ADR's endpoints as a shared, versioned, fixture-covered
   contract, because `@abeon/sdk-ts` consumes them from every application.
+- **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** the catalogue's `path` is resolved against the client's host; one `path` per application stays.

@@ -98,3 +98,4 @@ carries a tenant, the asynchronous half of the platform cannot be scoped at all.
   exists — and discharges the obligation by entering `TenantContext::runFor()` as soon as it has resolved
   or created the organisation. Recorded so a handler that does not call `requireOrgId()` at entry reads as
   the specified exception rather than as this ADR being ignored.
+- **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** `org_id` scoping applies to the platform services; an instance of a business application holds one client's data and is bound by `ABEON_ORG_ID` instead.

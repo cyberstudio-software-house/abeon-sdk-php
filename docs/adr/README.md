@@ -20,19 +20,19 @@ ADR-0004 (REST shape), ADR-0002 (events). The rest are reachable from those.
 | [0007](0007-search-and-command-registry.md) | Search and command registry | Accepted | Cmd+K command registry, per-service search providers |
 | [0008](0008-broadcasting-auth.md) | Broadcasting auth | Accepted | Reverb channel authorisation, `private-org.{id}` guard |
 | [0009](0009-user-preferences.md) | User preferences | Accepted · *amended by 0016* | `/auth/me/preferences`, versioned blob, per-user-per-organisation |
-| [0010](0010-auth-me-and-apps-endpoints.md) | `/auth/user` + `/auth/apps` | Accepted · *amended by 0015, 0016, 0019, 0025, 0026* | Chrome data plane; app visibility = `tenant_apps` ∩ permissions; the token gates the UI |
+| [0010](0010-auth-me-and-apps-endpoints.md) | `/auth/user` + `/auth/apps` | Accepted · *amended by 0015, 0016, 0019, 0025, 0026* | Chrome data plane; app visibility = `tenant_apps` ∩ permissions; the token gates the UI **Amended 2026-09-22** by ADR-0031 |
 | [0011](0011-cross-app-search-service.md) | Cross-app search service | Accepted (Phase 2) | Federated search service; contract now, service later |
 | [0012](0012-single-tenant-per-instance.md) | Single-tenant per instance | **Superseded by [0016](0016-multi-tenant-organisations.md)** | Reversed. Its "retrofit cost" paragraph is worth reading anyway |
-| [0013](0013-full-page-navigation.md) | Full-page navigation | Accepted | Cross-app navigation is a full page load, not client-side routing |
+| [0013](0013-full-page-navigation.md) | Full-page navigation | Accepted | Cross-app navigation is a full page load, not client-side routing **Amended 2026-09-22** by ADR-0031 |
 | [0014](0014-suite-dashboard-composition.md) | Suite dashboard composition | Accepted (Phase 2) | How the suite home page composes per-app widgets |
-| [0015](0015-app-store-and-entitlement.md) | App store and entitlement | Accepted · *amended by 0016, 0019* | `AppDescriptor.enabled`, store API; enablement is a `tenant_apps` row |
-| [0016](0016-multi-tenant-organisations.md) | **Multi-tenant organisations** | Accepted · *amended by 0022, 0024* | One deployment, many client organisations. `org_id` is an authorization dimension |
-| [0017](0017-tenant-switching.md) | Tenant switching | Accepted | Switching organisation re-issues the token; clients never assert their own tenant |
-| [0018](0018-tenant-scoping.md) | Tenant scoping | Accepted · *amended by 0022* | The SDK owns row scoping; a missing tenant throws rather than returning everything |
+| [0015](0015-app-store-and-entitlement.md) | App store and entitlement | Accepted · *amended by 0016, 0019* | `AppDescriptor.enabled`, store API; enablement is a `tenant_apps` row **Amended 2026-09-22** by ADR-0031 |
+| [0016](0016-multi-tenant-organisations.md) | **Multi-tenant organisations** | Accepted · *amended by 0022, 0024* | One deployment, many client organisations. `org_id` is an authorization dimension **Amended 2026-09-22** by ADR-0031 |
+| [0017](0017-tenant-switching.md) | Tenant switching | Accepted | Switching organisation re-issues the token; clients never assert their own tenant **Amended 2026-09-22** by ADR-0031 |
+| [0018](0018-tenant-scoping.md) | Tenant scoping | Accepted · *amended by 0022* | The SDK owns row scoping; a missing tenant throws rather than returning everything **Amended 2026-09-22** by ADR-0031 |
 | [0019](0019-abeon-unified-service.md) | AbeonUnified service | Accepted · *amended by 0022, 0028* | `abeon-notifications` renamed and widened; the outbound-integration doctrine |
 | [0020](0020-ai-gateway.md) | AI gateway | Accepted | OpenRouter only via Unified, platform key, per-organisation metering |
 | [0021](0021-object-storage-layout.md) | Object storage layout | Accepted | One OCS container per organisation, `{service}/` prefixes |
-| [0022](0022-organisation-provisioning.md) | Organisation provisioning | Accepted · *amended 2026-08-13* | `unified.app.registered` → Auth creates the organisation + owner → `auth.org.created` carries the id back; user creation returns the invitation link |
+| [0022](0022-organisation-provisioning.md) | Organisation provisioning | Accepted · *amended 2026-08-13* | `unified.app.registered` → Auth creates the organisation + owner → `auth.org.created` carries the id back; user creation returns the invitation link **Amended 2026-09-22** by ADR-0031 |
 | [0023](0023-token-revocation-and-sessions.md) | Token revocation and sessions | Accepted | Refresh rotation, reuse kills the family, a stated ≤ 15-min revocation window |
 | [0024](0024-permission-expansion.md) | Permission expansion | Accepted | No wildcards on the wire; Auth expands roles at issue time; 4 KB token budget |
 | [0025](0025-auth-service-invariants.md) | Auth service invariants | Accepted | Six edge behaviours: no-organisation refusal, default org, over-budget refusal, JWKS degradation, audit immutability, rate-limit precedence |
@@ -41,6 +41,7 @@ ADR-0004 (REST shape), ADR-0002 (events). The rest are reachable from those.
 | [0028](0028-notification-channels-and-preferences.md) | Notification channels and preferences | Accepted | `channels` on every request with `in_app` required; per-user preference rules in Unified; the event through the outbox is the default emit path (`Notifier`) |
 | [0029](0029-sdk-ts-is-the-frontend-half.md) | `@abeon/sdk-ts` scope | Accepted | The TypeScript package is the frontend half; service JWT, service client, events, outbox and health stay in `abeon/sdk` |
 | [0030](0030-email-channel.md) | E-mail channel and transactional messages | Accepted | `{service}.message.requested` through the outbox, templates and delivery in Unified, idempotency from a business key, suppression list |
+| [0031](0031-app-instance-per-client.md) | One instance of each business application per client | Accepted | Buying an app provisions the client's own instance and database; one host per client with apps under path prefixes; login across domains by a one-time code; instance bound to `ABEON_ORG_ID` |
 
 ## Supersessions
 

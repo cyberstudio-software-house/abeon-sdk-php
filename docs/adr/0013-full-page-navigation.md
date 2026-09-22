@@ -61,4 +61,4 @@ Smoothness comes from, not from a shared runtime, but from:
 - **Context via URL:** `crossAppHref(appPath, path, query)` in `@abeon/sdk-ts/client` 0.7.0.
 - **Notifications** now link to their source application through the same helper (ADR-0006's
   `action_url` resolved against the catalogue), so the bell obeys this ADR rather than swallowing clicks.
-
+- **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** SSO moves from the shared `.abeon.pl` cookie to host-only cookies and a one-time code from `auth.abeon.pl`, so clients can use their own domains.

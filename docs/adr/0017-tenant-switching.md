@@ -98,3 +98,4 @@ the entire point of choosing this option.
 - Implementation delta: `abeon-sdk-delta-2026-08-12.md` items 13–15 (`abeon-sdk-ts` tenant state and
   switch flow — the piece that exists nowhere today)
 - MVP precedent (and why it is not sufficient): `unified-shell-spec.md` FR-2
+- **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** switching client means moving to that client's host; a session is per host.
