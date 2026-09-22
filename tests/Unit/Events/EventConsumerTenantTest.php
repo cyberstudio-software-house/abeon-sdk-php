@@ -54,6 +54,38 @@ final class EventConsumerTenantTest extends TestCase
         $this->assertNull($handler->seenOrgId);
     }
 
+    /**
+     * ADR-0031 §6. A bound instance has its own queue, so it receives every
+     * organisation's events; handing another client's to its handlers would write them
+     * into this client's database.
+     */
+    public function test_a_bound_instance_skips_another_organisations_event(): void
+    {
+        [$consumer, , $handler] = $this->consumerWithRecordingHandler(instanceOrgId: 7);
+
+        $this->deliver($consumer, orgId: 8);
+
+        $this->assertFalse($handler->handled);
+    }
+
+    public function test_a_bound_instance_handles_its_own_organisations_event(): void
+    {
+        [$consumer, , $handler] = $this->consumerWithRecordingHandler(instanceOrgId: 7);
+
+        $this->deliver($consumer, orgId: 7);
+
+        $this->assertSame(7, $handler->seenOrgId);
+    }
+
+    public function test_a_bound_instance_still_receives_platform_level_events(): void
+    {
+        [$consumer, , $handler] = $this->consumerWithRecordingHandler(instanceOrgId: 7);
+
+        $this->deliver($consumer, orgId: null);
+
+        $this->assertTrue($handler->handled);
+    }
+
     public function test_a_failing_handler_does_not_leave_the_worker_pinned(): void
     {
         // A consumer process handles one organisation's message after another's. A
@@ -118,7 +150,7 @@ final class EventConsumerTenantTest extends TestCase
     /**
      * @return array{0: EventConsumer, 1: TenantContext, 2: object}
      */
-    private function consumerWithRecordingHandler(): array
+    private function consumerWithRecordingHandler(?int $instanceOrgId = null): array
     {
         $tenants = new TenantContext(new AuthContext());
 
@@ -144,10 +176,10 @@ final class EventConsumerTenantTest extends TestCase
             }
         };
 
-        return [$this->consumer($tenants, $handler), $tenants, $handler];
+        return [$this->consumer($tenants, $handler, $instanceOrgId), $tenants, $handler];
     }
 
-    private function consumer(TenantContext $tenants, EventHandler $handler): EventConsumer
+    private function consumer(TenantContext $tenants, EventHandler $handler, ?int $instanceOrgId = null): EventConsumer
     {
         $consumer = new EventConsumer(
             rabbit:      $this->createMock(RabbitMq::class),
@@ -155,7 +187,10 @@ final class EventConsumerTenantTest extends TestCase
             correlation: new CorrelationContext(),
             tenants:     $tenants,
             container:   new Container(),
-            config:      new AbeonConfig(new Repository(['abeon' => ['service' => ['name' => 'unified']]])),
+            config:      new AbeonConfig(new Repository(['abeon' => ['service' => [
+                'name'   => 'unified',
+                'org_id' => $instanceOrgId === null ? null : (string) $instanceOrgId,
+            ]]])),
         );
 
         return $consumer->withHandlers([$handler]);

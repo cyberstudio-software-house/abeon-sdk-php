@@ -43,4 +43,20 @@ class AuthException extends AbeonException
             detail: $reason,
         ));
     }
+
+    /**
+     * A valid token for an organisation this instance does not serve (ADR-0031 §4).
+     *
+     * 403 rather than 401: the credentials are fine, and treating them as missing would send
+     * a browser back to login, which would hand it the same token and loop.
+     */
+    public static function wrongOrganisation(int $tokenOrgId, int $instanceOrgId): self
+    {
+        return new self(new ProblemDetails(
+            type:   'https://api.abeon.pl/errors/wrong-organisation',
+            title:  'Wrong organisation',
+            status: 403,
+            detail: "This instance serves organisation {$instanceOrgId}; the token is for organisation {$tokenOrgId}",
+        ));
+    }
 }

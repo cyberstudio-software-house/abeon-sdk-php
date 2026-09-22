@@ -23,6 +23,33 @@ class AbeonConfig
         return $name;
     }
 
+    /**
+     * The organisation this instance is bound to, or null for a service that serves every
+     * organisation (ADR-0031 §4).
+     *
+     * A value that is set but not a positive integer is refused rather than read as
+     * "unbound": a typo in `ABEON_ORG_ID` would otherwise open the instance to every
+     * organisation, silently.
+     */
+    public function instanceOrgId(): ?int
+    {
+        $value = $this->config->get('abeon.service.org_id');
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_int($value) && $value > 0) {
+            return $value;
+        }
+
+        if (is_string($value) && ctype_digit($value) && (int) $value > 0) {
+            return (int) $value;
+        }
+
+        throw new \RuntimeException('abeon.service.org_id must be a positive integer (ABEON_ORG_ID)');
+    }
+
     public function authUrl(): string
     {
         return (string) $this->config->get('abeon.auth.url');
@@ -207,11 +234,22 @@ class AbeonConfig
         return (bool) $this->config->get('abeon.events.outbox.skip_locked', false);
     }
 
+    /**
+     * Instances of one application bound to different organisations get different queues by
+     * default (ADR-0031 §6). Sharing the service name would make them competing consumers,
+     * each silently receiving about half of what it subscribed to.
+     */
     public function consumerQueuePrefix(): string
     {
         $prefix = $this->config->get('abeon.events.consumer.queue_prefix');
 
-        return is_string($prefix) && $prefix !== '' ? $prefix : $this->serviceName();
+        if (is_string($prefix) && $prefix !== '') {
+            return $prefix;
+        }
+
+        $orgId = $this->instanceOrgId();
+
+        return $orgId === null ? $this->serviceName() : $this->serviceName().'-org'.$orgId;
     }
 
     /**

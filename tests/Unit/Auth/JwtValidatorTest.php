@@ -181,6 +181,33 @@ final class JwtValidatorTest extends TestCase
         $this->validator()->decodeUser($this->token(['org_id' => null]));
     }
 
+    public function test_a_bound_instance_accepts_a_token_for_its_own_organisation(): void
+    {
+        $user = $this->boundValidator(7)->decodeUser($this->token(['org_id' => 7]));
+
+        $this->assertSame(7, $user->orgId);
+    }
+
+    /**
+     * ADR-0031 §4. The audience is shared by every service, so without this a user of one
+     * client holding `cms.*` is let into another client's CMS instance.
+     */
+    public function test_a_bound_instance_refuses_a_token_for_another_organisation_with_403(): void
+    {
+        try {
+            $this->boundValidator(7)->decodeUser($this->token(['org_id' => 8]));
+            $this->fail('A token for another organisation was accepted');
+        } catch (AuthException $e) {
+            $this->assertSame(403, $e->status());
+            $this->assertSame('https://api.abeon.pl/errors/wrong-organisation', $e->problem->type);
+        }
+    }
+
+    public function test_an_unbound_service_accepts_every_organisation(): void
+    {
+        $this->assertSame(8, $this->validator()->decodeUser($this->token(['org_id' => 8]))->orgId);
+    }
+
     public function test_rejects_an_algorithm_confusion_token(): void
     {
         // HS256 token carrying the same kid. The validator resolves an RS256 JWK,
@@ -334,6 +361,16 @@ final class JwtValidatorTest extends TestCase
         $this->expectExceptionMessage('exceeds the');
 
         $this->validator()->decode($this->token(['exp' => time() + 400 * 86400]));
+    }
+
+    private function boundValidator(int $orgId): JwtValidator
+    {
+        return new JwtValidator(new FakeJwksClient([self::KID => $this->jwk]), new AbeonConfig(new Repository([
+            'abeon' => [
+                'auth'    => ['issuer' => 'abeon-auth', 'audience' => 'abeon'],
+                'service' => ['name' => 'cms', 'org_id' => (string) $orgId],
+            ],
+        ])));
     }
 
     private function validator(): JwtValidator

@@ -169,6 +169,20 @@ class EventConsumer
             return;
         }
 
+        // ADR-0031 §6: an instance bound to one organisation acks another organisation's
+        // events unhandled. Its queue is its own, so nothing else was going to receive
+        // them. Platform-level events (no org_id) still pass.
+        $instanceOrgId = $this->config->instanceOrgId();
+        if ($instanceOrgId !== null && $event->orgId !== null && $event->orgId !== $instanceOrgId) {
+            $this->logger->debug('event-consumer.other-organisation', [
+                'event_id' => $event->eventId,
+                'org_id'   => $event->orgId,
+            ]);
+            $channel->basic_ack($deliveryTag);
+
+            return;
+        }
+
         $cid = $event->correlationId();
         if ($cid !== null) {
             $this->correlation->set($cid);

@@ -7,6 +7,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.7.0] — 2026-09-22
+
+### Added
+
+- **`ABEON_ORG_ID` (`abeon.service.org_id`)** binds a deployment to one organisation (ADR-0031 §4).
+  `AbeonConfig::instanceOrgId()` reads it and refuses a value that is not a positive integer.
+- **`AuthException::wrongOrganisation()`** — 403, type `…/errors/wrong-organisation`.
+
+### Changed
+
+- `JwtValidator::decodeUser()` refuses a user token for another organisation when the deployment is
+  bound. Unbound services (Auth, Unified) behave as before.
+- `EventConsumer` acks events of other organisations unhandled on a bound deployment; platform events
+  without `org_id` still reach handlers (ADR-0031 §6).
+- `AbeonConfig::consumerQueuePrefix()` defaults to `{service}-org{id}` on a bound deployment, so two
+  instances of one application never share a queue. `ABEON_QUEUE_PREFIX` still wins.
+
 ## [0.6.1] — 2026-09-18
 
 ### Added

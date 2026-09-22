@@ -5,6 +5,9 @@ declare(strict_types=1);
 return [
     'service' => [
         'name' => env('ABEON_SERVICE_NAME'),
+        // The one organisation this deployment serves (ADR-0031). Set on every instance of a
+        // business application; left unset on Auth and AbeonUnified, which serve them all.
+        'org_id' => env('ABEON_ORG_ID'),
     ],
 
     'client' => [

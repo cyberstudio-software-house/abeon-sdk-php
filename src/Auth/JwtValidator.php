@@ -92,6 +92,17 @@ class JwtValidator
             throw AuthException::unauthenticated('User JWT is missing the required org_id claim');
         }
 
+        // ADR-0031 §4: an instance of a business application serves one organisation, and
+        // the audience is shared by every service (ADR-0001), so this is the only thing
+        // standing between a user of one client and another client's instance. Here
+        // rather than in a middleware because every user-token path — web, API,
+        // broadcasting — goes through this method, and a check nobody can forget to add
+        // is the point.
+        $instanceOrgId = $this->config->instanceOrgId();
+        if ($instanceOrgId !== null && $claims['org_id'] !== $instanceOrgId) {
+            throw AuthException::wrongOrganisation($claims['org_id'], $instanceOrgId);
+        }
+
         return User::fromArray([
             'id'          => (string) ($claims['sub'] ?? ''),
             'email'       => (string) ($claims['email'] ?? ''),
