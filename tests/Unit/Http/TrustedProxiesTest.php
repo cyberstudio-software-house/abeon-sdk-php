@@ -47,6 +47,25 @@ final class TrustedProxiesTest extends TestCase
         $this->assertTrue($handled->isSecure());
     }
 
+    /**
+     * ADR-0031 §2. The ingress strips `/cms` before the request reaches the pod; without
+     * this every generated URL — assets, redirects, the return-to parameter — would point
+     * at the root of the client's host, which is another application.
+     */
+    public function test_a_forwarded_prefix_is_carried_into_generated_urls(): void
+    {
+        $request = Request::create('http://pod-internal/settings');
+        $request->headers->set('X-Forwarded-Proto', 'https');
+        $request->headers->set('X-Forwarded-Host', 'panel.acme.com');
+        $request->headers->set('X-Forwarded-Prefix', '/cms');
+        $request->server->set('REMOTE_ADDR', '10.42.0.7');
+
+        $handled = (new TrustProxies())->handle($request, fn (Request $r): Request => $r);
+
+        $this->assertSame('https://panel.acme.com/cms/settings', $handled->fullUrl());
+        $this->assertSame('/settings', $handled->getPathInfo(), 'Routes must still match the stripped path.');
+    }
+
     public function test_the_forwarded_address_is_the_client_not_the_ingress(): void
     {
         // The reason this is not only cosmetic: Auth throttles failed logins per

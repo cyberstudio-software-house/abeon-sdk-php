@@ -54,7 +54,13 @@ final class TrustedProxies
             Request::HEADER_X_FORWARDED_FOR
             | Request::HEADER_X_FORWARDED_HOST
             | Request::HEADER_X_FORWARDED_PORT
-            | Request::HEADER_X_FORWARDED_PROTO,
+            | Request::HEADER_X_FORWARDED_PROTO
+            // ADR-0031 §2: an application lives under a path prefix on its client's host
+            // (`panel.acme.com/cms`). The ingress strips `/cms` and says so in this
+            // header; believing it makes `url()`, `route()`, `@vite`, the Inertia page URL
+            // and the return-to parameter carry the prefix, while routes still match the
+            // stripped path. The same image then runs under any prefix, or none.
+            | Request::HEADER_X_FORWARDED_PREFIX,
         );
     }
 

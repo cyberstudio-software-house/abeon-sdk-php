@@ -7,6 +7,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.7.1] — 2026-09-22
+
+### Changed
+
+- `TrustedProxies` also believes `X-Forwarded-Prefix`, so an application served under a path prefix
+  on its client's host (ADR-0031 §2) generates prefixed URLs while its routes match the stripped path.
+
 ## [0.7.0] — 2026-09-22
 
 ### Added
