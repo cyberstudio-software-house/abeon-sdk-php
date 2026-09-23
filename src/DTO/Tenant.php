@@ -23,6 +23,8 @@ final readonly class Tenant
         public ?string $logoUrl = null,
         /** True for the organisation the caller's token is scoped to. Server-populated. */
         public ?bool $current = null,
+        /** Where this organisation's applications are served (ADR-0031 §2). */
+        public ?string $host = null,
     ) {
     }
 
@@ -37,6 +39,7 @@ final readonly class Tenant
             slug:    (string) ($data['slug'] ?? ''),
             logoUrl: isset($data['logo_url']) ? (string) $data['logo_url'] : null,
             current: isset($data['current']) ? (bool) $data['current'] : null,
+            host:    isset($data['host']) ? (string) $data['host'] : null,
         );
     }
 
@@ -51,6 +54,7 @@ final readonly class Tenant
             'slug'     => $this->slug,
             'logo_url' => $this->logoUrl,
             'current'  => $this->current,
+            'host'     => $this->host,
         ];
     }
 }

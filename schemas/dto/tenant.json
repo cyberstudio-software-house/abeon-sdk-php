@@ -19,6 +19,7 @@
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
       "description": "URL-safe identifier. Stable; suitable for deep links and logs."
     },
+    "host": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The host this organisation's applications are served from (ADR-0031 \u00a72): its own domain, or `{slug}.{platform suffix}` by default. The switcher sends the browser here; a session is per host." },
     "logo_url": {
       "type": ["string", "null"],
       "description": "Optional organisation logo for the switcher."

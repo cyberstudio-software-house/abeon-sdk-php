@@ -7,6 +7,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.8.0] — 2026-09-23
+
+### Added
+
+- **`host`** on `dto/tenant.json`, `dto/organisation.json`, `events/auth.org.created.json` and
+  `events/auth.org.updated.json`, plus `DTO\Tenant::$host`: where an organisation's applications are
+  served (ADR-0031 §2). A bare hostname — no scheme, port or path — so the browser can be sent to
+  `https://{host}/...` without further parsing. Optional on the events so anything published before
+  this version still validates.
+
 ## [0.7.1] — 2026-09-22
 
 ### Changed

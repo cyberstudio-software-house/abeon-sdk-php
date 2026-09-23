@@ -108,6 +108,20 @@ final class SchemaContractTest extends TestCase
         $this->assertValid('dto/tenant.json', $this->fixture('tenant.json'));
     }
 
+    /**
+     * ADR-0031 §2. A host is a bare DNS name: the switcher builds `https://{host}/...`
+     * from it, so a scheme, a path or a port smuggled in here would become part of the
+     * address the browser is sent to.
+     */
+    public function test_a_tenant_host_is_a_bare_hostname(): void
+    {
+        foreach (['https://acme.abeon.pl', 'acme.abeon.pl/cms', 'acme.abeon.pl:8443', 'ACME.abeon.pl', 'acme'] as $host) {
+            $this->assertInvalid('dto/tenant.json', ['host' => $host], 'tenant.json');
+        }
+
+        $this->assertValid('dto/tenant.json', ['id' => 1, 'name' => 'Acme', 'slug' => 'acme', 'host' => 'panel.acme.com']);
+    }
+
     public function test_organisation_member_fixture_matches_schema(): void
     {
         $this->assertValid('dto/organisation-member.json', $this->fixture('organisation-member.json'));

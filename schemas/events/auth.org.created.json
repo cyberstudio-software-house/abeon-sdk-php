@@ -15,6 +15,7 @@
       "type": "string",
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
     },
+    "host": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The organisation's host (ADR-0031 \u00a72) \u2014 `{slug}.{platform suffix}` for a new organisation. Optional in the schema only so events published before 0.8.0 still validate." },
     "logo_url": { "type": ["string", "null"] },
     "status": {
       "type": "string",
