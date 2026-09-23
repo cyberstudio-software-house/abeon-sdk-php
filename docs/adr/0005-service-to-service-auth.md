@@ -186,3 +186,4 @@ JWKS naturally supports multiple `kid`s simultaneously — this enables zero-dow
   FR-27.2's "fail startup" lives in `abeon:jwks:check` rather than in the application's boot: PHP-FPM
   bootstraps per request, so failing there would take down user login — the exact trade ADR-0025 §4
   refuses. The command belongs in a Helm `pre-upgrade` hook or an init container.
+- **Amended 2026-09-23 by [ADR-0032](0032-redis-shared-ephemeral-store.md):** the JWKS cache is now one shared Redis entry per application rather than one per process, so the rotation grace period is bounded by that single TTL.

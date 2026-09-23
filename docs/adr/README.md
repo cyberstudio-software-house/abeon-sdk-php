@@ -42,6 +42,7 @@ ADR-0004 (REST shape), ADR-0002 (events). The rest are reachable from those.
 | [0029](0029-sdk-ts-is-the-frontend-half.md) | `@abeon/sdk-ts` scope | Accepted | The TypeScript package is the frontend half; service JWT, service client, events, outbox and health stay in `abeon/sdk` |
 | [0030](0030-email-channel.md) | E-mail channel and transactional messages | Accepted | `{service}.message.requested` through the outbox, templates and delivery in Unified, idempotency from a business key, suppression list |
 | [0031](0031-app-instance-per-client.md) | One instance of each business application per client | Accepted | Buying an app provisions the client's own instance and database; one host per client with apps under path prefixes; login across domains by a one-time code; instance bound to `ABEON_ORG_ID` |
+| [0032](0032-redis-shared-ephemeral-store.md) | Redis is the shared ephemeral store | Accepted | Cache, locks and rate-limit counters move to one Redis with an explicit prefix per service and per client instance; the outbox, the processed-event ledger and login lockouts stay in the database; queues and sessions unchanged for now |
 
 ## Supersessions
 

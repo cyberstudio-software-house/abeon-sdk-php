@@ -102,3 +102,4 @@ provisioning step. This ADR should be revisited at that point rather than patche
   `src/Client/ServiceTokenProvider.php` (fetch / cache / flush-on-401)
 - Swift ACL scope: [OpenStack Swift — Access Control Lists](https://docs.openstack.org/swift/latest/overview_acl.html)
 - Implementation delta: `abeon-sdk-delta-2026-08-12.md` item 7
+- **Amended 2026-09-23 by [ADR-0032](0032-redis-shared-ephemeral-store.md):** the same rule — a prefix is a convention, not a boundary — now also governs the shared Redis key space.

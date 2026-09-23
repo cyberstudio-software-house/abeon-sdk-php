@@ -155,3 +155,4 @@ No row is created until the first `PATCH`.
 - **Amended 2026-08-12 by ADR-0016** (multi-tenant organisations): preferences are keyed
   `(user_id, org_id)`, and ADR-0017's tenant switch must re-fetch them. MVP precedent:
   `unified-shell-spec.md` FR-3.
+- **Amended 2026-09-23 by [ADR-0032](0032-redis-shared-ephemeral-store.md):** the Redis cache this ADR assumed now exists (cache, locks and rate limits on one shared instance).

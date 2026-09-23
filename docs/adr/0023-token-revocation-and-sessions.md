@@ -160,3 +160,4 @@ a datastore rather than through a contract.
   alerting on.
 
   Set `ABEON_REFRESH_RACE_GRACE=0` to restore the previous behaviour exactly.
+- **Amended 2026-09-23 by [ADR-0032](0032-redis-shared-ephemeral-store.md):** the refresh single-flight lock moves to Redis; the rejection of a shared revocation deny-list is unchanged.
