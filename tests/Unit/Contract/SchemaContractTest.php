@@ -122,6 +122,19 @@ final class SchemaContractTest extends TestCase
         $this->assertValid('dto/tenant.json', ['id' => 1, 'name' => 'Acme', 'slug' => 'acme', 'host' => 'panel.acme.com']);
     }
 
+    /**
+     * ADR-0031 §5. The launcher decides whether to render a link from this, so a state it
+     * does not know must not reach it as though it were `ready`.
+     */
+    public function test_an_app_descriptor_status_is_one_of_the_known_states(): void
+    {
+        foreach (['requested', 'provisioning', 'ready', 'failed'] as $status) {
+            $this->assertValid('dto/app-descriptor.json', ['name' => 'cms', 'status' => $status]);
+        }
+
+        $this->assertInvalid('dto/app-descriptor.json', ['status' => 'deploying'], 'app-descriptor.json');
+    }
+
     public function test_organisation_member_fixture_matches_schema(): void
     {
         $this->assertValid('dto/organisation-member.json', $this->fixture('organisation-member.json'));

@@ -31,6 +31,12 @@ final readonly class AppDescriptor
          * which organisations hold it.
          */
         public ?bool $enabled = null,
+        /**
+         * The state of this organisation's instance (ADR-0031 §5): `requested`,
+         * `provisioning`, `ready` or `failed`. Null where the question does not
+         * arise — self-registration, or an application the organisation does not hold.
+         */
+        public ?string $status = null,
     ) {
     }
 
@@ -55,6 +61,7 @@ final readonly class AppDescriptor
             mode:        isset($data['mode']) ? (string) $data['mode'] : null,
             fullscreen:  isset($data['fullscreen']) ? (bool) $data['fullscreen'] : null,
             enabled:     isset($data['enabled']) ? (bool) $data['enabled'] : null,
+            status:      isset($data['status']) ? (string) $data['status'] : null,
         );
     }
 
@@ -75,6 +82,7 @@ final readonly class AppDescriptor
             'mode'        => $this->mode,
             'fullscreen'  => $this->fullscreen,
             'enabled'     => $this->enabled,
+            'status'      => $this->status,
         ];
     }
 }

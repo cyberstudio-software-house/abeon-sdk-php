@@ -7,6 +7,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.9.0] — 2026-09-23
+
+### Added
+
+- **`status`** on `dto/app-descriptor.json` and `DTO\AppDescriptor`: the state of an organisation's
+  instance of an application — `requested`, `provisioning`, `ready` or `failed` (ADR-0031 §5). Only a
+  `ready` instance is reachable.
+- **`events/unified.app_instance.requested.json`** — the order AbeonUnified publishes when an
+  organisation is given an application, for the deployment layer to act on.
+
 ## [0.8.0] — 2026-09-23
 
 ### Added

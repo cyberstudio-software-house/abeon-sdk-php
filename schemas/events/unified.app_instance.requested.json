@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/unified.app_instance.requested.json",
+  "title": "unified.app_instance.requested payload",
+  "description": "Published by AbeonUnified when an organisation is given an application (ADR-0031 §5). A business application runs as one deployment per client, so this is the order for one: create the database, deploy the image, route `host + path` to it.\n\nThe provisioner is part of the deployment layer, not of the platform services — nothing here knows how a deployment is made. It answers by marking the assignment `ready` or `failed` through the internal registry API, and the application appears in the launcher only then.\n\nAt-least-once like every event (ADR-0002): a provisioner must treat a repeat for a pair it has already built as the no-op it is, not as a second deployment.\n\nThe file name is the routing key.",
+  "type": "object",
+  "required": ["org_id", "app", "host"],
+  "properties": {
+    "org_id": { "type": "integer", "description": "The organisation the instance belongs to. Also the envelope's `org_id`." },
+    "app": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "description": "The application's name in the catalogue, which is also the first segment of its permissions (ADR-0001)." },
+    "host": { "type": "string", "description": "The client's host, from Auth's organisation record (ADR-0031 §2)." },
+    "path": { "type": ["string", "null"], "description": "The path prefix the instance is served under on that host, e.g. `/cms`. Null when the catalogue has none, which a provisioner should treat as the root." },
+    "slug": { "type": ["string", "null"], "description": "The organisation's slug, for naming databases and deployments legibly." }
+  },
+  "additionalProperties": false
+}

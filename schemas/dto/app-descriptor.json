@@ -16,6 +16,7 @@
     "order":       { "type": ["integer", "null"], "description": "Sort hint within the switcher / category (ascending)." },
     "mode":        { "type": ["string", "null"], "enum": ["suite", "app", null], "description": "Chrome UI mode the app prefers." },
     "fullscreen":  { "type": ["boolean", "null"], "description": "Render chrome-less / full-bleed." },
+    "status":      { "type": ["string", "null"], "enum": ["requested", "provisioning", "ready", "failed", null], "description": "The state of this organisation's instance of the application (ADR-0031 \u00a75): `ready` once it is serving, `provisioning` while it is being created, `failed` when creating it did not finish. Absent on self-registration and for an application the organisation does not hold. An application is only reachable when it is `ready`; the launcher shows the other states rather than a link that would 404." },
     "enabled":     { "type": ["boolean", "null"], "description": "Whether this application is assigned to the caller's organisation \u2014 the presence of a `tenant_apps` row for (org_id, app). ADR-0015 as amended by ADR-0016.\n\nOrganisation-relative: the SAME app yields different values for different callers, so a cached catalogue must be re-derived when the active organisation changes (ADR-0017). Populated by Auth on catalog/apps responses; null/ignored on self-registration, where the app cannot know which organisations hold it." }
   },
   "additionalProperties": false
