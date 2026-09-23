@@ -43,6 +43,7 @@ ADR-0004 (REST shape), ADR-0002 (events). The rest are reachable from those.
 | [0030](0030-email-channel.md) | E-mail channel and transactional messages | Accepted | `{service}.message.requested` through the outbox, templates and delivery in Unified, idempotency from a business key, suppression list |
 | [0031](0031-app-instance-per-client.md) | One instance of each business application per client | Accepted | Buying an app provisions the client's own instance and database; one host per client with apps under path prefixes; login across domains by a one-time code; instance bound to `ABEON_ORG_ID` |
 | [0032](0032-redis-shared-ephemeral-store.md) | Redis is the shared ephemeral store | Accepted | Cache, locks and rate-limit counters move to one Redis with an explicit prefix per service and per client instance; the outbox, the processed-event ledger and login lockouts stay in the database; queues and sessions unchanged for now |
+| [0033](0033-public-surface.md) | An instance may publish a public surface | Accepted | A client's instance can serve a public site on the client's own domain: the public host is a column on the assignment in Unified, the panel host stays Auth's, and the two surfaces refuse each other's requests |
 
 ## Supersessions
 

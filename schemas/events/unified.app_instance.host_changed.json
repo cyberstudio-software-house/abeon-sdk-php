@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/unified.app_instance.host_changed.json",
+  "title": "unified.app_instance.host_changed payload",
+  "description": "Published by AbeonUnified when an instance's public host is given, changed or taken away after the instance was created (ADR-0033). The order that created the instance carries the host it had at the time; this is how a later change reaches the deployment layer.\n\nThe public host belongs to the assignment — the pair (organisation, application) — not to the organisation: it is a property of what that client's instance of that application publishes. The organisation's own host, the one the panel and the platform session live on, stays in Auth and never travels in this event.\n\n`public_host` is null when the host is withdrawn, and the provisioner is expected to remove the route rather than leave it pointing at an instance that no longer claims it.\n\nThe file name is the routing key.",
+  "type": "object",
+  "required": ["org_id", "app", "public_host"],
+  "properties": {
+    "org_id": { "type": "integer", "description": "The organisation whose instance this is. Also the envelope's `org_id`." },
+    "app": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "description": "The application's name in the catalogue." },
+    "public_host": { "type": ["string", "null"], "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The host the instance serves its public surface from, or null when it is withdrawn." }
+  },
+  "additionalProperties": false
+}

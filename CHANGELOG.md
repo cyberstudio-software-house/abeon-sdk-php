@@ -7,6 +7,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.10.0] — 2026-09-23
+
+### Added
+
+- **`public_host`** on `events/unified.app_instance.requested.json` and the new
+  **`events/unified.app_instance.host_changed.json`** (ADR-0033): where a client's instance publishes
+  its public surface, and how a change to that address reaches the deployment layer. Null on the second
+  event means the host is withdrawn and the route should go.
+
 ## [0.9.0] — 2026-09-23
 
 ### Added

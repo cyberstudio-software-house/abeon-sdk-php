@@ -48,6 +48,7 @@ final class PublishedSchemaContractTest extends TestCase
         // contract half is what this test is about, and ADR-0022's loop cannot be built
         // against a schema nobody can look up.
         'unified.app_instance.requested' => 'abeon-unified/app/Apps/Registry.php',
+        'unified.app_instance.host_changed' => 'abeon-unified/app/Apps/Registry.php',
         'unified.app.registered'       => 'ADR-0022, no publisher yet',
     ];
 

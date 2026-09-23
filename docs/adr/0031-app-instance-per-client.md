@@ -178,3 +178,4 @@ the data from `@abeon/sdk-ts`, full-page navigation from ADR-0013.
 - Implemented so far: §2 (path prefix and client hosts), §3 (cross-domain login by one-time code)
   and §4/§6 (binding, queues) — `abeon/sdk` 0.7.0–0.8.0, `@abeon/sdk-ts` 0.9.0, Auth, AbeonUnified,
   the login screen and the template. §5 (provisioning) and the deployment half of §2 are open.
+- **Amended 2026-09-23 by [ADR-0033](0033-public-surface.md):** an instance may serve a second, public surface on the client's own domain; the platform session stays on the panel host.

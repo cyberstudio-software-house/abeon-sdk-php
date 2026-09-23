@@ -65,3 +65,4 @@ means enabling at the **org/instance** level (the MVP's per-tenant `tenant_apps`
 - Gap-analysis C10; MVP spec FR-9 (app store install flow)
 - Execution detail: `abeon-app-store-plan.md`
 - **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** enabling an application provisions the client's instance; `tenant_apps` gains a state `requested → provisioning → ready | failed`.
+- **Amended 2026-09-23 by [ADR-0033](0033-public-surface.md):** the assignment row also carries the host the instance publishes from.

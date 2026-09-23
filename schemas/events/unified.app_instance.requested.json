@@ -10,6 +10,7 @@
     "app": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "description": "The application's name in the catalogue, which is also the first segment of its permissions (ADR-0001)." },
     "host": { "type": "string", "description": "The client's host, from Auth's organisation record (ADR-0031 §2)." },
     "path": { "type": ["string", "null"], "description": "The path prefix the instance is served under on that host, e.g. `/cms`. Null when the catalogue has none, which a provisioner should treat as the root." },
+    "public_host": { "type": ["string", "null"], "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The host this instance serves its public surface from, when it has one (ADR-0033) \u2014 the client's own domain for a website a CMS publishes, read by people with no account. Absent for an application that is only a panel. The provisioner routes it to the same instance as `host` + `path`, with no prefix." },
     "slug": { "type": ["string", "null"], "description": "The organisation's slug, for naming databases and deployments legibly." }
   },
   "additionalProperties": false
