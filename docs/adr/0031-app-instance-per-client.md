@@ -175,4 +175,6 @@ the data from `@abeon/sdk-ts`, full-page navigation from ADR-0013.
   ADR-0027 (return-to allowlist)
 - Analysis: `abeon-model-klientow-2026-09-22.html` in the suite root
 - Amends ADR-0010, 0013, 0015, 0016, 0017, 0018 and 0022 (notes in their `## References`, 2026-09-22)
-- Implemented so far: §4 and §6 (binding and queues) in `abeon/sdk` 0.7.0 and the template
+- Implemented so far: §2 (path prefix and client hosts), §3 (cross-domain login by one-time code)
+  and §4/§6 (binding, queues) — `abeon/sdk` 0.7.0–0.8.0, `@abeon/sdk-ts` 0.9.0, Auth, AbeonUnified,
+  the login screen and the template. §5 (provisioning) and the deployment half of §2 are open.
