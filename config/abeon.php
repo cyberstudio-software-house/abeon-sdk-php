@@ -84,6 +84,17 @@ return [
         'checks' => array_filter(array_map('trim', explode(',', (string) env('ABEON_HEALTH_CHECKS', 'db')))),
     ],
 
+    /*
+     | Files (ADR-0021 as amended by ADR-0034). No keys and no endpoint here: an
+     | application asks AbeonUnified for a signed address and moves the bytes itself.
+     |
+     | The base address is this instance's own container — one deployment serves one
+     | organisation (ADR-0031), so the provisioner sets this beside `ABEON_ORG_ID`.
+     */
+    'storage' => [
+        'public_base_url' => env('ABEON_STORAGE_PUBLIC_BASE_URL'),
+    ],
+
     'http' => [
         /*
          | Which proxies this service believes about `X-Forwarded-*`.

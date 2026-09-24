@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/http/storage-sign.json",
+  "title": "Abeon Storage Signature Exchange",
+  "description": "`POST /api/v1/internal/storage/sign` in AbeonUnified (ADR-0034). An application holds no storage credentials: it asks for an address for one object and one operation, then moves the bytes itself. The container comes from the organisation in the service token and the prefix from the service name in it, so neither appears here.",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "required": ["key", "operation"],
+      "properties": {
+        "key": { "$ref": "https://schemas.abeon.pl/dto/stored-object.json#/properties/key" },
+        "operation": {
+          "type": "string",
+          "enum": ["put", "get"],
+          "description": "`put` for an upload, `get` for a read of a private object. A public object needs no `get`: its address is stable. Removing an object is not signed at all \u2014 it moves no bytes, so AbeonUnified does it itself at `POST /api/v1/internal/storage/delete`."
+        },
+        "content_type": {
+          "type": ["string", "null"],
+          "description": "Bound into a `put` signature when given, so the signed address cannot be reused to store something else."
+        }
+      },
+      "additionalProperties": false
+    },
+    "response": {
+      "type": "object",
+      "required": ["url", "expires_at"],
+      "properties": {
+        "url": { "type": "string", "description": "The address to send the bytes to, or read them from. Carries the signature." },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "headers": {
+          "type": "object",
+          "description": "Headers the signature was computed over and that the caller must repeat verbatim.",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

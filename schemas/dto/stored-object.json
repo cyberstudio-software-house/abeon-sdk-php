@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/dto/stored-object.json",
+  "title": "Abeon Stored Object",
+  "description": "One file in the organisation's object container (ADR-0021 as amended by ADR-0034). The container belongs to the organisation; the `{service}/{visibility}/` prefix inside it belongs to one application, and a signature issued for one prefix opens nothing outside it.",
+  "type": "object",
+  "required": ["key", "service", "visibility"],
+  "properties": {
+    "key": {
+      "type": "string",
+      "maxLength": 1024,
+      "pattern": "^[a-z][a-z0-9_-]*/(public|private)/[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*$",
+      "description": "Full path inside the container: `{service}/{visibility}/{path}`. Every segment starts with an alphanumeric, which is what makes `..` and hidden segments unrepresentable rather than merely discouraged."
+    },
+    "service": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "The application that owns the object. The first segment of `key`, and taken from the caller's service token — never from the request body."
+    },
+    "visibility": {
+      "type": "string",
+      "enum": ["public", "private"],
+      "description": "`public` is readable by anyone at `url`, because the container policy allows anonymous GET under `*/public/*` and nowhere else. `private` is readable only through a short-lived signed URL."
+    },
+    "size": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Bytes, when the storage reported them. Null before the upload the signature was issued for has happened."
+    },
+    "content_type": { "type": ["string", "null"] },
+    "url": {
+      "type": ["string", "null"],
+      "description": "The stable public address, for a `public` object. Null for a `private` one: its address is signed per read and expires, so it is not a property of the object."
+    },
+    "created_at": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "additionalProperties": false
+}

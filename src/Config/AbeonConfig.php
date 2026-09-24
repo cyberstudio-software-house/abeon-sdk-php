@@ -331,6 +331,24 @@ class AbeonConfig
     }
 
     /**
+     * Base address of this instance's object container, for public files (ADR-0034).
+     *
+     * Required rather than defaulted: an empty base still concatenates, so the mistake
+     * would surface as a page of broken images instead of an error at the line that made
+     * one.
+     */
+    public function storagePublicBaseUrl(): string
+    {
+        $url = $this->config->get('abeon.storage.public_base_url');
+
+        if (! is_string($url) || $url === '') {
+            throw new \RuntimeException('abeon.storage.public_base_url is required to address public files (set ABEON_STORAGE_PUBLIC_BASE_URL)');
+        }
+
+        return $url;
+    }
+
+    /**
      * @return list<string>
      */
     public function declaredPermissions(): array

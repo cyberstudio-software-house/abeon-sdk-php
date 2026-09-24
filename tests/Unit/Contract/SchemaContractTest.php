@@ -135,6 +135,67 @@ final class SchemaContractTest extends TestCase
         $this->assertInvalid('dto/app-descriptor.json', ['status' => 'deploying'], 'app-descriptor.json');
     }
 
+    public function test_stored_object_fixture_matches_schema(): void
+    {
+        $this->assertValid('dto/stored-object.json', $this->fixture('stored-object.json'));
+    }
+
+    /**
+     * ADR-0034. The key is the whole access decision: the container is the organisation's
+     * and the `{service}/{visibility}/` prefix is what keeps one application out of
+     * another's files. A key that escapes the prefix — or names a segment the signer
+     * would have to normalise before it could tell — is refused by the contract, before
+     * either side has a chance to disagree about what it means.
+     */
+    public function test_a_stored_object_key_cannot_leave_its_prefix(): void
+    {
+        $bad = [
+            'cms/public/../../crm/private/secret.pdf',
+            'cms/public/..',
+            'cms/secret/file.pdf',
+            '/cms/public/file.pdf',
+            'cms/public/',
+            'cms/public//file.pdf',
+            'CMS/public/file.pdf',
+            'cms/public/.hidden',
+        ];
+
+        foreach ($bad as $key) {
+            $this->assertInvalid('dto/stored-object.json', ['key' => $key], 'stored-object.json');
+        }
+
+        foreach (['cms/private/invoices/2026/09/inv-1.pdf', 'crm-legacy/public/a.png'] as $key) {
+            $this->assertValid('dto/stored-object.json', [
+                'key'        => $key,
+                'service'    => explode('/', $key)[0],
+                'visibility' => explode('/', $key)[1],
+            ]);
+        }
+    }
+
+    public function test_a_signature_is_asked_for_one_object_and_one_operation(): void
+    {
+        $this->assertValid('http/storage-sign.json#/$defs/request', [
+            'key'       => 'cms/public/media/hero.jpg',
+            'operation' => 'put',
+        ]);
+
+        // No `org_id`, no `service`, no bucket: the signer takes all three from the
+        // service token, so a caller that tries to name them is refused rather than
+        // quietly ignored.
+        foreach ([['org_id' => 2], ['service' => 'crm'], ['bucket' => 'abeon-org-2']] as $override) {
+            $this->assertFalse($this->validate('http/storage-sign.json#/$defs/request', array_replace([
+                'key'       => 'cms/public/media/hero.jpg',
+                'operation' => 'put',
+            ], $override)));
+        }
+
+        $this->assertFalse($this->validate('http/storage-sign.json#/$defs/request', [
+            'key'       => 'cms/public/media/hero.jpg',
+            'operation' => 'list',
+        ]));
+    }
+
     public function test_organisation_member_fixture_matches_schema(): void
     {
         $this->assertValid('dto/organisation-member.json', $this->fixture('organisation-member.json'));
@@ -599,6 +660,16 @@ final class SchemaContractTest extends TestCase
         $payload = json_decode((string) json_encode($data, JSON_THROW_ON_ERROR));
 
         $this->assertFalse($this->validator->validate($payload, self::SCHEMA_NS.$schemaRelPath)->isValid());
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function validate(string $schemaRelPath, array $data): bool
+    {
+        $payload = json_decode((string) json_encode($data, JSON_THROW_ON_ERROR));
+
+        return $this->validator->validate($payload, self::SCHEMA_NS.$schemaRelPath)->isValid();
     }
 
     private function fixture(string $name): object

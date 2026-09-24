@@ -44,6 +44,7 @@ use Abeon\SDK\Logging\CorrelationContext;
 use Abeon\SDK\Logging\JsonFormatter;
 use Abeon\SDK\Services\Commands\RegisterCommand;
 use Abeon\SDK\Services\ServiceRegistry;
+use Abeon\SDK\Storage\ObjectStore;
 use Abeon\SDK\Support\PathPrefix;
 use Abeon\SDK\Tenancy\TenantContext;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
@@ -204,6 +205,7 @@ class AbeonServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ServiceRegistry::class);
         $this->app->singleton(PathPrefix::class);
+        $this->app->singleton(ObjectStore::class);
     }
 
     private function registerEvents(): void

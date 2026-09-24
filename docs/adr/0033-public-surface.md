@@ -85,9 +85,9 @@ administrator can do: pointing a domain at the platform needs DNS and a certific
   domain has to rebuild the cache. Stated in `bootstrap/app.php` where it happens.
 - The public host lives in AbeonUnified while the panel host lives in Auth. Two places, on purpose, but
   somebody will look in the wrong one — hence this ADR's first paragraph.
-- **Media are still unsolved.** A published site has images and attachments, and the object-storage
-  contract (ADR-0021) has no implementation, so files sit in the instance's own volume and disappear
-  with it. A known debt, and the natural moment to pay it is the first real CMS.
+- **Media were unsolved when this was written.** Paid on 2026-09-24 by ADR-0034: a published page's
+  pictures live in the organisation's container under `{service}/public/`, at a stable address the page
+  derives without asking anything — so a reader's request still costs no platform dependency.
 
 **Rejected**
 
@@ -106,7 +106,7 @@ administrator can do: pointing a domain at the platform needs DNS and a certific
 
 - ADR-0031 (instance per client; the public surface is a second surface of that instance, and §3's
   host-only cookies are what keep it anonymous), ADR-0015 (the assignment row now also carries where the
-  instance publishes), ADR-0021 (object storage, still unimplemented — the media gap above)
+  instance publishes), ADR-0021 as amended by ADR-0034 (object storage — the media gap above, now closed)
 - Implemented in this change: `public_host` on the assignment and in both events, the
   `abeon:instance:public-host` command, the surface guards and the host-bound public route group in the
   template, and the local provisioner routing both addresses to one instance.
