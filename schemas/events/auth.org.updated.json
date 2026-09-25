@@ -13,7 +13,7 @@
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
       "description": "Unchanged by this event — carried so a projection can write the row without a second lookup."
     },
-    "host": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The organisation's host (ADR-0031 \u00a72), carried like `slug` so a projection can write the row straight through. Optional in the schema only so events published before 0.8.0 still validate." },
+    "host": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The organisation's host (ADR-0031 \u00a72 as amended by ADR-0035 \u00a71), carried like `slug` so a projection can write the row straight through. The platform host until an operator gives the organisation a domain of its own. Optional in the schema only so events published before 0.8.0 still validate." },
     "logo_url": { "type": ["string", "null"] },
     "status": {
       "type": "string",

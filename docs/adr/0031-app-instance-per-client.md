@@ -173,6 +173,12 @@ the data from `@abeon/sdk-ts`, full-page navigation from ADR-0013.
   navigation, shared cookie), ADR-0015 (store and entitlement), ADR-0016 (multi-tenant organisations),
   ADR-0017 (tenant switching), ADR-0018 (tenant scoping), ADR-0022 (organisation provisioning),
   ADR-0027 (return-to allowlist)
+- **Amended 2026-09-24 by [ADR-0035](0035-platform-host-and-instance-router.md):** §2's own host per
+  client stops being mandatory — the platform host is the default address and a router at the entry
+  picks the instance from the token's `org_id`; §3's one-time code narrows to clients that do have an
+  own domain, and its per-host session, which no code ever implemented, is replaced by one session on
+  the platform host. §1 and §4–§7 stand unchanged, and §6's per-instance service identity becomes
+  load-bearing rather than deferred.
 - Analysis: `abeon-model-klientow-2026-09-22.html` in the suite root
 - Amends ADR-0010, 0013, 0015, 0016, 0017, 0018 and 0022 (notes in their `## References`, 2026-09-22)
 - Implemented so far: §2 (path prefix and client hosts), §3 (cross-domain login by one-time code)

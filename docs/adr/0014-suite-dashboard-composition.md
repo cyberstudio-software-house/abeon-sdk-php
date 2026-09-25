@@ -52,4 +52,8 @@ apps/widgets can be designed against it; the service is scheduled for Phase 2.
 ## References
 
 - ADR-0010 (`AppDescriptor.mode`, entitlement model), ADR-0013 (full-page nav / federated chrome)
+- **Noted 2026-09-24 by [ADR-0035](0035-platform-host-and-instance-router.md) §6:** the Suite landing
+  gets an owner and an address — the root of the platform host shows a signed-in user their applications
+  and organisations, from data that already exists. Widget composition, which is what needs a service of
+  its own, stays deferred; only the landing is settled.
 - ADR-0005 (service-to-service auth), ADR-0002 (event envelope for projections)

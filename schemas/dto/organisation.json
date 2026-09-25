@@ -19,7 +19,7 @@
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
       "description": "URL-safe identifier. Unique and stable."
     },
-    "host": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The host this organisation's applications are served from (ADR-0031 \u00a72): its own domain, or `{slug}.{platform suffix}` when none is set. Always the effective value, never null." },
+    "host": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", "description": "The host this organisation's applications are served from (ADR-0031 \u00a72 as amended by ADR-0035 \u00a71): its own domain when it has one, otherwise the platform host. Always the effective value, never null \u2014 so an organisation is reachable the moment it exists, without DNS of its own." },
     "logo_url": { "type": ["string", "null"] },
     "status": {
       "type": "string",

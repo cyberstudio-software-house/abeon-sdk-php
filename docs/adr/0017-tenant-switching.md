@@ -99,3 +99,7 @@ the entire point of choosing this option.
   switch flow — the piece that exists nowhere today)
 - MVP precedent (and why it is not sufficient): `unified-shell-spec.md` FR-2
 - **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** switching client means moving to that client's host; a session is per host.
+- **Amended 2026-09-24 by [ADR-0035](0035-platform-host-and-instance-router.md):** that per-host session
+  was never built — the switcher re-issues the token in place and no frontend code reads `tenant.host`.
+  On the platform host, which is now the default address, one active organisation per browser is the
+  behaviour and the decision. Moving to a client's host applies only where that client has an own domain.

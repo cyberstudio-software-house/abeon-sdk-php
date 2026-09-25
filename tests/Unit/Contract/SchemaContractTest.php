@@ -120,6 +120,10 @@ final class SchemaContractTest extends TestCase
         }
 
         $this->assertValid('dto/tenant.json', ['id' => 1, 'name' => 'Acme', 'slug' => 'acme', 'host' => 'panel.acme.com']);
+
+        // ADR-0035 §1: an organisation without a domain of its own reports the platform host,
+        // so the same field carries it and the pattern has to accept it.
+        $this->assertValid('dto/tenant.json', ['id' => 1, 'name' => 'Acme', 'slug' => 'acme', 'host' => 'app.abeon.pl']);
     }
 
     /**

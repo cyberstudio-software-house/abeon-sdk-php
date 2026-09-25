@@ -21,6 +21,11 @@ another's files.
 
 ### 1. The protocol is S3, and that is what makes the prefix a boundary
 
+**The provider does not change.** Production storage stays Oktawave Cloud Storage, reached through its
+S3-compatible API rather than the Swift API ADR-0021 named; MinIO stands in for it locally. What this
+ADR replaces is the protocol and the credential model, not the supplier — confirmed with the owner on
+2026-09-24.
+
 ADR-0021 chose Swift with Keystone and accepted the consequence honestly: container-scoped ACLs mean
 `{service}/` separates by agreement, not by enforcement. S3 policies and signatures act on a key, so the
 consequence disappears — a signature issued for `cms/` opens nothing under `crm/`.
@@ -89,8 +94,11 @@ is a decision; turning every `auth.org.created` into a dead letter is not.
   against a transfer — but it puts Unified on the path of *starting* an upload.
 - Signed addresses are bearer credentials for their lifetime. Minutes, and per object, which is the whole
   mitigation.
-- MinIO locally, S3-compatible storage in production: one more service in the local stack, and path-style
-  addressing has to be set or every signature 404s.
+- MinIO locally, Oktawave's S3 endpoint in production: one more service in the local stack, and
+  path-style addressing has to be set or every signature 404s. **The signatures and the container policy
+  are proven against MinIO only** — the anonymous-read policy under `*/public/*` and the presigned `PUT`
+  with a bound `Content-Type` have to be confirmed against the real endpoint before the first client,
+  because "S3-compatible" is a range rather than a specification.
 - `abeon/filesystem-ocs` will not be written. With signed addresses there is no driver for an application
   to install, which is a consequence of the protocol change worth stating rather than leaving as a
   package somebody looks for.
