@@ -128,6 +128,15 @@ owner and an address.
   cache that did not, and a user who sees the platform as broken.
 - Two address models to keep working — the shared host and the own domain — and the handoff path is now
   the less-travelled one, which is the one that rots.
+- **The meaning of `effectiveHost()` changed without a backfill**, and deliberately. An organisation
+  with no domain of its own used to report `{slug}.{suffix}`, and that value was projected into
+  AbeonUnified and baked into the routing table. Nothing re-publishes `auth.org.updated` for those
+  rows. Nothing has to: there is no deployment, every local stack is rebuilt with `migrate:fresh`, and
+  a command nobody will ever run is code to maintain with no user. The first deployment starts from
+  this shape, and moving an organisation to a domain of its own goes through `abeon:org:host`, which
+  publishes the event. Should that stop being true before production, the backfill is one command —
+  re-publish for every organisation whose `host` is null — and it has to be written *before* the first
+  client is served, not after.
 
 **Rejected**
 
