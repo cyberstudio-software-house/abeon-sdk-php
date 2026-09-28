@@ -7,6 +7,40 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.11.2] — 2026-09-28
+
+### Fixed
+
+- **The consumer validates the whole envelope.** ADR-0002 says a message that does not conform to
+  `_envelope.json` is refused; the check was two of its nine required fields, and `org_id` was read
+  as `(int) $value` — so `true` became organisation 1 and a string became organisation 0, silently,
+  and a handler wrote them as if they were meant.
+- **`crm.#` matches `crm`**, as AMQP matches it. The regex required the separator, so the broker
+  routed messages this service then acked with nothing done.
+- **`correlation_id` and `service` are top-level fields** of a log line rather than members of
+  `extra`. Loki's `| json` flattens a nested object to `extra_correlation_id`, so ADR-0003's own
+  payoff query matched nothing.
+- **An inbound `X-Correlation-ID` is kept whatever UUID version it carries.** Strictly v4 until
+  now, which replaced a v7 — a shape this platform mints — and every upstream gateway's id.
+- **A permission declaration is checked before it is published**, against the pattern
+  `schemas/events/service.permissions.declared.json` pins (ADR-0024 refuses wildcards on the wire).
+- **Unknown keys inside `chrome` are refused** (ADR-0009 §Validation). They were stored, echoed
+  back as saved, and never applied.
+- **`OutboxLagCheck` counts rows that exhausted `max_attempts` separately** instead of measuring
+  lag from them, so one permanently failed event no longer pins the probe at `degraded` for ever.
+- **A bound instance carries its organisation.** `TenantContext` falls back to `ABEON_ORG_ID`, so a
+  queued job or console command in a client's instance no longer publishes `org_id: null`
+  (ADR-0031 §4).
+- **An unknown name in `ABEON_HEALTH_CHECKS` is logged** rather than silently skipped, and
+  `/health/ready` is throttled.
+
+### Added
+
+- **`abeon:events:prune`** and `EventPruner`: a retention window for `abeon_event_outbox` and
+  `abeon_processed_events`, which nothing ever deleted from. Only processed rows go.
+- **A slow-handler warning** on the consumer (`abeon.events.consumer.slow_handler_seconds`): every
+  subscription shares one loop, so a handler that waits holds up the rest and looks like silence.
+
 ## [0.11.1] — 2026-09-28
 
 ### Fixed
