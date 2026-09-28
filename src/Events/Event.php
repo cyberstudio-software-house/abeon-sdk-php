@@ -39,11 +39,32 @@ final readonly class Event
             timestamp: (string) ($envelope['timestamp'] ?? ''),
             source:    (string) ($envelope['source'] ?? ''),
             version:   (string) ($envelope['version'] ?? '1.0'),
-            orgId:     isset($envelope['org_id']) ? (int) $envelope['org_id'] : null,
+            orgId:     self::orgIdFrom($envelope['org_id'] ?? null),
             actor:     Actor::fromArray((array) ($envelope['actor'] ?? ['type' => 'system'])),
             data:      (array) ($envelope['data'] ?? []),
             metadata:  (array) ($envelope['metadata'] ?? []),
         );
+    }
+
+    /**
+     * The envelope's organisation, or null.
+     *
+     * `(int)` on whatever arrived read `true` as organisation 1 and a string or an array as
+     * organisation 0 — so a malformed envelope attributed a handler's writes to some other
+     * tenant instead of being refused. Anything that is not a positive integer is null here,
+     * and `EventConsumer` refuses the message before this is reached (ADR-0002, ADR-0018).
+     */
+    private static function orgIdFrom(mixed $value): ?int
+    {
+        if (is_int($value)) {
+            return $value > 0 ? $value : null;
+        }
+
+        if (is_string($value) && ctype_digit($value) && (int) $value > 0) {
+            return (int) $value;
+        }
+
+        return null;
     }
 
     public function correlationId(): ?string

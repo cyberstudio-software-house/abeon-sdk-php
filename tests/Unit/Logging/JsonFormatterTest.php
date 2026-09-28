@@ -34,8 +34,11 @@ final class JsonFormatterTest extends TestCase
         $output  = $formatter->format($this->record());
         $decoded = json_decode(trim($output), true);
 
-        $this->assertSame('cid-123', $decoded['extra']['correlation_id']);
-        $this->assertSame('crm', $decoded['extra']['service']);
+        // Top level, not inside `extra`: Loki's `| json` flattens a nested object to
+        // `extra_correlation_id`, and ADR-0003's payoff query filters on `correlation_id`.
+        $this->assertSame('cid-123', $decoded['correlation_id']);
+        $this->assertSame('crm', $decoded['service']);
+        $this->assertArrayNotHasKey('correlation_id', $decoded['extra'] ?? []);
         $this->assertSame('something happened', $decoded['message']);
     }
 
@@ -46,8 +49,8 @@ final class JsonFormatterTest extends TestCase
         $output  = $formatter->format($this->record());
         $decoded = json_decode(trim($output), true);
 
-        $this->assertArrayNotHasKey('correlation_id', $decoded['extra'] ?? []);
-        $this->assertSame('crm', $decoded['extra']['service']);
+        $this->assertArrayNotHasKey('correlation_id', $decoded);
+        $this->assertSame('crm', $decoded['service']);
     }
 
     public function test_preserves_pre_existing_extra_keys(): void
@@ -60,7 +63,7 @@ final class JsonFormatterTest extends TestCase
         $decoded = json_decode(trim($output), true);
 
         $this->assertSame('value', $decoded['extra']['custom_field']);
-        $this->assertSame('cid-123', $decoded['extra']['correlation_id']);
+        $this->assertSame('cid-123', $decoded['correlation_id']);
     }
 
     public function test_custom_correlation_field_name(): void
@@ -72,8 +75,8 @@ final class JsonFormatterTest extends TestCase
         $output  = $formatter->format($this->record());
         $decoded = json_decode(trim($output), true);
 
-        $this->assertSame('cid-xyz', $decoded['extra']['trace_id']);
-        $this->assertArrayNotHasKey('correlation_id', $decoded['extra'] ?? []);
+        $this->assertSame('cid-xyz', $decoded['trace_id']);
+        $this->assertArrayNotHasKey('correlation_id', $decoded);
     }
 
     public function test_does_not_overwrite_explicit_extra_correlation(): void
@@ -85,7 +88,7 @@ final class JsonFormatterTest extends TestCase
         $output  = $formatter->format($this->record(extra: ['correlation_id' => 'explicit']));
         $decoded = json_decode(trim($output), true);
 
-        $this->assertSame('explicit', $decoded['extra']['correlation_id']);
+        $this->assertSame('explicit', $decoded['correlation_id']);
     }
 
     public function test_output_is_newline_terminated_json(): void

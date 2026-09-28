@@ -23,6 +23,7 @@ use Abeon\SDK\Events\Commands\ConsumeCommand;
 use Abeon\SDK\Events\Commands\DeclarePermissionsCommand;
 use Abeon\SDK\Events\Commands\DeadLetterCommand;
 use Abeon\SDK\Events\Commands\OutboxDrainCommand;
+use Abeon\SDK\Events\Commands\PruneEventsCommand;
 use Abeon\SDK\Events\EnvelopeBuilder;
 use Abeon\SDK\Events\EventCatalog;
 use Abeon\SDK\Events\EventConsumer;
@@ -107,6 +108,7 @@ class AbeonServiceProvider extends ServiceProvider
                 RegisterCommand::class,
                 OutboxDrainCommand::class,
                 DeadLetterCommand::class,
+                PruneEventsCommand::class,
                 ConsumeCommand::class,
                 DeclarePermissionsCommand::class,
                 ValidateConfigCommand::class,
@@ -122,7 +124,10 @@ class AbeonServiceProvider extends ServiceProvider
         // Scoped, like AuthContext — a singleton would carry one request's
         // organisation into the next (ADR-0018).
         $this->app->scoped(TenantContext::class, function ($app) {
-            return new TenantContext($app->make(AuthContext::class));
+            return new TenantContext(
+                $app->make(AuthContext::class),
+                $app->make(AbeonConfig::class)->instanceOrgId(),
+            );
         });
 
         $this->app->singleton(AbeonConfig::class, function ($app) {
@@ -278,8 +283,22 @@ class AbeonServiceProvider extends ServiceProvider
 
             foreach ($names as $name) {
                 $abstract = "abeon.health.check.{$name}";
+
                 if ($app->bound($abstract)) {
                     $checks[] = $app->make($abstract);
+
+                    continue;
+                }
+
+                // A typo in `ABEON_HEALTH_CHECKS` — `outbox-lag` for `outbox_lag` — used to be
+                // skipped in silence, so readiness answered `ok` while checking less than the
+                // operator asked for. Said out loud rather than thrown: a probe that refuses to
+                // boot over a misspelt check name takes the pod down for a configuration
+                // mistake whose whole cost is the check not running.
+                if ($app->bound(\Psr\Log\LoggerInterface::class)) {
+                    $app->make(\Psr\Log\LoggerInterface::class)->warning('abeon.health.unknown-check', [
+                        'check' => $name,
+                    ]);
                 }
             }
 

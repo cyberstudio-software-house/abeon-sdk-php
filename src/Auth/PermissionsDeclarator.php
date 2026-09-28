@@ -7,6 +7,7 @@ namespace Abeon\SDK\Auth;
 use Abeon\SDK\Config\AbeonConfig;
 use Abeon\SDK\DTO\Permission;
 use Abeon\SDK\Events\EventPublisher;
+use Abeon\SDK\Exceptions\ContractViolationException;
 
 /**
  * Reads permissions DECLARED by this service from config('abeon.permissions')
@@ -15,9 +16,23 @@ use Abeon\SDK\Events\EventPublisher;
  *
  * Triggered manually via `php artisan abeon:permissions:declare` —
  * recommended as a post-deploy step alongside `abeon:registry:register`.
+ *
+ * **The declaration is checked before it is published.** `schemas/events/service.permissions.declared.json`
+ * pins three literal segments and ADR-0024 §1 refuses a wildcard on the wire — but the payload
+ * was `config('abeon.permissions')` verbatim, and ADR-0010's own example writes `["crm.*"]`. A
+ * service following that example published a schema-violating event straight into the catalogue
+ * Auth expands "everything" from.
+ *
+ * `config('abeon.permissions')` is read by `ServiceRegistry::descriptor()` too, where ADR-0010
+ * documents `crm.*` as a *visibility hint* and the match is by prefix anyway. The same key
+ * therefore has to satisfy the stricter of the two grammars: list the literals, and the
+ * descriptor's prefix match still sees them.
  */
 class PermissionsDeclarator
 {
+    /** `schemas/events/service.permissions.declared.json`, kept identical on purpose. */
+    private const PATTERN = '/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/';
+
     public function __construct(
         private readonly AbeonConfig $config,
         private readonly EventPublisher $publisher,
@@ -40,10 +55,16 @@ class PermissionsDeclarator
      */
     public function payload(): array
     {
-        return [
-            'service'     => $this->config->serviceName(),
-            'permissions' => $this->config->declaredPermissions(),
-        ];
+        $service = $this->config->serviceName();
+        $permissions = $this->config->declaredPermissions();
+
+        foreach ($permissions as $name) {
+            if (preg_match(self::PATTERN, $name) !== 1 || ! str_starts_with($name, $service.'.')) {
+                throw ContractViolationException::invalidPermission($service, $name);
+            }
+        }
+
+        return ['service' => $service, 'permissions' => $permissions];
     }
 
     /**

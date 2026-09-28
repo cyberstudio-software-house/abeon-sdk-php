@@ -22,6 +22,13 @@ use Closure;
  *   |                  | on (see `AuthContext`'s class docblock)                   |
  *   | Queued job       | `runFor($orgId, ...)`, captured at dispatch               |
  *   | Console command  | none — must opt in explicitly per invocation              |
+ *   | Bound instance   | `ABEON_ORG_ID` — the last fallback, below both of those   |
+ *
+ * **The bound instance's own organisation is a source too** (ADR-0031 §4). A deployment with
+ * `ABEON_ORG_ID` set serves exactly one client, and the value was used only to *refuse*
+ * somebody else's token — so inside such an instance a queued job or a console command had no
+ * organisation at all: it published envelopes with `org_id: null` and was refused a signed
+ * file address, in a deployment where the tenant is a matter of configuration.
  *
  * Bound as `$app->scoped()` in `AbeonServiceProvider`: fresh per HTTP request in
  * php-fpm, reset between requests by Octane. Custom long-lived workers MUST call
@@ -38,8 +45,10 @@ class TenantContext
      */
     private bool $explicit = false;
 
-    public function __construct(private readonly ?AuthContext $auth = null)
-    {
+    public function __construct(
+        private readonly ?AuthContext $auth = null,
+        private readonly ?int $instanceOrgId = null,
+    ) {
     }
 
     /**
@@ -54,7 +63,11 @@ class TenantContext
             return $this->orgId;
         }
 
-        return $this->auth?->orgId();
+        // The instance's own organisation comes last: an explicit `runFor()` and an
+        // authenticated user both say more about *this* unit of work than the deployment
+        // does. A user from another organisation never reaches here — `JwtValidator` refuses
+        // that token before any of this (ADR-0031 §4) — so the two can never disagree.
+        return $this->auth?->orgId() ?? $this->instanceOrgId;
     }
 
     /**

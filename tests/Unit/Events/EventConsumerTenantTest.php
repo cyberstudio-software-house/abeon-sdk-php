@@ -148,6 +148,164 @@ final class EventConsumerTenantTest extends TestCase
     }
 
     /**
+     * Every subscription runs in this one loop on one channel, so a handler that waits holds
+     * up every other event the service consumes — and from outside, slow and hung look the
+     * same: no dead letters, no errors, a queue that stops moving.
+     */
+    public function test_a_slow_handler_says_so(): void
+    {
+        $logger = new class extends \Psr\Log\AbstractLogger
+        {
+            /** @var list<array{0: string, 1: array<string, mixed>}> */
+            public array $warnings = [];
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                if ($level === \Psr\Log\LogLevel::WARNING) {
+                    $this->warnings[] = [(string) $message, $context];
+                }
+            }
+        };
+
+        $handler = new class implements EventHandler
+        {
+            public function subscribesTo(): array
+            {
+                return ['auth.org.created'];
+            }
+
+            public function handle(Event $event): void
+            {
+                usleep(120_000);
+            }
+        };
+
+        $consumer = (new EventConsumer(
+            rabbit:      $this->createMock(RabbitMq::class),
+            processed:   $this->neverProcessed(),
+            correlation: new CorrelationContext(),
+            tenants:     new TenantContext(new AuthContext()),
+            container:   new Container(),
+            config:      new AbeonConfig(new Repository(['abeon' => [
+                'service' => ['name' => 'unified'],
+                'events'  => ['consumer' => ['slow_handler_seconds' => 0.1]],
+            ]])),
+            logger:      $logger,
+        ))->withHandlers([$handler]);
+
+        $this->deliver($consumer, orgId: 7);
+
+        $this->assertSame('event-consumer.handler-slow', $logger->warnings[0][0] ?? null);
+        $this->assertSame('auth.org.created', $logger->warnings[0][1]['event_type'] ?? null);
+    }
+
+    /**
+     * ADR-0002 says a message that does not conform to `_envelope.json` is refused. The check
+     * was two of its nine required fields, and everything else was read with a cast — so
+     * `org_id: "acme"` became organisation 0 and a missing one became a platform-level event,
+     * both silently, and a handler wrote them as if they were meant.
+     */
+    public function test_a_malformed_envelope_is_refused_rather_than_cast(): void
+    {
+        foreach ([
+            'an org_id that is not a number' => ['org_id' => 'acme'],
+            'an org_id that is a boolean'    => ['org_id' => true],
+            'an org_id that is zero'         => ['org_id' => 0],
+            'no org_id at all'               => ['org_id' => '__absent__'],
+            'no source'                      => ['source' => '__absent__'],
+            'no timestamp'                   => ['timestamp' => '__absent__'],
+            'data that is not an object'     => ['data' => 'nope'],
+        ] as $case => $override) {
+            [$consumer, , $handler] = $this->consumerWithRecordingHandler();
+
+            $channel = $this->createMock(AMQPChannel::class);
+            $channel->expects($this->once())->method('basic_nack');
+            $channel->expects($this->never())->method('basic_ack');
+
+            $this->deliver($consumer, orgId: 7, overrides: $override, channel: $channel);
+
+            $this->assertFalse($handler->handled, "handled a message with {$case}");
+        }
+    }
+
+    /**
+     * The whole of the consumer's idempotency: every other test in this file stubs
+     * `isProcessed()` to false and none asserts `markProcessed()`, so both halves could be
+     * deleted with the suite green — and every redelivery would re-run every handler.
+     */
+    public function test_a_redelivered_message_is_acked_without_running_a_handler(): void
+    {
+        $tenants = new TenantContext(new AuthContext());
+
+        $handler = new class implements EventHandler
+        {
+            public bool $handled = false;
+
+            public function subscribesTo(): array
+            {
+                return ['auth.org.created'];
+            }
+
+            public function handle(Event $event): void
+            {
+                $this->handled = true;
+            }
+        };
+
+        $processed = $this->createMock(ProcessedEvents::class);
+        $processed->method('isProcessed')->willReturn(true);
+        $processed->expects($this->never())->method('markProcessed');
+
+        $consumer = (new EventConsumer(
+            rabbit:      $this->createMock(RabbitMq::class),
+            processed:   $processed,
+            correlation: new CorrelationContext(),
+            tenants:     $tenants,
+            container:   new Container(),
+            config:      new AbeonConfig(new Repository(['abeon' => ['service' => ['name' => 'unified']]])),
+        ))->withHandlers([$handler]);
+
+        $channel = $this->createMock(AMQPChannel::class);
+        $channel->expects($this->once())->method('basic_ack');
+
+        $this->deliver($consumer, orgId: 7, channel: $channel);
+
+        $this->assertFalse($handler->handled);
+    }
+
+    public function test_a_handled_message_is_written_down(): void
+    {
+        $tenants = new TenantContext(new AuthContext());
+
+        $handler = new class implements EventHandler
+        {
+            public function subscribesTo(): array
+            {
+                return ['auth.org.created'];
+            }
+
+            public function handle(Event $event): void
+            {
+            }
+        };
+
+        $processed = $this->createMock(ProcessedEvents::class);
+        $processed->method('isProcessed')->willReturn(false);
+        $processed->expects($this->once())->method('markProcessed')->with('e1', 'auth.org.created');
+
+        $consumer = (new EventConsumer(
+            rabbit:      $this->createMock(RabbitMq::class),
+            processed:   $processed,
+            correlation: new CorrelationContext(),
+            tenants:     $tenants,
+            container:   new Container(),
+            config:      new AbeonConfig(new Repository(['abeon' => ['service' => ['name' => 'unified']]])),
+        ))->withHandlers([$handler]);
+
+        $this->deliver($consumer, orgId: 7);
+    }
+
+    /**
      * @return array{0: EventConsumer, 1: TenantContext, 2: object}
      */
     private function consumerWithRecordingHandler(?int $instanceOrgId = null): array
@@ -204,9 +362,12 @@ final class EventConsumerTenantTest extends TestCase
         return $processed;
     }
 
-    private function deliver(EventConsumer $consumer, ?int $orgId): void
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function deliver(EventConsumer $consumer, ?int $orgId, array $overrides = [], ?AMQPChannel $channel = null): void
     {
-        $envelope = [
+        $envelope = array_replace([
             'event_id'   => 'e1',
             'event_type' => 'auth.org.created',
             'timestamp'  => '2026-09-04T10:00:00.000Z',
@@ -216,12 +377,18 @@ final class EventConsumerTenantTest extends TestCase
             'actor'      => ['type' => 'system'],
             'data'       => ['org_id' => $orgId ?? 0],
             'metadata'   => [],
-        ];
+        ], $overrides);
+
+        foreach ($overrides as $key => $value) {
+            if ($value === '__absent__') {
+                unset($envelope[$key]);
+            }
+        }
 
         $message = new AMQPMessage((string) json_encode($envelope));
         $message->setDeliveryTag(1);
 
         $method = new ReflectionMethod(EventConsumer::class, 'onMessage');
-        $method->invoke($consumer, $message, $this->createMock(AMQPChannel::class));
+        $method->invoke($consumer, $message, $channel ?? $this->createMock(AMQPChannel::class));
     }
 }

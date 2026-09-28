@@ -86,4 +86,33 @@ final class CorrelationIdMiddlewareTest extends TestCase
 
         $this->assertMatchesRegularExpression(Uuid::REGEX, (string) $context->current());
     }
+
+    /**
+     * A v7 — which this platform already mints — and an upstream gateway's id were both
+     * replaced, so the chain broke at the first Abeon hop and the id a user quotes appeared
+     * in no log.
+     */
+    public function test_a_uuid_of_another_version_is_kept(): void
+    {
+        $inbound = '018f0c6e-1c1a-7a4b-9d2e-0242ac120002';
+
+        $request = Request::create('/');
+        $request->headers->set('X-Correlation-ID', $inbound);
+
+        $response = (new CorrelationIdMiddleware(new CorrelationContext()))
+            ->handle($request, fn () => new Response());
+
+        $this->assertSame($inbound, $response->headers->get('X-Correlation-ID'));
+    }
+
+    public function test_a_value_that_is_not_a_uuid_is_still_replaced(): void
+    {
+        $request = Request::create('/');
+        $request->headers->set('X-Correlation-ID', "not-a-uuid\r\nInjected: yes");
+
+        $response = (new CorrelationIdMiddleware(new CorrelationContext()))
+            ->handle($request, fn () => new Response());
+
+        $this->assertNotSame("not-a-uuid\r\nInjected: yes", $response->headers->get('X-Correlation-ID'));
+    }
 }

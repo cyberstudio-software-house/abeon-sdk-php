@@ -116,6 +116,37 @@ final class TenantContextTest extends TestCase
         $this->assertNull($context->current());
     }
 
+    /**
+     * ADR-0031 §4: a deployment with `ABEON_ORG_ID` set serves one client. The value was
+     * read only to refuse somebody else's token, so a queued job or a console command in
+     * such an instance had no organisation at all — it published envelopes with
+     * `org_id: null` and was refused a signed file address, in a deployment where the
+     * tenant is a matter of configuration.
+     */
+    public function test_a_bound_instance_has_its_own_organisation(): void
+    {
+        $context = new TenantContext(null, 7);
+
+        $this->assertSame(7, $context->current());
+        $this->assertSame(7, $context->require());
+    }
+
+    public function test_an_explicit_tenant_still_wins_in_a_bound_instance(): void
+    {
+        $context = new TenantContext(null, 7);
+
+        $this->assertSame(9, $context->runFor(9, fn (): int => $context->require()));
+
+        // Including "explicitly no organisation", which is a different state from unset.
+        $this->assertNull($context->runFor(null, fn (): ?int => $context->current()));
+        $this->assertSame(7, $context->current());
+    }
+
+    public function test_an_unbound_service_is_unchanged(): void
+    {
+        $this->assertNull((new TenantContext())->current());
+    }
+
     private function context(?int $orgId): TenantContext
     {
         $auth = new AuthContext();

@@ -6,6 +6,7 @@ namespace Abeon\SDK\Auth\Endpoints;
 
 use Abeon\SDK\Auth\AuthContext;
 use Abeon\SDK\Exceptions\AuthException;
+use Abeon\SDK\Exceptions\InvalidQueryException;
 use Abeon\SDK\Http\ApiResponse;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Http\JsonResponse;
@@ -68,6 +69,8 @@ class PreferencesController
         if (! is_array($incoming)) {
             $incoming = [];
         }
+
+        $this->assertChromeKeysAreKnown($incoming);
 
         $orgId   = $this->requireOrgId();
         $current = $this->read((int) $user->id, $orgId);
@@ -167,6 +170,36 @@ class PreferencesController
                 'recents'          => [],
             ],
         ];
+    }
+
+    /**
+     * ADR-0009 §Validation: unknown top-level namespaces are accepted, because a future
+     * application may add one — unknown keys *inside* `chrome` are rejected.
+     *
+     * Nothing enforced the second half, so `chrome.sidebarColapsed` was stored, echoed back as
+     * saved, and never applied: the chrome reads the correct spelling and finds nothing. A
+     * setting that silently does not work is worse than one that refuses.
+     *
+     * @param  array<string, mixed>  $incoming
+     */
+    private function assertChromeKeysAreKnown(array $incoming): void
+    {
+        $chrome = $incoming['chrome'] ?? null;
+
+        if (! is_array($chrome)) {
+            return;
+        }
+
+        $unknown = array_diff(array_keys($chrome), array_keys(self::defaults()['chrome']));
+
+        if ($unknown !== []) {
+            throw InvalidQueryException::withErrors([
+                'chrome' => array_map(
+                    static fn (string $key): string => "Unknown chrome preference: {$key}.",
+                    array_values($unknown),
+                ),
+            ]);
+        }
     }
 
     /**

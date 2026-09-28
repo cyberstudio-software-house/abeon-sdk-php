@@ -218,6 +218,18 @@ class AbeonConfig
         return max(1, (int) $this->config->get('abeon.events.outbox.max_attempts', 5));
     }
 
+    /**
+     * How long a processed outbox row, or a recorded processed event, is kept.
+     *
+     * A floor of one day rather than zero: a retention that deletes what was written this
+     * second would take out the very rows `ProcessedEvents` exists to keep — a redelivery
+     * arriving after the prune would be handled a second time.
+     */
+    public function outboxRetentionDays(): int
+    {
+        return max(1, (int) $this->config->get('abeon.events.outbox.retention_days', 30));
+    }
+
     public function outboxLagThreshold(): int
     {
         return max(1, (int) $this->config->get('abeon.events.outbox.lag_threshold', 60));
@@ -250,6 +262,19 @@ class AbeonConfig
         $orgId = $this->instanceOrgId();
 
         return $orgId === null ? $this->serviceName() : $this->serviceName().'-org'.$orgId;
+    }
+
+    /**
+     * How long one handler may take before the consumer says so.
+     *
+     * Not a limit — nothing is interrupted. Every subscription runs in one loop on one
+     * channel, so a handler that waits holds up every other event this service consumes, and
+     * without this line the symptom is silence: no dead letters, no errors, a queue that
+     * simply stops moving.
+     */
+    public function consumerSlowHandlerSeconds(): float
+    {
+        return max(0.1, (float) $this->config->get('abeon.events.consumer.slow_handler_seconds', 5.0));
     }
 
     /**

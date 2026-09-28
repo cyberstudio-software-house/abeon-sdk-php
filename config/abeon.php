@@ -68,6 +68,10 @@ return [
             // Claim rows with FOR UPDATE SKIP LOCKED, so several drainer replicas split the
             // backlog instead of queueing behind each other's locks. MariaDB 10.6+.
             'skip_locked'   => (bool) env('ABEON_OUTBOX_SKIP_LOCKED', false),
+            // How long a processed row is kept before `abeon:events:prune` may delete it
+            // (days). Both tables grow for the life of the deployment otherwise, in every
+            // service and every client's instance.
+            'retention_days' => (int) env('ABEON_OUTBOX_RETENTION_DAYS', 30),
         ],
         'consumer' => [
             'queue_prefix' => env('ABEON_QUEUE_PREFIX'), // defaults to service.name
@@ -77,6 +81,9 @@ return [
                 // 'crm.contact.created',
             ],
             'prefetch_count' => (int) env('ABEON_CONSUMER_PREFETCH', 10),
+            // A handler slower than this is logged, not interrupted: every subscription runs
+            // in one loop, so one slow handler holds up the rest and looks like nothing at all.
+            'slow_handler_seconds' => (float) env('ABEON_CONSUMER_SLOW_HANDLER_SECONDS', 5.0),
         ],
     ],
 

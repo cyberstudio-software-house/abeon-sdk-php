@@ -18,6 +18,21 @@ class ContractViolationException extends AbeonException
         ));
     }
 
+    public static function invalidPermission(string $service, string $name): self
+    {
+        return new self(new ProblemDetails(
+            type:   'https://api.abeon.pl/errors/contract-violation',
+            title:  'Invalid permission declaration',
+            status: 500,
+            detail: sprintf(
+                "Service '%s' declares '%s'. A declaration is three literal segments under the "
+                ."service's own name; wildcards are refused on the wire (ADR-0024).",
+                $service,
+                $name,
+            ),
+        ));
+    }
+
     public static function invalidRoutingKey(string $key): self
     {
         return new self(new ProblemDetails(

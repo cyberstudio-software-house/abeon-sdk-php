@@ -19,6 +19,11 @@ use Monolog\LogRecord;
  *   - `service` — pulled from `abeon.service.name` so a Loki query like
  *     `{service="crm"} |~ "error"` works without per-service log labels.
  *
+ * **Both are written at the top level of the line, not inside `extra`.** Monolog serialises
+ * `extra` as a nested object, which Loki's `| json` flattens to `extra_correlation_id` — so
+ * ADR-0003's own payoff query, `{service="crm"} | json | correlation_id="…"`, matched nothing.
+ * The whole mechanism exists for that query.
+ *
  * Wire-up (consumer service):
  *
  *     // config/logging.php
@@ -62,5 +67,26 @@ class JsonFormatter extends MonologJsonFormatter
         }
 
         return parent::format($record->with(extra: $extra));
+    }
+
+    /**
+     * @return array<array<mixed>|bool|float|int|\stdClass|string|null>
+     */
+    protected function normalizeRecord(LogRecord $record): array
+    {
+        $normalized = parent::normalizeRecord($record);
+
+        foreach ([$this->correlationField, 'service'] as $field) {
+            if (isset($normalized['extra'][$field])) {
+                $normalized[$field] = $normalized['extra'][$field];
+                unset($normalized['extra'][$field]);
+            }
+        }
+
+        if (($normalized['extra'] ?? null) === [] && $this->ignoreEmptyContextAndExtra) {
+            unset($normalized['extra']);
+        }
+
+        return $normalized;
     }
 }

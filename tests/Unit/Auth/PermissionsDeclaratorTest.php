@@ -8,6 +8,7 @@ use Abeon\SDK\Auth\PermissionsDeclarator;
 use Abeon\SDK\Config\AbeonConfig;
 use Abeon\SDK\DTO\Permission;
 use Abeon\SDK\Events\EventPublisher;
+use Abeon\SDK\Exceptions\ContractViolationException;
 use Abeon\SDK\DTO\Actor;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\TestCase;
@@ -94,5 +95,49 @@ final class PermissionsDeclaratorTest extends TestCase
 
         $this->assertSame([], $declarator->declared());
         $this->assertSame(['service' => 'crm', 'permissions' => []], $declarator->payload());
+    }
+
+    /**
+     * ADR-0024 §1 refuses a wildcard on the wire and the schema pins three literal segments —
+     * but ADR-0010's own example declares `["crm.*"]`, and the payload was the config verbatim.
+     * A service following that example published a schema-violating event straight into the
+     * catalogue Auth expands "everything" from.
+     */
+    public function test_a_wildcard_declaration_is_refused(): void
+    {
+        $declarator = new PermissionsDeclarator($this->config(['crm.*']), $this->recordingPublisher());
+
+        $this->expectException(ContractViolationException::class);
+
+        $declarator->payload();
+    }
+
+    public function test_a_permission_under_another_service_is_refused(): void
+    {
+        // The schema says `service` matches the first segment of every permission below it.
+        $declarator = new PermissionsDeclarator($this->config(['core.users.manage']), $this->recordingPublisher());
+
+        $this->expectException(ContractViolationException::class);
+
+        $declarator->payload();
+    }
+
+    public function test_a_two_segment_name_is_refused(): void
+    {
+        $declarator = new PermissionsDeclarator($this->config(['crm.contacts']), $this->recordingPublisher());
+
+        $this->expectException(ContractViolationException::class);
+
+        $declarator->payload();
+    }
+
+    public function test_a_literal_declaration_still_publishes(): void
+    {
+        $publisher = $this->recordingPublisher();
+        $declarator = new PermissionsDeclarator($this->config(['crm.contacts.read']), $publisher);
+
+        $declarator->declare();
+
+        $this->assertSame(['crm.contacts.read'], $publisher->published[0]['data']['permissions']);
     }
 }

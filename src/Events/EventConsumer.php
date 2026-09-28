@@ -154,8 +154,13 @@ class EventConsumer
         $body        = $message->getBody();
         $decoded     = json_decode($body, true);
 
-        if (! is_array($decoded) || ! isset($decoded['event_id'], $decoded['event_type'])) {
-            $this->logger->error('event-consumer.malformed', ['body' => substr($body, 0, 500)]);
+        $malformed = is_array($decoded) ? $this->envelopeProblem($decoded) : 'not a JSON object';
+
+        if ($malformed !== null) {
+            $this->logger->error('event-consumer.malformed', [
+                'problem' => $malformed,
+                'body'    => substr($body, 0, 500),
+            ]);
             $channel->basic_nack($deliveryTag, multiple: false, requeue: false);
 
             return;
@@ -206,7 +211,28 @@ class EventConsumer
 
                 foreach ($this->matchingHandlers($event->eventType) as $handler) {
                     $this->assertAcceptsVersion($handler, $event);
+
+                    // **Every subscription shares this loop and this channel.** A handler that
+                    // waits — `RecipientDirectory` on an unreachable Auth is ten seconds times
+                    // the client's retries — holds up every other event this service consumes,
+                    // and from outside "slow" and "hung" look identical: no dead letters, no
+                    // errors, nothing in the log. Timing each handler is what tells them apart.
+                    // Running them in parallel is a deployment matter: queues are per routing
+                    // key, so a slow subscription can be given a consumer of its own through
+                    // `abeon.events.consumer.subscriptions`.
+                    $started = microtime(true);
                     $handler->handle($event);
+                    $elapsed = microtime(true) - $started;
+
+                    if ($elapsed > $this->config->consumerSlowHandlerSeconds()) {
+                        $this->logger->warning('event-consumer.handler-slow', [
+                            'handler'    => $handler::class,
+                            'event_id'   => $event->eventId,
+                            'event_type' => $event->eventType,
+                            'seconds'    => round($elapsed, 2),
+                        ]);
+                    }
+
                     $handled++;
                 }
 
@@ -367,7 +393,12 @@ class EventConsumer
      *
      * `#` was once translated to `.+` (one or more characters), which
      * (a) treated it as "one+ segments" (off-by-one vs AMQP spec) and (b) failed
-     * to match the empty suffix case. Now uses `.*` to allow zero+.
+     * to match the empty suffix case. `.*` fixed the suffix but not the separator: `crm.#`
+     * became `/^crm\..*$/`, which the broker matches to `crm` and this did not. The dot in
+     * front of a trailing `#` is part of the wildcard, so it goes with it.
+     *
+     * When the two disagree the message is acked with nothing done — the broker routed it here
+     * and `matchingHandlers()` found nobody — and the only trace is one warning.
      */
     private function matches(string $routingKey, string $pattern): bool
     {
@@ -375,9 +406,50 @@ class EventConsumer
             return true;
         }
 
-        $regex = '/^'.str_replace(['\.', '\*', '\#'], ['\.', '[^.]+', '.*'], preg_quote($pattern, '/')).'$/';
+        $regex = '/^'.str_replace(
+            ['\.\#', '\#', '\*'],
+            ['(\..*)?', '.*', '[^.]+'],
+            preg_quote($pattern, '/'),
+        ).'$/';
 
         return (bool) preg_match($regex, $routingKey);
+    }
+
+    /**
+     * Why this envelope is not one, or null when it is.
+     *
+     * ADR-0002 says the consumer refuses a message that does not conform to `_envelope.json`,
+     * and the check was two of its nine required fields. The rest were read with a cast, so a
+     * missing `org_id` became a platform-level event and a malformed one became somebody
+     * else's tenant — both silently, both written by a handler as if they were meant.
+     *
+     * @param  array<string, mixed>  $envelope
+     */
+    private function envelopeProblem(array $envelope): ?string
+    {
+        foreach (['event_id', 'event_type', 'timestamp', 'source', 'version', 'actor', 'data'] as $key) {
+            if (! isset($envelope[$key]) || $envelope[$key] === '') {
+                return "missing {$key}";
+            }
+        }
+
+        // Present-and-null is the whole point of this one: a platform-level event says so by
+        // carrying the key with a null, and a publisher that leaves it out has not said it.
+        if (! array_key_exists('org_id', $envelope)) {
+            return 'missing org_id';
+        }
+
+        $orgId = $envelope['org_id'];
+
+        if ($orgId !== null && ! (is_int($orgId) && $orgId > 0)) {
+            return 'org_id is neither null nor a positive integer';
+        }
+
+        if (! is_array($envelope['actor']) || ! is_array($envelope['data'])) {
+            return 'actor and data must be objects';
+        }
+
+        return null;
     }
 
     /**

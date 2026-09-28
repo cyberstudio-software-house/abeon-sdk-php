@@ -10,9 +10,14 @@ use Illuminate\Database\DatabaseManager;
 use Throwable;
 
 /**
- * Reports `degraded` when the oldest unprocessed outbox row is older than
- * the configured lag threshold. A live OutboxDrainer keeps lag near zero;
- * sustained lag signals a stuck or down drainer.
+ * Reports `degraded` when the oldest unprocessed outbox row is older than the configured
+ * lag threshold. A live OutboxDrainer keeps lag near zero; sustained lag signals a stuck or
+ * down drainer.
+ *
+ * Rows that exhausted `max_attempts` are counted separately rather than as lag: the drainer
+ * stops fetching them but leaves `processed_at` null, so measuring lag from the oldest
+ * unprocessed row made one permanently failed event a permanent `degraded` — and a probe
+ * that never goes back to `ok` cannot report anything later.
  */
 class OutboxLagCheck implements Check
 {
@@ -44,23 +49,42 @@ class OutboxLagCheck implements Check
                 );
             }
 
+            $maxAttempts = $this->config->outboxMaxAttempts();
+
+            // **Rows that gave up are not lag.** `OutboxDrainer` stops fetching a row once
+            // `attempts` reaches the ceiling, and leaves `processed_at` null — which is what
+            // keeps the evidence. Counting those as lag meant the first permanently failed
+            // event pinned this check at `degraded` for ever, and a probe that is always
+            // degraded reports nothing at all: the stuck drainer it exists to catch arrives
+            // to a light that was already on.
             $oldest = $connection
                 ->table(OutboxPublisher::TABLE)
                 ->whereNull('processed_at')
+                ->where('attempts', '<', $maxAttempts)
                 ->min('created_at');
 
+            $abandoned = $connection
+                ->table(OutboxPublisher::TABLE)
+                ->whereNull('processed_at')
+                ->where('attempts', '>=', $maxAttempts)
+                ->count();
+
             $latency = $this->elapsedMs($start);
-
-            if ($oldest === null) {
-                return CheckResult::ok($latency);
-            }
-
-            $lagSeconds = time() - strtotime((string) $oldest);
-            $threshold  = $this->config->outboxLagThreshold();
+            $threshold = $this->config->outboxLagThreshold();
+            $lagSeconds = $oldest === null ? 0 : time() - strtotime((string) $oldest);
 
             if ($lagSeconds > $threshold) {
                 return CheckResult::degraded(
                     "Oldest unprocessed outbox event is {$lagSeconds}s old (threshold {$threshold}s).",
+                    $latency,
+                );
+            }
+
+            // Still `degraded`, and said in its own words: an event nobody will publish now
+            // is a write whose consequences never left this service, and it needs a person.
+            if ($abandoned > 0) {
+                return CheckResult::degraded(
+                    "{$abandoned} outbox event(s) gave up after {$maxAttempts} attempts.",
                     $latency,
                 );
             }

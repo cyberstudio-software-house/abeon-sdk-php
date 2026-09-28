@@ -46,6 +46,13 @@ final class EventConsumerWildcardTest extends TestCase
             'hash matches two segments'      => ['crm.contact.created', 'crm.#', true],
             'hash matches many segments'     => ['crm.a.b.c.d', 'crm.#', true],
             'hash inside pattern'            => ['crm.contact.created', 'crm.#.created', true],
+
+            // AMQP: the dot in front of a trailing `#` belongs to the wildcard, so `crm.#`
+            // matches the bare `crm` the broker would also route here. The docblock above
+            // this method has always said so; the regex did not.
+            'hash matches zero segments'     => ['crm', 'crm.#', true],
+            'hash still needs its prefix'    => ['crmx', 'crm.#', false],
+            'hash does not span a prefix'    => ['other.contact', 'crm.#', false],
         ];
     }
 }

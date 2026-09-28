@@ -8,6 +8,7 @@ use Abeon\SDK\Auth\AuthContext;
 use Abeon\SDK\Auth\Endpoints\PreferencesController;
 use Abeon\SDK\DTO\User;
 use Abeon\SDK\Exceptions\AuthException;
+use Abeon\SDK\Exceptions\InvalidQueryException;
 use Illuminate\Contracts\Routing\ResponseFactory as ResponseFactoryContract;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Container\Container;
@@ -156,5 +157,25 @@ final class PreferencesControllerTest extends TestCase
 
         $this->assertSame('dark', $merged['chrome']['theme']);
         $this->assertSame(['x' => 1], $merged['custom']);
+    }
+
+    /**
+     * ADR-0009 §Validation: unknown top-level namespaces are accepted for forward
+     * compatibility, unknown keys inside `chrome` are rejected. Only the first half was
+     * built, so a typo was stored, echoed back as saved, and then never applied — the chrome
+     * reads the correct spelling and finds nothing.
+     */
+    public function test_an_unknown_chrome_key_is_refused(): void
+    {
+        $this->expectException(InvalidQueryException::class);
+
+        $this->patch($this->controller(1), ['chrome' => ['sidebarColapsed' => true]]);
+    }
+
+    public function test_an_unknown_namespace_is_still_accepted(): void
+    {
+        $merged = $this->patch($this->controller(1), ['crm' => ['lastBoard' => 7]]);
+
+        $this->assertSame(['lastBoard' => 7], $merged['crm']);
     }
 }

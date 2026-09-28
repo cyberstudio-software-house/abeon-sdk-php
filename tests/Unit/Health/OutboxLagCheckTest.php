@@ -112,4 +112,45 @@ final class OutboxLagCheckTest extends TestCase
         $result = $this->check()->run();
         $this->assertSame(CheckResult::STATUS_OK, $result->status);
     }
+
+    /**
+     * The drainer stops fetching a row that exhausted its attempts and leaves `processed_at`
+     * null, so lag measured from the oldest unprocessed row never recovers — one permanently
+     * failed event pinned this check at `degraded` for the life of the deployment, which
+     * silences the stuck drainer it exists to catch.
+     */
+    public function test_a_row_that_gave_up_is_reported_as_itself_not_as_lag(): void
+    {
+        $this->createTable();
+        $this->capsule->getConnection()->table(OutboxPublisher::TABLE)->insert([
+            'event_id'    => '44444444-4444-4444-8444-444444444444',
+            'routing_key' => 'crm.contact.created',
+            'envelope'    => '{}',
+            'created_at'  => date('Y-m-d H:i:s', time() - 86400),
+            'attempts'    => 5,
+        ]);
+
+        $result = $this->check()->run();
+
+        $this->assertSame(CheckResult::STATUS_DEGRADED, $result->status);
+        $this->assertStringContainsString('gave up', (string) $result->message);
+        $this->assertStringNotContainsString('old', (string) $result->message);
+    }
+
+    public function test_a_row_still_being_retried_is_lag(): void
+    {
+        $this->createTable();
+        $this->capsule->getConnection()->table(OutboxPublisher::TABLE)->insert([
+            'event_id'    => '55555555-5555-4555-8555-555555555555',
+            'routing_key' => 'crm.contact.created',
+            'envelope'    => '{}',
+            'created_at'  => date('Y-m-d H:i:s', time() - 300),
+            'attempts'    => 4,
+        ]);
+
+        $result = $this->check()->run();
+
+        $this->assertSame(CheckResult::STATUS_DEGRADED, $result->status);
+        $this->assertMatchesRegularExpression('/\d+s old/', (string) $result->message);
+    }
 }
