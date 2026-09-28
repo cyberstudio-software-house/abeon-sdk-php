@@ -58,6 +58,42 @@ final class JwksClientTest extends TestCase
         $this->http->assertSentCount(2);
     }
 
+    /**
+     * A `kid` comes from the token, so an unknown one is something anybody can send. Each
+     * one used to drop the cached key set and fetch it again — a request amplifier aimed at
+     * the one endpoint the whole platform validates against.
+     */
+    public function test_repeated_flushes_refetch_once(): void
+    {
+        $this->http->fake(['*' => $this->http->response($this->jwks(), 200)]);
+        $client = $this->client();
+
+        $client->findKey('k1');
+
+        for ($i = 0; $i < 50; $i++) {
+            $client->flush();
+            $client->findKey('unknown-'.$i);
+        }
+
+        $this->http->assertSentCount(2);
+    }
+
+    public function test_the_cooldown_expires(): void
+    {
+        $this->http->fake(['*' => $this->http->response($this->jwks(), 200)]);
+        $client = $this->client();
+
+        $client->findKey('k1');
+        $client->flush();
+        $client->findKey('k1');
+
+        $this->cache->forget(JwksClient::COOLDOWN_KEY);
+        $client->flush();
+        $client->findKey('k1');
+
+        $this->http->assertSentCount(3);
+    }
+
     public function test_throws_on_http_error(): void
     {
         $this->http->fake(['*' => $this->http->response('boom', 500)]);

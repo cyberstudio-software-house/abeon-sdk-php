@@ -88,6 +88,38 @@ final class OutboxDrainerTest extends TestCase
         $this->assertStringContainsString('broker down', (string) $row->last_error);
     }
 
+    /**
+     * `basic_publish()` is a write to a socket buffer: it returns before the broker has the
+     * message and returns just as happily when the broker never takes it. A row marked
+     * processed on that basis is an event lost with the write that caused it still committed.
+     */
+    public function test_a_batch_the_broker_never_confirmed_stays_pending(): void
+    {
+        $this->insertRow(self::FIRST, 'crm.contact.created');
+
+        [$drainer, $channel] = $this->makeDrainer();
+        $channel->expects($this->once())->method('confirm_select');
+        $channel->method('wait_for_pending_acks')->willThrowException(new \RuntimeException('no ack'));
+
+        $this->assertSame(1, $drainer->drainOnce());
+
+        $row = $this->table()->where('event_id', self::FIRST)->first();
+        $this->assertNull($row->processed_at);
+        $this->assertSame(1, (int) $row->attempts);
+        $this->assertStringContainsString('no ack', (string) $row->last_error);
+    }
+
+    public function test_confirms_are_awaited_before_rows_are_marked(): void
+    {
+        $this->insertRow(self::FIRST, 'crm.contact.created');
+
+        [$drainer, $channel] = $this->makeDrainer();
+        $channel->expects($this->once())->method('wait_for_pending_acks');
+
+        $this->assertSame(1, $drainer->drainOnce());
+        $this->assertNotNull($this->table()->where('event_id', self::FIRST)->first()->processed_at);
+    }
+
     public function test_rows_are_claimed_for_update_by_default(): void
     {
         $this->insertRow(self::FIRST, 'crm.contact.created');

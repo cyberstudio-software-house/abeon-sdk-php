@@ -21,6 +21,7 @@ use Abeon\SDK\Config\AbeonConfig;
 use Abeon\SDK\Config\Commands\ValidateConfigCommand;
 use Abeon\SDK\Events\Commands\ConsumeCommand;
 use Abeon\SDK\Events\Commands\DeclarePermissionsCommand;
+use Abeon\SDK\Events\Commands\DeadLetterCommand;
 use Abeon\SDK\Events\Commands\OutboxDrainCommand;
 use Abeon\SDK\Events\EnvelopeBuilder;
 use Abeon\SDK\Events\EventCatalog;
@@ -105,6 +106,7 @@ class AbeonServiceProvider extends ServiceProvider
             $this->commands([
                 RegisterCommand::class,
                 OutboxDrainCommand::class,
+                DeadLetterCommand::class,
                 ConsumeCommand::class,
                 DeclarePermissionsCommand::class,
                 ValidateConfigCommand::class,

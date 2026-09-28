@@ -381,6 +381,27 @@ class EventConsumer
     }
 
     /**
+     * The dead-letter queue behind each subscription, keyed by the routing key it holds.
+     *
+     * Public because the queues are this class's naming decision and something has to read
+     * them: a message that lands here is an event this service refused, and until
+     * `abeon:events:dlq` there was nothing on the platform that could even count them.
+     *
+     * @return array<string, string> routing key => queue name
+     */
+    public function deadLetterQueues(): array
+    {
+        $prefix = $this->config->consumerQueuePrefix();
+        $queues = [];
+
+        foreach ($this->subscriptions() as $routingKey) {
+            $queues[$routingKey] = "{$prefix}.{$routingKey}.dlq";
+        }
+
+        return $queues;
+    }
+
+    /**
      * @return list<string>
      */
     private function subscriptions(): array

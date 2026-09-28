@@ -8,6 +8,7 @@ use Abeon\SDK\Config\AbeonConfig;
 use Illuminate\Database\Connection;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Query\Builder;
+use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -26,6 +27,9 @@ use Throwable;
 class OutboxDrainer
 {
     private LoggerInterface $logger;
+
+    /** `spl_object_id` of the channel confirms were switched on for, or null. */
+    private ?int $confirming = null;
 
     public function __construct(
         private readonly DatabaseManager $db,
@@ -71,6 +75,17 @@ class OutboxDrainer
         $exchange = $this->config->rabbitMqExchange();
         $count    = 0;
 
+        // **Publisher confirms.** Without them `basic_publish()` is a write to a socket
+        // buffer: it returns before the broker has the message, and it returns just as
+        // happily when the broker is refusing it — a full disk, a missing exchange, a
+        // connection that dies in the same millisecond. The row was then marked processed
+        // for a message nobody ever accepted, and the outbox's whole promise — the event
+        // and the write that caused it are both durable or neither is — was a hope.
+        $this->enableConfirms($channel);
+
+        /** @var list<OutboxRecord> $published */
+        $published = [];
+
         foreach ($rows as $row) {
             $record = OutboxRecord::fromRow($row);
 
@@ -87,7 +102,7 @@ class OutboxDrainer
 
                 $channel->basic_publish($message, $exchange, $record->routingKey);
 
-                $this->markProcessed($record->id);
+                $published[] = $record;
             } catch (Throwable $e) {
                 $this->markFailure($record, $e);
                 $this->logger->error('outbox.publish.failed', [
@@ -101,7 +116,58 @@ class OutboxDrainer
             $count++;
         }
 
+        $this->confirm($channel, $published);
+
         return $count;
+    }
+
+    /**
+     * Wait for the broker to account for everything this pass published, and mark those rows
+     * only then.
+     *
+     * Per batch rather than per message: one round trip for a batch instead of one each, and
+     * the batch is already the unit the lease is taken in. A timeout or a `nack` leaves every
+     * row of the batch unmarked, so the next pass republishes them — at-least-once, which is
+     * what ADR-0002 promises and what `ProcessedEvents` absorbs on the consumer side.
+     *
+     * @param  list<OutboxRecord>  $published
+     */
+    private function confirm(AMQPChannel $channel, array $published): void
+    {
+        if ($published === []) {
+            return;
+        }
+
+        try {
+            $channel->wait_for_pending_acks($this->config->rabbitMqReadWriteTimeout());
+        } catch (Throwable $e) {
+            foreach ($published as $record) {
+                $this->markFailure($record, $e);
+            }
+
+            $this->logger->error('outbox.publish.unconfirmed', [
+                'count' => count($published),
+                'error' => $e->getMessage(),
+            ]);
+
+            return;
+        }
+
+        foreach ($published as $record) {
+            $this->markProcessed($record->id);
+        }
+    }
+
+    private function enableConfirms(AMQPChannel $channel): void
+    {
+        $id = spl_object_id($channel);
+
+        if ($this->confirming === $id) {
+            return;
+        }
+
+        $channel->confirm_select();
+        $this->confirming = $id;
     }
 
     /**

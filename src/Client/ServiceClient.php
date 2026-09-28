@@ -25,9 +25,12 @@ use Illuminate\Http\Client\Response;
  *
  *   - Auto-injects service JWT (`Authorization: Bearer ...`) and the current
  *     `X-Correlation-ID` on every call.
- *   - On unsafe methods (POST/PUT/PATCH/DELETE), generates a fresh
- *     `Idempotency-Key` (UUIDv4) per call so server-side dedup makes retries
- *     safe even when the operation isn't naturally idempotent.
+ *   - Sends one `Idempotency-Key` (UUIDv4) per call. The key is minted with the request,
+ *     so every retry of that request carries the same one. **Nothing on this platform reads
+ *     it yet** — no service dedupes on it — so a retried write is safe only where the write
+ *     itself is idempotent, which is what the registry's assignment path was made to be.
+ *     The header is sent so that the day a receiver does dedupe, the callers already carry
+ *     what it needs.
  *   - Retries on connection failures and HTTP 5xx using Laravel's HTTP client
  *     retry middleware: `max_retries` attempts with `retry_delay_ms` between.
  *   - On a 401 from the upstream, the `$onAuthFailure` callback (when wired)
