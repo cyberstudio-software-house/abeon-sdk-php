@@ -7,6 +7,36 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.11.1] — 2026-09-28
+
+### Fixed
+
+- **The outbox waits for the broker.** `OutboxDrainer` switches the channel into confirm mode and
+  awaits the acknowledgements for a batch before marking any row processed. `basic_publish()` returns
+  before the broker has the message and returns just as happily when it never takes it, so a row could
+  be marked for an event nobody accepted — the one thing the outbox exists to prevent.
+- **A cooldown on the JWKS refetch.** An unknown `kid` makes `JwtValidator` flush the cached key set,
+  and a `kid` is part of the token, so anybody could turn a stream of junk tokens into a stream of
+  requests against Auth's JWKS endpoint from every service at once. The flush now refetches at most
+  once every `JwksClient::REFRESH_COOLDOWN_SECONDS`.
+
+### Added
+
+- **`abeon:events:dlq`** — counts, and with `--replay` republishes, the events this service
+  dead-lettered. The queues had no reader at all, so a handler broken by a deploy piled messages up
+  where only the broker's own console would show them.
+- **`EventConsumer::deadLetterQueues()`**, which names them.
+
+## [0.11.0] — 2026-09-24
+
+### Added
+
+- **Object storage** (ADR-0034): `schemas/dto/stored-object.json`, `schemas/http/storage-sign.json`,
+  `ObjectPath`, `ObjectStore` and `SignedUrl` — one container per organisation, addresses signed by
+  AbeonUnified, no keys in the applications.
+- **ADR-0035**: the platform host is the default address for the panel and a router at the entry
+  reads `org_id` from the token to pick the instance.
+
 ## [0.10.0] — 2026-09-23
 
 ### Added
