@@ -184,3 +184,11 @@ reordering the platform so that Unified ships first.
   creation returns the link to its caller", so an organisation admin can create accounts before Unified
   has an email channel. See `abeon-auth-spec.md` FR-16 and finding A-10.
 - **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** an organisation gains a host (`{slug}.abeon.pl` or its own domain).
+- **State of implementation, 2026-09-29.** The *outbound* half is built and running: Auth creates the
+  organisation and its owner, and publishes `auth.org.created`, which AbeonUnified consumes into its
+  projection. The *inbound* half is not. `unified.app.registered` has no publisher — AbeonUnified has no
+  registration surface — and therefore no consumer either: Auth implements no `EventHandler` at all and
+  runs no consumer process. What onboards an organisation today is `abeon:org:provision`, the console
+  command over `ProvisionOrganisation`, which is the same method a handler would call. Nothing here is
+  blocked on a decision; this note exists so the record does not read as if a path nobody has written
+  were carrying traffic.

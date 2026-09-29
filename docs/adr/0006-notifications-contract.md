@@ -49,8 +49,8 @@ Canonical schema: [`schemas/dto/notification.json`](../../schemas/dto/notificati
 | `id` | string (UUIDv4) | Stable. |
 | `user_id` | integer | Target user (matches `User.id`). |
 | `type` | string | Free-form per emitter, e.g. `crm.deal.assigned`, `finance.invoice.overdue`. |
-| `title` | string | Short headline (≤ 80 chars recommended). |
-| `body` | string | Markdown allowed, ≤ 500 chars. |
+| `title` | string | Short headline, ≤ 200 chars. |
+| `body` | string | Markdown allowed, ≤ 2000 chars. |
 | `icon` | string \| null | Lucide icon name or URL. Defaults rendered by `<NotificationCenter>`. |
 | `action_url` | string \| null | Absolute or path-prefixed URL the bell links to. Use `Abeon\SDK\Support\PathPrefix::absolute()` server-side. |
 | `source_app` | string | Emitting service identifier (matches `AppDescriptor.name`). Used by chrome for per-app filtering. |

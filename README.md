@@ -255,13 +255,14 @@ Higher-level project docs (Phase 0 plan, architecture):
 | `ABEON_AUTH_JWKS_URL` | derived | JWKS endpoint. Default `${auth.url}/.well-known/jwks.json`. |
 | `ABEON_AUTH_ISSUER` | `abeon-auth` | Expected `iss` claim on user JWTs. |
 | `ABEON_AUTH_AUDIENCE` | `abeon` | Expected `aud` claim. |
-| `ABEON_JWT_COOKIE_NAME` | `abeon_token` | Canonical access-token cookie. Frontends read; backend ignores cookies. |
-| `ABEON_REFRESH_COOKIE_NAME` | `abeon_refresh` | Canonical refresh-token cookie. |
 | `ABEON_SERVICE_JWT_PRIVATE_KEY` | — | PEM-encoded RS256 private key. K8s Secret recommended. |
 | `ABEON_SERVICE_JWT_KID` | — | Key ID matching this service's entry in Auth JWKS. |
 | `ABEON_RABBITMQ_DSN` | — | `amqp://user:pass@host:port/vhost`. |
 | `ABEON_RABBITMQ_EXCHANGE` | `abeon.events` | Topic exchange name. |
 | `ABEON_RABBITMQ_DLX` | `abeon.events.dlx` | Dead-letter exchange. |
+| `ABEON_OUTBOX_RETENTION_DAYS` | `30` | How long `abeon:events:prune` keeps a processed outbox row or a recorded processed event. |
+| `ABEON_CONSUMER_SLOW_HANDLER_SECONDS` | `5` | A handler slower than this is logged. Nothing is interrupted. |
+| `ABEON_TRUSTED_PROXIES` | `*` | Which proxies this service believes about `X-Forwarded-*`. Pin it to the ingress CIDR where the network does not already guarantee it — every per-address guard reads the result. |
 | `ABEON_HEALTH_CHECKS` | `db` | Comma list of checks for `/health/ready`. |
 | `ABEON_OUTBOX_BATCH_SIZE` | `100` | Max rows fetched per drainer pass. |
 | `ABEON_OUTBOX_POLL_INTERVAL` | `1` | Seconds drainer sleeps when outbox is empty. |
@@ -290,6 +291,8 @@ After `vendor:publish --tag=abeon-config`:
 | `abeon:permissions:declare` | Publishes `service.permissions.declared` event so Auth updates the RBAC catalog. |
 | `abeon:events:outbox-drain` | Long-running worker draining `abeon_event_outbox` to RabbitMQ. `--once` for a single pass. |
 | `abeon:events:consume` | Long-running consumer dispatching to tagged `abeon.event_handler` services. |
+| `abeon:events:dlq` | Counts the events this service dead-lettered; `--replay` republishes them once the handler is fixed. |
+| `abeon:events:prune` | Deletes processed outbox rows and processed-event records past `ABEON_OUTBOX_RETENTION_DAYS`. Schedule it daily. |
 | `abeon:config:validate` | Smoke-test required SDK config keys. Flags: `--require-jwt-key`, `--require-rabbitmq`. Run as CI gate or post-deploy. |
 
 The two long-running workers handle `SIGTERM` / `SIGINT` cleanly via `pcntl_signal`.

@@ -57,8 +57,6 @@ ABEON_HEALTH_CHECKS=db,rabbitmq,jwks     # which checks the /health/ready endpoi
 ABEON_OUTBOX_POLL_INTERVAL=1             # seconds between drainer polls
 ABEON_OUTBOX_MAX_ATTEMPTS=5              # before row is marked failed
 ABEON_OUTBOX_LAG_THRESHOLD=60            # health degrades after this many seconds of lag
-ABEON_JWT_COOKIE_NAME=abeon_token        # canonical cookie name (frontend reads)
-ABEON_REFRESH_COOKIE_NAME=abeon_refresh
 ```
 
 Plus the **service registry** (which other services THIS one calls):
