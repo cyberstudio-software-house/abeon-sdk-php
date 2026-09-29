@@ -54,8 +54,11 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\DatabaseManager;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Client\Factory as HttpFactory;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AbeonServiceProvider extends ServiceProvider
@@ -80,6 +83,22 @@ class AbeonServiceProvider extends ServiceProvider
         // Laravel's default global stack and reads these statics at request time, and
         // `withMiddleware()` runs before the config repository exists.
         TrustedProxies::apply();
+
+        // **The readiness probe's rate limit, keyed on the address.**
+        //
+        // `throttle:60,1` — the unnamed form — builds its key from
+        // `ThrottleRequests::resolveRequestSignature()`, which calls `$request->user()` and so
+        // boots the configured guard. Two services on this platform declare a guard with no
+        // driver on purpose, because identity comes from the token and reaching for
+        // `Auth::user()` is a bug they want to hear about immediately. The probe — which no
+        // caller ever authenticates — then threw on guard resolution and answered 500, which a
+        // kubelet reads as a pod that is not ready.
+        //
+        // Named and keyed on the address, nothing resolves a user. The limit is unchanged and
+        // sits well above any sane probe interval; it is there so that anybody who can reach
+        // the pod cannot turn readiness into broker connection churn.
+        RateLimiter::for('abeon-health', static fn (Request $request): Limit => Limit::perMinute(60)
+            ->by($request->ip() ?? 'unknown'));
 
         $this->publishes([
             __DIR__.'/../config/abeon.php' => $this->configPath('abeon.php'),

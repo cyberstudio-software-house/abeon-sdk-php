@@ -7,6 +7,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.11.3] — 2026-09-29
+
+### Fixed
+
+- **The readiness probe no longer resolves a user.** `routes/health.php` gained `throttle:60,1` in
+  0.11.2, and the unnamed form keys itself through `ThrottleRequests::resolveRequestSignature()`, which
+  calls `$request->user()` and boots the configured guard. A service that declares a guard with no
+  driver — on purpose, because identity comes from the token — then answered **500** on
+  `/health/ready`, which a kubelet reads as a pod that is not ready. The route now uses
+  `throttle:abeon-health`, a named limiter registered by `AbeonServiceProvider` and keyed on the
+  address; the limit itself is unchanged.
+
 ## [0.11.2] — 2026-09-28
 
 ### Fixed
