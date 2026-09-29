@@ -7,6 +7,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 Nothing yet.
 
+## [0.11.4] — 2026-09-29
+
+### Changed
+
+- **`ObjectStore::uploadUrl()` requires the content type.** ADR-0034 §4 signs it into the address and
+  AbeonUnified refuses a `put` without one, so the optional parameter promised a call the platform
+  answers with a 422 — and a signature obtained without a type would have been a general-purpose write
+  handle for that key. Callers that already pass one are unaffected.
+
 ## [0.11.3] — 2026-09-29
 
 ### Fixed

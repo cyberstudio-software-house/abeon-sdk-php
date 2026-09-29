@@ -38,8 +38,19 @@ final class ObjectStore
         return ObjectPath::privatePath($this->config->serviceName(), $path);
     }
 
-    public function uploadUrl(ObjectPath $path, ?string $contentType = null): SignedUrl
+    /**
+     * **The type is required.** ADR-0034 §4 signs it into the address, and AbeonUnified refuses
+     * a `put` without one — a signature obtained with no type is a general-purpose write handle
+     * for that key, so an address issued for an avatar could be spent on HTML that the
+     * container then serves to anybody under `public/`. It was optional here long enough to
+     * promise a call the platform would answer with a 422.
+     */
+    public function uploadUrl(ObjectPath $path, string $contentType): SignedUrl
     {
+        if (trim($contentType) === '') {
+            throw new \InvalidArgumentException('An upload address is signed over its content type; give one.');
+        }
+
         return $this->sign($path, 'put', $contentType);
     }
 

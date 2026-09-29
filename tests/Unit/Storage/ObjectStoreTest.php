@@ -114,6 +114,25 @@ final class ObjectStoreTest extends TestCase
         $this->assertSame('cms/private/invoices/2026/inv-1.pdf', $store->privatePath('invoices/2026/inv-1.pdf')->key());
     }
 
+    /**
+     * ADR-0034 §4 signs the type into the address, and AbeonUnified refuses a `put` without
+     * one. The parameter was optional here, so the SDK promised a call the platform answers
+     * with a 422 — and a signature obtained without a type would have been a general-purpose
+     * write handle for that key.
+     */
+    public function test_an_upload_without_a_content_type_is_refused_before_the_call(): void
+    {
+        $this->http->fake();
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        try {
+            $this->store()->uploadUrl($this->store()->publicPath('hero.jpg'), '   ');
+        } finally {
+            $this->http->assertNothingSent();
+        }
+    }
+
     private function store(): ObjectStore
     {
         $config = new AbeonConfig(new Repository([
@@ -145,4 +164,5 @@ final class StubTokenProvider extends ServiceTokenProvider
     {
         return 'fake-service-token';
     }
+
 }
