@@ -82,9 +82,8 @@ Five rules that drive every decision in this codebase:
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │  Layer 5: Endpoints                                                  │
-│    Auth/Endpoints (UserController, AppsController, PreferencesController) │
+│    Auth/Endpoints (UserController, PreferencesController)            │
 │    Broadcasting (BroadcastingAuthController)                         │
-│    Services (ServiceRegistry — POSTs descriptor to Auth)             │
 │                                                                      │
 │  Reference HTTP controllers + bootstrap helpers. Optional — each     │
 │  service mounts only what it needs. Lives at the top because they    │
@@ -106,7 +105,7 @@ Five rules that drive every decision in this codebase:
 │    JwtValidator             → RS256 verify + claim assertions        │
 │    AuthMiddleware           → Bearer header → AuthContext            │
 │    AuthContext (scoped)     → request-bound User                     │
-│    PermissionsServiceProvider + PermissionsDeclarator (Laravel Gate) │
+│    PermissionsServiceProvider (Laravel Gate bridge)                  │
 ├──────────────────────────────────────────────────────────────────────┤
 │  Layer 1: HTTP plumbing                                              │
 │    CorrelationIdMiddleware  → X-Correlation-ID in/out                │
@@ -147,22 +146,21 @@ The two exceptions called out explicitly:
 
 | Namespace | Purpose | Key public classes |
 |---|---|---|
-| `Abeon\SDK\Auth` | Identity, JWT, permissions | `AuthMiddleware`, `JwtValidator`, `JwksClient`, `AuthContext`, `PermissionsServiceProvider`, `PermissionsDeclarator` |
-| `Abeon\SDK\Auth\Endpoints` | Reference controllers for Auth-owned endpoints (ADR-0010) | `UserController`, `AppsController`, `PreferencesController` |
+| `Abeon\SDK\Auth` | Identity, JWT, permissions | `AuthMiddleware`, `JwtValidator`, `JwksClient`, `AuthContext`, `PermissionsServiceProvider` |
+| `Abeon\SDK\Auth\Endpoints` | Reference controllers for Auth-owned endpoints (ADR-0010) | `UserController`, `PreferencesController` |
 | `Abeon\SDK\Broadcasting` | Reverb `/broadcasting/auth` (ADR-0008) | `BroadcastingAuthController` |
 | `Abeon\SDK\Client` | Service-to-service HTTP | `ServiceClient`, `ServiceTokenProvider`, `ServiceCallException` |
-| `Abeon\SDK\Config` | Typed config + `abeon:config:validate` | `AbeonConfig`, `Commands\ValidateConfigCommand` |
-| `Abeon\SDK\DTO` | Immutable value objects mirrored in JSON Schemas | `User`, `AppDescriptor`, `Actor`, `Permission`, `Role`, `Pagination`, `ProblemDetails` |
+| `Abeon\SDK\Config` | Typed config | `AbeonConfig` |
+| `Abeon\SDK\DTO` | Immutable value objects mirrored in JSON Schemas | `User`, `AppDescriptor`, `Actor`, `Role`, `ProblemDetails` |
 | `Abeon\SDK\Events` | Outbox + consumer | `EventPublisher` (alias `OutboxPublisher`), `EventConsumer`, `OutboxDrainer`, `EnvelopeBuilder`, `RoutingKey`, `EventCatalog`, `SchemaDiscovery`, `ProcessedEvents`, `RabbitMq`, `EventHandler` interface, `Event` DTO, `InMemoryEventPublisher` (test double), three Artisan commands |
 | `Abeon\SDK\Exceptions` | Typed errors → RFC 7807 | `AbeonException`, `AuthException`, `ContractViolationException` |
 | `Abeon\SDK\Health` | K8s probes | `Check` interface, `DbCheck`, `RabbitMqCheck`, `OutboxLagCheck`, `HealthController`, `CheckResult` |
 | `Abeon\SDK\Http` | Plumbing middlewares + helpers | `CorrelationIdMiddleware`, `Cors`, `VersionHeadersMiddleware`, `ApiResponse`, `ProblemDetailsRenderer` |
 | `Abeon\SDK\Logging` | JSON logs + correlation | `CorrelationContext` (scoped), `JsonFormatter` |
-| `Abeon\SDK\Services` | App registry | `ServiceRegistry`, `Commands\RegisterCommand` |
 | `Abeon\SDK\Support` | Utilities | `Uuid`, `PathPrefix` |
 
-`Abeon\SDK\helpers.php` defines `abeon_user(): ?User` for ergonomic access
-to the request-scoped `AuthContext`.
+Identity is read through the request-scoped `AuthContext`:
+`app(AuthContext::class)->user()`, or `->require()` where a caller must exist.
 
 ---
 
@@ -221,7 +219,7 @@ HTTP request
 │     attach X-API-Version / Deprecation         │
 │                                                │
 │ App route handler                              │
-│   - reads abeon_user()                         │
+│   - reads AuthContext::user()                  │
 │   - calls $client->service('finance')->get()   │
 │       │                                        │
 │       ▼                                        │
@@ -294,26 +292,13 @@ Long-running workers that bypass the HTTP kernel **must call
 `AuthContext::clear()` between units of work** — `EventConsumer` does this
 in its `finally` block; custom long-lived runners must follow suit.
 
-`abeon_user()` (in `src/helpers.php`) is just `app(AuthContext::class)->user()`
-with an autoload-eager registration.
+### 7.3 Permissions in the token
 
-### 7.3 Permissions federation
-
-Each service declares its permissions in `config('abeon.permissions')`:
-
-```php
-'permissions' => [
-    'crm.contacts.read',
-    'crm.contacts.write',
-    'crm.deals.read',
-],
-```
-
-Running `php artisan abeon:permissions:declare` (typically a CI/CD step
-on deploy) publishes a `service.permissions.declared` event that Auth
-consumes to update the federated RBAC catalog. The permission JWT claim is
-authoritative at request time; declaration is for *display* in the UI
-(role editor) and for `AppsController` filtering (ADR-0010).
+The permission claim on the user JWT is authoritative at request time. A
+federated catalogue — each service declaring its own permissions for the role
+editor to display — is described by ADR-0024 and has no publisher and no
+consumer yet; the SDK carried one (`PermissionsDeclarator`) that no service
+ever called, and it was removed on 2026-09-30.
 
 `PermissionsServiceProvider::attach()` is wired through `Gate::resolving`
 so `Gate::allows('crm.contacts.read')` consults `AuthContext::user()->permissions`.
@@ -559,12 +544,9 @@ This keeps the consumer of any SDK class one layer away from
 stringly-typed `config()->get()` calls. Test fixtures can pass a
 `new AbeonConfig(new Repository([...]))` for full isolation.
 
-`php artisan abeon:config:validate` is a startup gate:
-
-- `--require-jwt-key` checks `ABEON_SERVICE_JWT_PRIVATE_KEY` and `_KID` are
-  set (for services that issue outbound calls).
-- `--require-rabbitmq` checks `ABEON_RABBITMQ_DSN` is set (for services that
-  publish/consume).
+Each accessor throws a named `RuntimeException` when a required key is absent,
+which is the startup gate: the first call in the boot path fails with the key
+in the message.
 - Secrets are masked in output (MD-9).
 
 The full env reference is in [`README.md`](../README.md#configuration-reference).
@@ -637,8 +619,6 @@ How services plug into the SDK without forking it.
 |---|---|---|
 | New health check | Bind under alias `abeon.health.check.<name>` and add `<name>` to `ABEON_HEALTH_CHECKS` | Custom Redis check |
 | New event handler | Implement `EventHandler` and tag the binding `abeon.event_handler` | `OnContactCreated implements EventHandler` |
-| Custom permissions logic | Extend `PermissionsDeclarator` and rebind | Per-tenant permission filtering |
-| Custom apps filter | Subclass `Auth\Endpoints\AppsController`, override `isVisibleTo()` | Admin override for hidden apps |
 | Custom preferences endpoint | Subclass `Auth\Endpoints\PreferencesController`, override `mergeTopLevel()` | Strict schema validation |
 | Custom service descriptor | Override `config('abeon.app_descriptor')` per env | Different label per region |
 | Custom broadcasting policy | Mount your own controller + leave SDK's for chrome channels | Tenant-scoped channel auth |
@@ -680,9 +660,6 @@ The SDK assumes Helm + standard K8s primitives without depending on them:
   (`abeon.io/service=true` + `abeon.io/jwks-url`).
 - **Signals**: long-running workers handle SIGTERM/SIGINT for graceful
   pod termination via `pcntl_async_signals`.
-- **Init containers**: run `abeon:config:validate --require-jwt-key
-  --require-rabbitmq` as a `postStart` hook or init container to fail-fast
-  on misconfiguration.
 
 ### 15.3 Observability
 

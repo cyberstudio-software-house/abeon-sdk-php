@@ -127,7 +127,7 @@ Route::middleware(['abeon.auth', 'abeon.version:v1'])
     ->prefix('api/v1')
     ->group(function () {
         Route::get('/contacts', function () {
-            $user = abeon_user(); // or auth()->user()
+            $user = app(AuthContext::class)->require();
             $contacts = Contact::where('org_id', $user->orgId)->paginate(25);
             return ApiResponse::paginated($contacts);
         });
@@ -192,7 +192,7 @@ class CreateContact
             $this->publisher->publish('crm.contact.created', [
                 'contact_id' => $contact->id,
                 'email'      => $contact->email,
-                'created_by' => abeon_user()->id,
+                'created_by' => app(AuthContext::class)->require()->id,
             ]);
             return $contact;
         });
@@ -257,18 +257,7 @@ php artisan abeon:events:consume
 
 The consumer auto-declares per-subscription queues (`{service-name}.{routing-key}`) with DLQ wired through `abeon.events.dlx`.
 
-## 9. Self-register and declare permissions
-
-After deploy, run (one-shot or in your CI post-deploy step):
-
-```bash
-php artisan abeon:registry:register     # POSTs AppDescriptor to Auth
-php artisan abeon:permissions:declare    # publishes service.permissions.declared event
-```
-
-Both are idempotent. Auth deduplicates by service name.
-
-## 10. K8s probes
+## 9. K8s probes
 
 Routes are auto-registered:
 
@@ -293,7 +282,7 @@ $this->app->bind('abeon.health.check.elasticsearch', function ($app) {
 
 Then set `ABEON_HEALTH_CHECKS=db,rabbitmq,jwks,elasticsearch`.
 
-## 11. Testing your service in isolation
+## 10. Testing your service in isolation
 
 For unit tests, swap the real publisher with the in-memory test double:
 
@@ -394,7 +383,7 @@ Both handle `SIGTERM` cleanly via `pcntl_signal` and will flush in-flight work b
 | Drainer reports `outbox_lag` degraded | Drainer crashed or RabbitMQ unreachable. Check pod logs + RabbitMQ health. |
 | Duplicate event delivered to handler | Should not happen — `abeon_processed_events` dedupes. If it does, check that the unique index on `event_id` is present (the migration should ensure it). |
 | `ContractViolationException: Unknown service 'X'` | `X` not in `config('abeon.services')`. Add the entry. |
-| `abeon_user()` returns null inside `abeon.auth`-protected route | Verify `Authorization: Bearer ...` header is present and signed by an Auth-recognized key. Cookie-only flow needs frontend boilerplate to translate (see ADR-0001 closing section). |
+| `AuthContext::user()` is null inside an `abeon.auth`-protected route | Verify `Authorization: Bearer ...` header is present and signed by an Auth-recognized key. Cookie-only flow needs frontend boilerplate to translate (see ADR-0001 closing section). |
 
 ## Related
 

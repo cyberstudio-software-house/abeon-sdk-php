@@ -30,11 +30,6 @@ class EventConsumer
     /** @var list<EventHandler>|null Memoized resolved handler list. */
     private ?array $cachedHandlers = null;
 
-    /** @var list<EventUpcaster>|null */
-    private ?array $upcasters = null;
-
-    private const MAX_UPCASTS = 10;
-
     private LoggerInterface $logger;
 
     public function __construct(
@@ -58,19 +53,6 @@ class EventConsumer
             $this->handlers[] = $handler;
         }
         $this->cachedHandlers = null;  // invalidate memoization
-
-        return $this;
-    }
-
-    /**
-     * @param  iterable<EventUpcaster>  $upcasters
-     */
-    public function withUpcasters(iterable $upcasters): self
-    {
-        $this->upcasters = [];
-        foreach ($upcasters as $upcaster) {
-            $this->upcasters[] = $upcaster;
-        }
 
         return $this;
     }
@@ -207,8 +189,6 @@ class EventConsumer
             $handled = $this->tenants->runFor($event->orgId, function () use ($event): int {
                 $handled = 0;
 
-                $event = $this->upcast($event);
-
                 foreach ($this->matchingHandlers($event->eventType) as $handler) {
                     $this->assertAcceptsVersion($handler, $event);
 
@@ -269,53 +249,12 @@ class EventConsumer
         }
     }
 
-    private function upcast(Event $event): Event
-    {
-        for ($i = 0; $i < self::MAX_UPCASTS; $i++) {
-            $upcaster = $this->firstUpcasterFor($event);
-            if ($upcaster === null) {
-                return $event;
-            }
-
-            $event = $upcaster->upcast($event);
-        }
-
-        throw new \RuntimeException("Event {$event->eventId} is still being upcast after ".self::MAX_UPCASTS.' steps');
-    }
-
-    private function firstUpcasterFor(Event $event): ?EventUpcaster
-    {
-        foreach ($this->resolvedUpcasters() as $upcaster) {
-            if ($upcaster->supports($event)) {
-                return $upcaster;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @return list<EventUpcaster>
-     */
-    private function resolvedUpcasters(): array
-    {
-        if ($this->upcasters !== null) {
-            return $this->upcasters;
-        }
-
-        $resolved = [];
-        foreach ($this->container->tagged('abeon.event_upcaster') as $upcaster) {
-            if ($upcaster instanceof EventUpcaster) {
-                $resolved[] = $upcaster;
-            }
-        }
-
-        return $this->upcasters = $resolved;
-    }
-
     private function assertAcceptsVersion(EventHandler $handler, Event $event): void
     {
-        $accepted = $handler instanceof AcceptsEventVersions ? $handler->acceptedMajorVersions() : [1];
+        // Version 1 for every handler. `AcceptsEventVersions` existed for a handler that
+        // accepts more than one major, and no handler on this platform ever implemented it —
+        // the day a 2.0 producer appears, the interface comes back with its first caller.
+        $accepted = [1];
         $major = self::majorVersion($event->version);
 
         if ($major !== null && in_array($major, $accepted, true)) {

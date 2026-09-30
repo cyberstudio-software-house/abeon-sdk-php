@@ -6,7 +6,6 @@ namespace Abeon\SDK\Tests\Unit\Contract;
 
 use Abeon\SDK\DTO\AppDescriptor;
 use Abeon\SDK\DTO\ProblemDetails;
-use Abeon\SDK\DTO\SearchResult;
 use Abeon\SDK\DTO\Tenant;
 use Abeon\SDK\DTO\User;
 use Abeon\SDK\Events\Event;
@@ -472,13 +471,14 @@ final class SchemaContractTest extends TestCase
         $this->assertEquals($fixture, $out);
     }
 
-    public function test_search_result_dto_conforms_and_roundtrips(): void
+    /**
+     * `dto/search-result.json` has no PHP class any more: ADR-0011's search service is not in
+     * this suite, and the DTO had no caller. The schema stays — it is the contract `@abeon/sdk-ts`
+     * mirrors — so the fixture is still validated against it, without a round trip to assert.
+     */
+    public function test_the_search_result_fixture_still_matches_its_schema(): void
     {
-        $fixture = $this->fixtureArray('search-result.json');
-        $out     = SearchResult::fromArray($fixture)->toArray();
-
-        $this->assertValid('dto/search-result.json', $out);
-        $this->assertEquals($fixture, $out);
+        $this->assertValid('dto/search-result.json', $this->fixtureArray('search-result.json'));
     }
 
     public function test_problem_details_dto_conforms_and_roundtrips(): void

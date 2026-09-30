@@ -12,13 +12,10 @@ observability, and operational concerns.
 
 ### What this SDK provides
 
-- **Auth** — JWT validator (RS256 + JWKS), `AuthMiddleware`, request-scoped `AuthContext`, Laravel Gate bridge, `abeon_user()` global helper.
+- **Auth** — JWT validator (RS256 + JWKS), `AuthMiddleware`, request-scoped `AuthContext`, Laravel Gate bridge.
 - **Service-to-service HTTP** — config-driven `ServiceClient` (`$client->service('crm')->get(...)`), service-JWT auto-issuance with in-process caching, correlation header propagation, RFC 7807 errors lifted into typed exceptions.
-- **Events (RabbitMQ)** — `EventPublisher` writes to outbox in the business transaction; `OutboxDrainer` worker drains to RabbitMQ asynchronously; `EventConsumer` with idempotency via `abeon_processed_events`, topic wildcards, DLX wiring, version gating and upcasters (`AcceptsEventVersions`, `EventUpcaster`).
-- **Notifications** — `Notifier::notify(NotificationRequest)` publishes `{service}.notification.requested` through the outbox for AbeonUnified; `channels` with `in_app` required and `email` optional (ADR-0028).
+- **Events (RabbitMQ)** — `EventPublisher` writes to outbox in the business transaction; `OutboxDrainer` worker drains to RabbitMQ asynchronously; `EventConsumer` with idempotency via `abeon_processed_events`, topic wildcards, DLX wiring, and version gating (major 1).
 - **Transactional e-mail** — `Messages::send(MessageRequest)` publishes `{service}.message.requested`; AbeonUnified renders the template and delivers it (ADR-0030). No mail credentials in any service.
-- **Service registry + self-registration** — `ServiceRegistry::register()` POSTs the service's `AppDescriptor` to Auth on demand (Artisan command).
-- **Permissions federation** — service declares its permissions in config; `abeon:permissions:declare` publishes `service.permissions.declared` to Auth.
 - **Correlation ID** — `X-Correlation-ID` end-to-end across HTTP and events.
 - **Health checks** — `/health` (liveness) + `/health/ready` (readiness) with pluggable `Check` interface. Built-ins: db, rabbitmq, jwks, outbox_lag.
 - **Errors** — RFC 7807 `application/problem+json` renderer, typed `AbeonException` hierarchy.
@@ -94,7 +91,7 @@ Route::middleware(['abeon.auth', 'abeon.version:v1'])
     ->prefix('api/v1')
     ->group(function () {
         Route::get('/contacts', fn () => ApiResponse::paginated(
-            Contact::where('org_id', abeon_user()->orgId)->paginate(25)
+            Contact::where('org_id', app(AuthContext::class)->requireOrgId())->paginate(25)
         ));
     });
 ```
@@ -151,101 +148,6 @@ Run: `php artisan abeon:events:outbox-drain` and `php artisan abeon:events:consu
 
 > **`EventHandler` implementations must be idempotent.** Replaying a handler with the same `Event` must produce the same state — no double emails, no double-charged invoices, no incremented counters that move twice. See [ADR-0002](docs/adr/0002-event-envelope.md#consume-flow--idempotency) for the rationale and concrete patterns.
 
-### Scope a model to an organisation
-
-```php
-class Invoice extends Model
-{
-    use Abeon\SDK\Tenancy\BelongsToTenant;
-}
-
-// Migration — NOT NULL and indexed. Both matter, see below.
-$table->unsignedBigInteger('org_id')->index();
-```
-
-Reads are constrained to the current organisation and inserts are stamped with it, so application code
-never writes `org_id` by hand:
-
-```php
-Invoice::all();                              // only this organisation's rows
-Invoice::create(['number' => 'FV/1']);       // org_id stamped automatically
-Invoice::withoutTenantScope(fn () => …);     // the one sanctioned way to read across organisations
-```
-
-**A missing tenant throws** (`AuthException`, 403) rather than returning every organisation's rows. That
-rule matters more than the mechanism: any scoping can be bypassed, so what makes the system safe is that
-the unsafe state is loud — in development, on the first query.
-
-In an HTTP request the organisation follows from the authenticated user with no wiring. Everywhere else
-there is no auth context to fall back on, so enter it explicitly:
-
-```php
-// In an event handler — the tenant comes from the envelope (ADR-0002), because
-// EventConsumer does not populate AuthContext.
-$tenants->runFor($event->orgId, fn () => $this->process($event));
-```
-
-> **Known limits, by design.** The scope does not reach `DB::table()`, raw SQL or query-builder joins;
-> migrations, seeders and console commands run tenant-less; and `saveQuietly()` suppresses the stamp —
-> which is why the column must be **NOT NULL**, so the database is the backstop. See
-> [ADR-0018](docs/adr/0018-tenant-scoping.md) for the full list and the reasoning.
-
----
-
-## Architecture — internal layering
-
-```
-┌──────────────────────────────────────────────┐
-│  Services (ServiceRegistry, AppRegistry)     │  ← discovery + self-registration
-├──────────────────────────────────────────────┤
-│  Client (ServiceClient, ServiceTokenProvider)│  ← sync communication
-├──────────────────────────────────────────────┤
-│  Events (Publisher, Consumer, OutboxDrainer) │  ← async communication
-├──────────────────────────────────────────────┤
-│  Tenancy (TenantContext, Scope, trait)       │  ← organisation isolation
-├──────────────────────────────────────────────┤
-│  Auth (JwtValidator, AuthMiddleware, Gate)   │  ← identity
-├──────────────────────────────────────────────┤
-│  Core (Config, DTO, Health, Errors, Logging) │  ← fundament, no external deps
-└──────────────────────────────────────────────┘
-```
-
-Each higher layer may depend on lower layers, **never the reverse**. This makes a future subtree split (e.g., extracting `abeon/auth-middleware` as a standalone package for frontend boilerplate) mechanical rather than an archaeology project.
-
----
-
-## Naming
-
-- **Folder name:** `abeon-sdk-php` — the `-php` stack suffix leaves room for a parallel `abeon-sdk-ts` (or similar) for a future TypeScript counterpart variant.
-- **Composer package name:** `abeon/sdk` — stable, matches the architecture document. Folder name and package name are intentionally decoupled.
-
-The TypeScript counterpart `@abeon/sdk-ts` lives in a separate repository (`abeon-sdk-ts/`).
-
----
-
-## Documentation
-
-| Document | Purpose |
-|---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Comprehensive architectural reference — layers, contracts, lifecycle, extension points |
-| [`docs/usage.md`](docs/usage.md) | Getting-started walkthrough + cookbook + troubleshooting |
-| [`docs/events-catalog.md`](docs/events-catalog.md) | How services declare and discover event schemas (federation) |
-| [`docs/adr/`](docs/adr/README.md) | **27 decision records**, indexed. The four that everything else rests on: [0001](docs/adr/0001-jwt-format.md) JWT format · [0002](docs/adr/0002-event-envelope.md) event envelope · [0004](docs/adr/0004-rest-envelope-and-errors.md) REST envelope and RFC 7807 errors · [0005](docs/adr/0005-service-to-service-auth.md) service-to-service authentication |
-
-Where an ADR and this code disagree, the ADR is the intent and the code is the bug.
-
-Higher-level project docs (Phase 0 plan, architecture):
-
-- `../abeon-unified-architecture.md` — overall platform architecture
-- `../abeon-sdk-phase0-plan.md` — detailed Phase 0 SDK plan
-- `../abeon-shared-phase0-plan.md` — the TypeScript counterpart plan. It keeps that filename on
-  purpose: the package was called `@abeon/shared` when it was written, and is `@abeon/sdk-ts` now
-- `../abeon-phase0-summary.md` — consolidated decisions snapshot
-
----
-
-## Configuration reference
-
 ### Environment variables
 
 | Variable | Default | Purpose |
@@ -287,13 +189,10 @@ After `vendor:publish --tag=abeon-config`:
 
 | Command | Purpose |
 |---|---|
-| `abeon:registry:register` | POSTs `AppDescriptor` to Auth's service registry (idempotent). Run as post-deploy step. |
-| `abeon:permissions:declare` | Publishes `service.permissions.declared` event so Auth updates the RBAC catalog. |
 | `abeon:events:outbox-drain` | Long-running worker draining `abeon_event_outbox` to RabbitMQ. `--once` for a single pass. |
 | `abeon:events:consume` | Long-running consumer dispatching to tagged `abeon.event_handler` services. |
 | `abeon:events:dlq` | Counts the events this service dead-lettered; `--replay` republishes them once the handler is fixed. |
 | `abeon:events:prune` | Deletes processed outbox rows and processed-event records past `ABEON_OUTBOX_RETENTION_DAYS`. Schedule it daily. |
-| `abeon:config:validate` | Smoke-test required SDK config keys. Flags: `--require-jwt-key`, `--require-rabbitmq`. Run as CI gate or post-deploy. |
 
 The two long-running workers handle `SIGTERM` / `SIGINT` cleanly via `pcntl_signal`.
 

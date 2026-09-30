@@ -1,7 +1,7 @@
 includes:
     # Pre-existing level-8 findings captured 2026-05-27 so the gate blocks NEW
-    # violations. These 7 are tracked tech-debt (AppsController/PreferencesController
-    # /JwtValidator/AbeonConfig/RabbitMq/ApiResponse) to burn down later.
+    # violations. Tracked tech-debt (PreferencesController/JwtValidator/AbeonConfig/
+    # RabbitMq/ApiResponse) to burn down later.
     - phpstan-baseline.neon
 
 parameters:

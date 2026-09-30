@@ -6,11 +6,9 @@ namespace Abeon\SDK\Tests\Unit\Events;
 
 use Abeon\SDK\Auth\AuthContext;
 use Abeon\SDK\Config\AbeonConfig;
-use Abeon\SDK\Events\AcceptsEventVersions;
 use Abeon\SDK\Events\Event;
 use Abeon\SDK\Events\EventConsumer;
 use Abeon\SDK\Events\EventHandler;
-use Abeon\SDK\Events\EventUpcaster;
 use Abeon\SDK\Events\ProcessedEvents;
 use Abeon\SDK\Events\RabbitMq;
 use Abeon\SDK\Logging\CorrelationContext;
@@ -28,7 +26,7 @@ final class EventConsumerVersionTest extends TestCase
     {
         $handler = $this->recordingHandler();
 
-        $outcome = $this->deliver([$handler], [], '1.3');
+        $outcome = $this->deliver([$handler], '1.3');
 
         $this->assertSame('ack', $outcome);
         $this->assertSame(['1.3'], $handler->seen);
@@ -38,7 +36,7 @@ final class EventConsumerVersionTest extends TestCase
     {
         $handler = $this->recordingHandler();
 
-        $outcome = $this->deliver([$handler], [], '2.0');
+        $outcome = $this->deliver([$handler], '2.0');
 
         $this->assertSame('nack', $outcome);
         $this->assertSame([], $handler->seen);
@@ -48,67 +46,7 @@ final class EventConsumerVersionTest extends TestCase
     {
         $handler = $this->recordingHandler();
 
-        $this->assertSame('nack', $this->deliver([$handler], [], 'latest'));
-        $this->assertSame([], $handler->seen);
-    }
-
-    public function test_an_upcaster_lets_a_one_point_zero_handler_read_a_two_point_zero_event(): void
-    {
-        $handler = $this->recordingHandler();
-        $upcaster = new class implements EventUpcaster
-        {
-            public function supports(Event $event): bool
-            {
-                return $event->version === '2.0';
-            }
-
-            public function upcast(Event $event): Event
-            {
-                return new Event(
-                    $event->eventId, $event->eventType, $event->timestamp, $event->source, '1.0',
-                    $event->orgId, $event->actor, ['name' => $event->data['display_name'] ?? null], $event->metadata,
-                );
-            }
-        };
-
-        $outcome = $this->deliver([$handler], [$upcaster], '2.0', ['display_name' => 'Acme']);
-
-        $this->assertSame('ack', $outcome);
-        $this->assertSame(['1.0'], $handler->seen);
-        $this->assertSame(['name' => 'Acme'], $handler->data);
-    }
-
-    public function test_a_handler_that_declares_version_two_receives_it_unchanged(): void
-    {
-        $handler = new class extends RecordingHandler implements AcceptsEventVersions
-        {
-            public function acceptedMajorVersions(): array
-            {
-                return [1, 2];
-            }
-        };
-
-        $this->assertSame('ack', $this->deliver([$handler], [], '2.1'));
-        $this->assertSame(['2.1'], $handler->seen);
-    }
-
-    public function test_an_upcaster_that_never_finishes_is_dead_lettered(): void
-    {
-        $handler = $this->recordingHandler();
-        $loop = new class implements EventUpcaster
-        {
-            public function supports(Event $event): bool
-            {
-                return true;
-            }
-
-            public function upcast(Event $event): Event
-            {
-                return $event;
-            }
-        };
-
-        $this->assertSame('nack', $this->deliver([$handler], [$loop], '1.0'));
+        $this->assertSame('nack', $this->deliver([$handler], 'latest'));
         $this->assertSame([], $handler->seen);
     }
 
@@ -119,10 +57,9 @@ final class EventConsumerVersionTest extends TestCase
 
     /**
      * @param  list<EventHandler>  $handlers
-     * @param  list<EventUpcaster>  $upcasters
      * @param  array<string, mixed>  $data
      */
-    private function deliver(array $handlers, array $upcasters, string $version, array $data = []): string
+    private function deliver(array $handlers, string $version, array $data = []): string
     {
         $processed = $this->createMock(ProcessedEvents::class);
         $processed->method('isProcessed')->willReturn(false);
@@ -134,7 +71,7 @@ final class EventConsumerVersionTest extends TestCase
             tenants:     new TenantContext(new AuthContext()),
             container:   new Container(),
             config:      new AbeonConfig(new Repository(['abeon' => ['service' => ['name' => 'unified']]])),
-        ))->withHandlers($handlers)->withUpcasters($upcasters);
+        ))->withHandlers($handlers);
 
         $message = new AMQPMessage((string) json_encode([
             'event_id'   => 'e1',

@@ -9,3 +9,4 @@
 .env
 .env.*
 !.env.example
+_vendor-root-owned-*/

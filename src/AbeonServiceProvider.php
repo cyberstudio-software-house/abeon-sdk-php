@@ -6,21 +6,17 @@ namespace Abeon\SDK;
 
 use Abeon\SDK\Auth\AuthContext;
 use Abeon\SDK\Auth\AuthMiddleware;
-use Abeon\SDK\Auth\Endpoints\AppsController as AuthAppsController;
 use Abeon\SDK\Auth\Endpoints\PreferencesController as AuthPreferencesController;
 use Abeon\SDK\Auth\Endpoints\UserController as AuthUserController;
 use Abeon\SDK\Auth\JwksClient;
 use Abeon\SDK\Auth\JwtValidator;
-use Abeon\SDK\Auth\PermissionsDeclarator;
 use Abeon\SDK\Auth\PermissionsServiceProvider as PermissionsBridge;
 use Abeon\SDK\Auth\ServiceAuthMiddleware;
 use Abeon\SDK\Broadcasting\BroadcastingAuthController;
 use Abeon\SDK\Client\ServiceClient;
 use Abeon\SDK\Client\ServiceTokenProvider;
 use Abeon\SDK\Config\AbeonConfig;
-use Abeon\SDK\Config\Commands\ValidateConfigCommand;
 use Abeon\SDK\Events\Commands\ConsumeCommand;
-use Abeon\SDK\Events\Commands\DeclarePermissionsCommand;
 use Abeon\SDK\Events\Commands\DeadLetterCommand;
 use Abeon\SDK\Events\Commands\OutboxDrainCommand;
 use Abeon\SDK\Events\Commands\PruneEventsCommand;
@@ -44,8 +40,6 @@ use Abeon\SDK\Http\TrustedProxies;
 use Abeon\SDK\Http\VersionHeadersMiddleware;
 use Abeon\SDK\Logging\CorrelationContext;
 use Abeon\SDK\Logging\JsonFormatter;
-use Abeon\SDK\Services\Commands\RegisterCommand;
-use Abeon\SDK\Services\ServiceRegistry;
 use Abeon\SDK\Storage\ObjectStore;
 use Abeon\SDK\Support\PathPrefix;
 use Abeon\SDK\Tenancy\TenantContext;
@@ -124,13 +118,10 @@ class AbeonServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                RegisterCommand::class,
                 OutboxDrainCommand::class,
                 DeadLetterCommand::class,
                 PruneEventsCommand::class,
                 ConsumeCommand::class,
-                DeclarePermissionsCommand::class,
-                ValidateConfigCommand::class,
             ]);
         }
     }
@@ -186,12 +177,10 @@ class AbeonServiceProvider extends ServiceProvider
 
         $this->app->singleton(JwtValidator::class);
         $this->app->singleton(PermissionsBridge::class);
-        $this->app->singleton(PermissionsDeclarator::class);
 
         // Endpoint base controllers — used directly by Auth service and as
         // reference implementations elsewhere.
         $this->app->singleton(AuthUserController::class);
-        $this->app->singleton(AuthAppsController::class);
         $this->app->singleton(AuthPreferencesController::class);
 
         // BroadcastingAuthController needs the active Broadcaster driver.
@@ -229,7 +218,6 @@ class AbeonServiceProvider extends ServiceProvider
 
     private function registerServices(): void
     {
-        $this->app->singleton(ServiceRegistry::class);
         $this->app->singleton(PathPrefix::class);
         $this->app->singleton(ObjectStore::class);
     }

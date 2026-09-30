@@ -5,7 +5,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 
 ## [Unreleased]
 
-Nothing yet.
+### Removed
+
+**Surface with no caller in any of the four services, after a repo-wide audit.** Everything here had
+zero call sites across `abeon-auth`, `auth-ui`, `abeon-unified` and `abeon-boilerplate-inertia`, and
+comes back with its first real user rather than waiting for one.
+
+- `Tenancy\TenantScope` and `Tenancy\BelongsToTenant` — no model on the platform used the trait; every
+  tenant filter is a hand-written `where('org_id', …)`. `TenantContext` stays.
+- `src/helpers.php` (`abeon_user()`, `abeon_correlation_id()`) and its `autoload.files` entry — the file
+  loaded on every request in four services for two functions nobody called.
+- `Auth\Endpoints\AppsController` — Auth wrote its own because this one cannot resolve `enabled` per
+  organisation, which its own docblock said.
+- `Notifications\Notifier`, `NotificationRequest`, `NotificationChannel` — no publisher.
+- `Auth\PermissionsDeclarator`, `abeon:permissions:declare`, `DTO\Permission` — ADR-0024's federated
+  catalogue has no consumer.
+- `Services\ServiceRegistry`, `abeon:registry:register` — Unified fills its registry from its own import.
+- `abeon:config:validate` — `AbeonConfig` already throws a named exception per missing key.
+- `Events\EventUpcaster` and the upcast loop, `Events\AcceptsEventVersions` — zero implementations; the
+  consumer accepts major version 1, which is every event on the platform.
+- `DTO\SearchResult`, `DTO\Pagination` — no references. Their JSON Schemas stay: they are the contract
+  `@abeon/sdk-ts` mirrors.
+- `Uuid::isValid()` — `CorrelationIdMiddleware` deliberately accepts any UUID shape via `isWellFormed()`.
+- A `vendor/` copy committed under another name: 9372 files, 95 MB, gone from the index.
 
 ## [0.11.4] — 2026-09-29
 
