@@ -185,3 +185,7 @@ the data from `@abeon/sdk-ts`, full-page navigation from ADR-0013.
   and §4/§6 (binding, queues) — `abeon/sdk` 0.7.0–0.8.0, `@abeon/sdk-ts` 0.9.0, Auth, AbeonUnified,
   the login screen and the template. §5 (provisioning) and the deployment half of §2 are open.
 - **Amended 2026-09-23 by [ADR-0033](0033-public-surface.md):** an instance may serve a second, public surface on the client's own domain; the platform session stays on the panel host.
+- **Amended 2026-09-30:** §"a business application does not use `BelongsToTenant`" no longer
+  distinguishes anything — the trait was removed from the SDK (see ADR-0018's amendment of the same
+  date). What defines an instance is unchanged: one client's database, `ABEON_ORG_ID`, and a token for
+  another organisation refused with 403.

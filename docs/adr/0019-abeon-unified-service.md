@@ -141,3 +141,8 @@ places. Bulk object bytes are worth an exception (ADR-0021); control-plane calls
 
   Still unbuilt from this ADR: *apps data*, whose meaning it deliberately left open, and the AI gateway
   (ADR-0020) and OCS credentials (ADR-0021).
+- **Amended 2026-09-30:** the open item "`ServiceRegistry::register()` currently targets `service('auth')`
+  — a one-line change plus configuration" is closed by deletion rather than by the move: the SDK's
+  `ServiceRegistry` and `abeon:registry:register` had no caller in any service. A service announces
+  itself to `POST /api/v1/internal/registry/register` here, which is what the registry has always
+  served. `abeon:registry:import`, the one-off cutover from `abeon-auth`, went with it.

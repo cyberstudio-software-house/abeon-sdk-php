@@ -99,3 +99,16 @@ carries a tenant, the asynchronous half of the platform cannot be scoped at all.
   or created the organisation. Recorded so a handler that does not call `requireOrgId()` at entry reads as
   the specified exception rather than as this ADR being ignored.
 - **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** `org_id` scoping applies to the platform services; an instance of a business application holds one client's data and is bound by `ABEON_ORG_ID` instead.
+- **Amended 2026-09-30 — the mechanism came out; the rule did not.** `TenantScope` and
+  `BelongsToTenant` were removed from the SDK after an audit found **zero** models using them: every
+  tenant filter on this platform is a hand-written `where('org_id', …)`, and `withoutTenantScope()` was
+  never called, so the "auditing cross-tenant access is a search" property was never true in practice —
+  the search returned nothing because nothing used the trait, not because nothing crossed tenants.
+
+  What stands: `TenantContext` (the current organisation, `runFor()`, `require()`), the fail-closed
+  rule — a missing tenant is an error, never a wildcard — and `AuthContext::requireOrgId()`. What is
+  gone: the global query scope that made the rule automatic. **Enforcement is by convention now**, which
+  is weaker than it reads above, and the honest form of the reinstatement is: the first model whose rows
+  belong to more than one organisation brings the trait back with it. Until then the platform services
+  filter explicitly and `abeon-unified`'s `Registry` and feed queries are the reference for how.
+

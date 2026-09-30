@@ -110,3 +110,12 @@ administrator can do: pointing a domain at the platform needs DNS and a certific
 - Implemented in this change: `public_host` on the assignment and in both events, the
   `abeon:instance:public-host` command, the surface guards and the host-bound public route group in the
   template, and the local provisioner routing both addresses to one instance.
+- **Amended 2026-09-30 — §3 promised two guards; one of them was never able to refuse.**
+  `EnsurePublicSurface` was removed after an audit: the public group is registered *only* inside
+  `Route::domain($publicHost)` (`bootstrap/app.php`), and not registered at all when the host is unset,
+  so a request that reached a public route had already matched the public host by definition — the
+  middleware's condition could not be false. The domain binding **is** the guard for that direction.
+  `EnsurePanelSurface` stays on the `web` group and is a real check, because panel routes carry no
+  domain of their own and would otherwise answer on the public host. The behaviour in §3 is unchanged:
+  a panel route on the public host still answers 404; a public route on the panel host still does not
+  exist. What changed is that one half is a routing fact rather than a middleware.

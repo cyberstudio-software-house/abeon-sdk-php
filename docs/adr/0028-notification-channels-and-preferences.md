@@ -123,4 +123,8 @@ $notifier->notify(new NotificationRequest(
 **2026-09-18 — the `email` channel is delivered, by [ADR-0030](0030-email-channel.md).** `RecordNotification`
 queues a `unified.notification` message when `email` survives the preference rules. Rows recorded before
 that date are not mailed retroactively, as §1 said.
-
+- **Amended 2026-09-30:** the SDK's `Notifier`, `NotificationRequest` and `NotificationChannel` were
+  removed — no service ever published through them. The decision is untouched: the event
+  `{service}.notification.requested`, `in_app` required, `email` optional, AbeonUnified consuming and
+  applying preferences. A service publishes the envelope through its own outbox; `abeon-sdk-php`'s
+  README carries the payload as an example.

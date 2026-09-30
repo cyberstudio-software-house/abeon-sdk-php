@@ -87,3 +87,7 @@ is the search service's concern and is not specified here.
 
 - ADR-0007 (search & command registry — this supersedes its "Phase 2" deferral for the search half)
 - ADR-0004 (REST envelope), ADR-0010 (permission filtering model)
+- **Amended 2026-09-30:** the PHP DTO `Abeon\SDK\DTO\SearchResult` was removed — `abeon-search` does
+  not exist in this suite and nothing referenced the class. The contract is unchanged and lives where it
+  always did: `schemas/dto/search-result.json`, mirrored by `@abeon/sdk-ts`, which still ships the type
+  and its search-provider hook. The producing service defines its PHP shape against the schema.

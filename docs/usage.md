@@ -331,7 +331,7 @@ class SendWelcomeEmail implements ShouldQueue
 }
 
 // Dispatcher
-SendWelcomeEmail::dispatch(abeon_correlation_id() ?? '', ...);
+SendWelcomeEmail::dispatch(app(CorrelationContext::class)->current() ?? '', ...);
 ```
 
 A future SDK helper may automate this; for now it's manual.

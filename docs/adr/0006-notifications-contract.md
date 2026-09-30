@@ -192,3 +192,6 @@ time rather than one that quietly expired.
 Requests carry `channels` (`in_app` required, `email` optional); Unified owns per-user preference rules at
 `/api/v1/notifications/preferences`; the asynchronous fan-in above is now built — `Notifier` in the SDK
 publishes, Unified consumes — and `NotificationDto` is unchanged.
+- **Amended 2026-09-30:** the publishing half of the 2026-09-17 note — "`Notifier` in the SDK publishes"
+  — is no longer true; that class was removed with no caller. Unified's consumer, the feed, the cursor
+  and the caps are unchanged, and a producer publishes `{service}.notification.requested` itself.

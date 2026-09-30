@@ -101,3 +101,7 @@ endpoints carry the same obligations as the chrome data plane:
   [ADR-0013](0013-full-page-navigation.md) (no shell application)
 - Constrains: [ADR-0024](0024-permission-expansion.md) (screens gate on token grants),
   [ADR-0016](0016-multi-tenant-organisations.md) (org scope comes from the token, never a parameter)
+- **Amended 2026-09-30:** `Auth\Endpoints\AppsController` is no longer one of the exemplars named
+  above — it was removed because the pattern did not fit it: a base controller cannot answer a question
+  whose data lives in another service. `UserController` and `PreferencesController` remain the pattern,
+  and the caveat is part of it.

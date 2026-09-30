@@ -117,19 +117,27 @@ DB::transaction(function () use ($data, $publisher) {
 
 ### Notify a user
 
+The SDK carried a `Notifier` for this until 0.12.0 and no service ever used it. What reaches the bell
+is the event, which the outbox already knows how to publish (ADR-0006, ADR-0028):
+
 ```php
-DB::transaction(function () use ($deal, $notifier) {
+DB::transaction(function () use ($deal, $user, $publisher) {
     $deal->assignTo($user);
-    $notifier->notify(new NotificationRequest(
-        userId: $user->id,
-        type: 'crm.deal.assigned',
-        title: 'Przypisano Ci szansę sprzedaży',
-        body: $deal->name,
-        actionUrl: "/crm/deals/{$deal->id}",
-        channels: [NotificationChannel::InApp, NotificationChannel::Email],
-    ));
+    $publisher->publish('crm.notification.requested', [
+        'target'     => ['user_id' => $user->id],
+        'source_app' => config('abeon.service.name'),
+        'type'       => 'crm.deal.assigned',
+        'title'      => 'Przypisano Ci szansę sprzedaży',
+        'body'       => $deal->name,
+        'action_url' => "/crm/deals/{$deal->id}",
+        'channels'   => ['in_app', 'email'],
+    ]);
 });
 ```
+
+`in_app` is required and `email` is optional; AbeonUnified validates the payload against
+`schemas/events/notification-requested.json` and refuses one whose `source_app` disagrees with the
+routing key.
 
 ### Consume an event
 

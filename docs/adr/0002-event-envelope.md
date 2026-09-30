@@ -239,3 +239,9 @@ versioning rules above are binding again.
   runs nowhere, and no `EventHandler` implementation exists — so this ADR's at-least-once guarantee has
   never been exercised end to end. `abeon-auth` now mounts `OutboxLagCheck`, so readiness reports
   `degraded` once rows accumulate instead of staying green against a promise nothing keeps.
+- **Amended 2026-09-30 — the upcaster chain is gone; the version gate stayed.** `EventUpcaster`, the
+  `abeon.event_upcaster` tag, the ten-step chain and `AcceptsEventVersions` were removed after an audit
+  found zero implementations of either interface in four services. `EventConsumer` accepts **major
+  version 1** and dead-letters anything else, with the same `event-consumer.unsupported-version` warning
+  as before — so the behaviour a 2.0 producer meets is unchanged, and what it no longer has is a
+  sanctioned way to opt in. Bringing either back is a small change with a first caller behind it.

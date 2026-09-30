@@ -30,10 +30,11 @@ final class Uuid
     /**
      * Any UUID shape, whatever version and variant nibbles it carries.
      *
-     * For values this platform did not mint: an upstream gateway's correlation id, or a v7
-     * from a service that moved to time-ordered ids. `isValid()` stays strict because it
-     * answers "is this one of ours", and replacing somebody else's id breaks the one chain
-     * ADR-0003 exists to keep.
+     * For values this platform did not mint: an upstream gateway's correlation id, or a v7 from
+     * a service that moved to time-ordered ids. `v4()` above is what this platform mints, and
+     * `REGEX` still pins that shape for anything asserting on our own ids — but a *received*
+     * value is only ever checked for shape, because replacing somebody else's id breaks the one
+     * chain ADR-0003 exists to keep.
      */
     public static function isWellFormed(string $value): bool
     {

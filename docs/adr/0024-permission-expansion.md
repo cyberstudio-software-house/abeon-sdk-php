@@ -124,3 +124,8 @@ permission.
   `abeon-auth-stub/app/Http/Controllers/StubAppsController.php`
 - Catalog source: `src/Auth/PermissionsDeclarator.php` (`service.permissions.declared`)
 - Plan: `abeon-auth-plan.md` §A4, §D1
+- **Amended 2026-09-30:** `PermissionsDeclarator`, `abeon:permissions:declare` and `DTO\Permission` were
+  removed from the SDK — no service called them and Auth never grew a consumer for
+  `service.permissions.declared`, so the catalogue this ADR expands `*` against has **no publisher
+  today**. The wildcard ban stands (`RolePermission::saving` still refuses one), and what a role editor
+  would expand from has to be built with its first real caller. The schema stays as the contract.

@@ -212,3 +212,8 @@ Both controllers require `AuthMiddleware`. Both return JSON in the ADR-0004 enve
   contract, because `@abeon/sdk-ts` consumes them from every application.
 - **Amended 2026-09-22 by [ADR-0031](0031-app-instance-per-client.md):** the catalogue's `path` is resolved against the client's host; one `path` per application stays.
 - **Amended 2026-09-23 by [ADR-0032](0032-redis-shared-ephemeral-store.md):** the catalogue cache and its invalidation run on a shared Redis, which is what makes the TTL here safe across replicas.
+- **Amended 2026-09-30:** the SDK's base `Auth\Endpoints\AppsController` was removed. It could not
+  resolve `enabled` per organisation — the very rule this ADR's filtering section specifies — so
+  `abeon-auth` wrote its own controller and the base class had no subclass anywhere. `/auth/apps` and
+  its response shape are unchanged; the catalogue behind it comes from AbeonUnified's registry
+  (ADR-0019) rather than from the SDK's `ServiceRegistry`, which went the same day.
