@@ -25,11 +25,7 @@ class AbeonConfig
 
     /**
      * The organisation this instance is bound to, or null for a service that serves every
-     * organisation (ADR-0031 §4).
-     *
-     * A value that is set but not a positive integer is refused rather than read as
-     * "unbound": a typo in `ABEON_ORG_ID` would otherwise open the instance to every
-     * organisation, silently.
+     * organisation (ADR-0031 §4). See docs/notes/config.md.
      */
     public function instanceOrgId(): ?int
     {
@@ -87,10 +83,7 @@ class AbeonConfig
 
     /**
      * Clock-skew tolerance when validating `exp` / `nbf`, in seconds (ADR-0001 rule 5).
-     *
-     * Nodes drift independently, so a validator with zero tolerance rejects tokens
-     * that were just minted by an issuer whose clock is a second ahead. Configurable
-     * because the right value depends on how well the cluster's clocks are kept.
+     * See docs/notes/config.md.
      */
     public function authLeewaySeconds(): int
     {
@@ -99,11 +92,7 @@ class AbeonConfig
 
     /**
      * How long a consumer caches the JWKS document, in seconds.
-     *
-     * This is the quantity that binds key rotation: a consumer that never misses its
-     * cache keeps a retired `kid` usable for a full TTL, so the grace period before
-     * removing a key must cover this plus one access-token lifetime (ADR-0005 as
-     * amended by ADR-0025).
+     * It bounds key rotation (ADR-0005 as amended by ADR-0025) — see docs/notes/config.md.
      */
     public function authJwksCacheTtl(): int
     {
@@ -220,10 +209,7 @@ class AbeonConfig
 
     /**
      * How long a processed outbox row, or a recorded processed event, is kept.
-     *
-     * A floor of one day rather than zero: a retention that deletes what was written this
-     * second would take out the very rows `ProcessedEvents` exists to keep — a redelivery
-     * arriving after the prune would be handled a second time.
+     * A floor of one day rather than zero — see docs/notes/config.md.
      */
     public function outboxRetentionDays(): int
     {
@@ -236,10 +222,8 @@ class AbeonConfig
     }
 
     /**
-     * When true, the drainer claims rows with `FOR UPDATE SKIP LOCKED` so a
-     * second replica skips locked rows instead of blocking. Requires a driver
-     * that supports it (MariaDB 10.6+/MySQL 8/PostgreSQL); ignored on SQLite.
-     * Set with `ABEON_OUTBOX_SKIP_LOCKED`.
+     * When true, the drainer claims rows with `FOR UPDATE SKIP LOCKED` so a second replica
+     * skips locked rows instead of blocking. See docs/notes/config.md.
      */
     public function outboxSkipLocked(): bool
     {
@@ -266,11 +250,7 @@ class AbeonConfig
 
     /**
      * How long one handler may take before the consumer says so.
-     *
-     * Not a limit — nothing is interrupted. Every subscription runs in one loop on one
-     * channel, so a handler that waits holds up every other event this service consumes, and
-     * without this line the symptom is silence: no dead letters, no errors, a queue that
-     * simply stops moving.
+     * Not a limit — nothing is interrupted. See docs/notes/config.md.
      */
     public function consumerSlowHandlerSeconds(): float
     {
@@ -357,10 +337,7 @@ class AbeonConfig
 
     /**
      * Base address of this instance's object container, for public files (ADR-0034).
-     *
-     * Required rather than defaulted: an empty base still concatenates, so the mistake
-     * would surface as a page of broken images instead of an error at the line that made
-     * one.
+     * Required rather than defaulted — see docs/notes/config.md.
      */
     public function storagePublicBaseUrl(): string
     {
