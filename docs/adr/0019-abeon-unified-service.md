@@ -146,3 +146,8 @@ places. Bulk object bytes are worth an exception (ADR-0021); control-plane calls
   `ServiceRegistry` and `abeon:registry:register` had no caller in any service. A service announces
   itself to `POST /api/v1/internal/registry/register` here, which is what the registry has always
   served. `abeon:registry:import`, the one-off cutover from `abeon-auth`, went with it.
+- **Amended 2026-10-28 by [ADR-0038](0038-integrations-and-secrets-vault.md):** the doctrine holds for
+  providers on the platform's key (e-mail, AI, and now GUS). For providers on a client's key, the logic
+  lives in the business application that owns the domain (payments in E-commerce), and the client's
+  credentials live in an encrypted vault here, readable by each application only for its own
+  organisation and service.
