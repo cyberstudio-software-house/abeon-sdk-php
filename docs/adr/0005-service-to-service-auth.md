@@ -187,3 +187,6 @@ JWKS naturally supports multiple `kid`s simultaneously — this enables zero-dow
   bootstraps per request, so failing there would take down user login — the exact trade ADR-0025 §4
   refuses. The command belongs in a Helm `pre-upgrade` hook or an init container.
 - **Amended 2026-09-23 by [ADR-0032](0032-redis-shared-ephemeral-store.md):** the JWKS cache is now one shared Redis entry per application rather than one per process, so the rotation grace period is bounded by that single TTL.
+- **2026-10-28:** [ADR-0039](0039-instance-service-identity.md) (proposed) gives each business-application
+  instance its own key bound to its organisation and moves keys from the ConfigMap to a registry in Auth
+  (M7).

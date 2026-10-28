@@ -119,3 +119,5 @@ administrator can do: pointing a domain at the platform needs DNS and a certific
   domain of their own and would otherwise answer on the public host. The behaviour in §3 is unchanged:
   a panel route on the public host still answers 404; a public route on the panel host still does not
   exist. What changed is that one half is a routing fact rather than a middleware.
+- **2026-10-28:** [ADR-0040](0040-content-api-addressing-and-site-keys.md) (proposed) keeps one public
+  host per instance; a client with several sites serves them as external fronts on the Content API.

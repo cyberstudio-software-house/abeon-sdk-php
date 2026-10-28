@@ -189,3 +189,5 @@ the data from `@abeon/sdk-ts`, full-page navigation from ADR-0013.
   distinguishes anything — the trait was removed from the SDK (see ADR-0018's amendment of the same
   date). What defines an instance is unchanged: one client's database, `ABEON_ORG_ID`, and a token for
   another organisation refused with 403.
+- **2026-10-28:** the deferred per-instance service identity in §6 is decided in
+  [ADR-0039](0039-instance-service-identity.md) (proposed).

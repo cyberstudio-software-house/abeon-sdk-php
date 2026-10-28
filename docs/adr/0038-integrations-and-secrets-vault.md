@@ -121,3 +121,7 @@ Unified, called through `ServiceClient`, with a cache per NIP. It replaces the f
 - Product documents: `abeon-cms-prd-2026-10-27.md` (payments and products outside the CMS).
 - Not implemented on 2026-10-28: the vault, the Integrations screen, the GUS gateway. Unified has no
   `secrets` or `gus` route today.
+- **Amended 2026-10-28 by [ADR-0041](0041-outbound-http-to-client-urls.md):** "instance databases hold no
+  client secrets" means *third-party credentials*; secrets the platform generates for its own webhooks are
+  stored encrypted in the application's database. **Depends on [ADR-0039](0039-instance-service-identity.md):**
+  the vault's "each application reads only its own" holds only once tokens are bound to their instance.

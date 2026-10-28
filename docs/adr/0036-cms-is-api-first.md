@@ -122,3 +122,11 @@ Analytics, the AI assistant); it is built with the first of those that needs it.
 - Product documents: `abeon-cms-prd-2026-10-27.md` (scope, data model, API endpoints),
   `abeon-cms-files-podsumowanie-2026-10-28.html` (summary).
 - Not implemented yet: no `abeon-cms` repository exists on 2026-10-28.
+- **Amended 2026-10-28 by [ADR-0040](0040-content-api-addressing-and-site-keys.md):** the Content API is
+  served at `https://content.abeon.pl/v1` with key-based routing, not under `{basePath}`; a site key is
+  bound to one site and environment and carries `read`, `submit` and (staging only) `collect_phrases`
+  scopes, so it is no longer "read-only"; a Blade site in the instance (§4) is only for single-site
+  clients. **Amended the same day by [ADR-0041](0041-outbound-http-to-client-urls.md):** webhooks (§3) go
+  through the hardened outbound client and carry a timestamped signature. Scope drift recorded: v1 now has
+  six collection types (`abeon-cms-prd-2026-10-27.md`), and the pilot's site is built by the client or an
+  agency, so the "reference site" question in Consequences is settled.
