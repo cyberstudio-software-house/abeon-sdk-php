@@ -133,6 +133,10 @@ is a decision; turning every `auth.org.created` into a dead letter is not.
   ADR-0031 (one instance per client is what lets an instance know its own container), ADR-0018 (a missing
   organisation is an error, never a wildcard), ADR-0005 (the service token is where the caller's identity
   and organisation come from)
+- **Amended 2026-10-28 by ADR-0037:** file management above the bytes is a module in the SDK
+  (`Abeon\SDK\Files`) with records in each application's database; thumbnails stay the application's
+  job, generated ahead by that module; Unified keeps the keys and gains multipart, list, usage and
+  export under `/api/v1/internal/storage/*`.
 - Implemented in this change: `Abeon\SDK\Storage\{ObjectPath,ObjectStore,SignedUrl}` and
   `schemas/dto/stored-object.json`; `App\Storage\ObjectStorage` and
   `POST /api/v1/internal/storage/{sign,delete}` in AbeonUnified; the file demo in the template; MinIO in
