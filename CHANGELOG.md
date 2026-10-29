@@ -3,6 +3,12 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [Unreleased]
+
+### Added
+
+- Event schemas `cms.page.published` and `cms.page.unpublished` (Abeon CMS, etap 6).
+
 ## [0.15.0] — 2026-10-30
 
 ### Added

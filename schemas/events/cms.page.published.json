@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/cms.page.published.json",
+  "title": "cms.page.published payload",
+  "description": "Published by Abeon CMS when a page or post in one language is published, a new version included. Fronts are told through their own revalidation webhook; this event is for platform consumers (search, analytics, a data warehouse) that want to know content went live.\n\nThe file name is the routing key.",
+  "type": "object",
+  "required": [
+    "site_id",
+    "page_id",
+    "translation_id",
+    "type",
+    "locale",
+    "path",
+    "revision_id"
+  ],
+  "properties": {
+    "site_id": {
+      "type": "integer",
+      "description": "The CMS site inside the organisation's instance."
+    },
+    "page_id": {
+      "type": "integer",
+      "description": "The page or post, the same in every language."
+    },
+    "translation_id": {
+      "type": "integer",
+      "description": "The page in one language: the thing that was published."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "page",
+        "post"
+      ],
+      "description": "A page in the tree or a post under the posts page."
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Z]{2})?$",
+      "description": "The language of the translation."
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^/",
+      "description": "The path a reader opens, `/` for the homepage."
+    },
+    "revision_id": {
+      "type": "integer",
+      "description": "The revision now live; its content is read from the Content API, not carried here."
+    }
+  },
+  "additionalProperties": false
+}

@@ -50,6 +50,8 @@ final class PublishedSchemaContractTest extends TestCase
         'unified.app_instance.requested' => 'abeon-unified/app/Apps/Registry.php',
         'unified.app_instance.host_changed' => 'abeon-unified/app/Apps/Registry.php',
         'unified.app.registered'       => 'ADR-0022, no publisher yet',
+        'cms.page.published'           => 'abeon-cms/app/Pages/PagePublisher.php',
+        'cms.page.unpublished'         => 'abeon-cms/app/Pages/PagePublisher.php',
     ];
 
     /**
