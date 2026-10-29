@@ -3,7 +3,7 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
-## [Unreleased]
+## [0.14.1] — 2026-10-29
 
 ### Fixed (review of the files module, 2026-10-29)
 
