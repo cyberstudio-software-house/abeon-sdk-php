@@ -3,6 +3,24 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [Unreleased]
+
+### Fixed (review of the files module, 2026-10-29)
+
+- `ObjectPath` refuses a `public` segment below the visibility: the container's anonymous grant
+  spans slashes, so `svc/private/public/x` was publicly readable. AbeonUnified refuses it too.
+- `Files::reconcile()` lists only the module's own prefixes (`files/`, `thumbnails/`, `private/uploads/`);
+  it used to treat every other object under `{service}/` as an orphan and delete it after 7 days.
+- `Uploads::complete()` claims the file atomically, so racing calls start one job; a failed multipart
+  assembly is `FileRejected::MISSING_OBJECT`, not a 500.
+- `ProcessFile` receives the ETag `complete()` checked and refuses bytes written over the staging key
+  since, then sniffs the downloaded file again; parser failures (`Processing\ToolFailed`) mark the
+  file failed at once instead of retrying; `$timeout` is 900 s; `FileReady` is dispatched before the
+  staging object is removed, and a failed removal no longer fails the job.
+- The quota check counts uploads still pending or processing.
+- `Toolbox` also limits file size, CPU time and open files, and gives each job its own `HOME`/`TMPDIR`.
+- `prune-pending` also removes abandoned uploads that were trashed.
+
 ## [0.14.0] — 2026-10-29
 
 ### Added

@@ -70,7 +70,9 @@ final class ObjectPath
     {
         $key = "{$service}/{$visibility}/{$path}";
 
-        if (strlen($key) > 1024 || preg_match(self::KEY_PATTERN, $key) !== 1) {
+        // `public` deeper in the path would match the container's `*/public/*` grant and make a
+        // private object readable by anyone; AbeonUnified refuses it as well.
+        if (strlen($key) > 1024 || preg_match(self::KEY_PATTERN, $key) !== 1 || in_array('public', explode('/', $path), true)) {
             throw new InvalidArgumentException("Refused object key: {$key}");
         }
 

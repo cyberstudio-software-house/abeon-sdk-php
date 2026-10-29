@@ -108,7 +108,17 @@ final class UploadsTest extends FilesTestCase
         $this->uploads()->begin('c.jpg', 'image/jpeg', 200);
 
         Event::assertDispatchedTimes(StorageQuotaWarning::class, 1);
-        Event::assertDispatched(StorageQuotaWarning::class, fn (StorageQuotaWarning $e): bool => $e->usedBytes === 8100 && $e->quotaBytes === 10000);
+        // 7900 stored + 900 still uploading + 200 asked for: uploads in flight count, or a burst
+        // of begins would each see room that only one of them has.
+        Event::assertDispatched(StorageQuotaWarning::class, fn (StorageQuotaWarning $e): bool => $e->usedBytes === 9000 && $e->quotaBytes === 10000);
+    }
+
+    public function test_uploads_still_in_flight_count_against_the_quota(): void
+    {
+        $this->used = 8000;
+        $this->uploads()->begin('a.jpg', 'image/jpeg', 1000);
+
+        $this->assertRejected(FileRejected::QUOTA_EXCEEDED, fn () => $this->uploads()->begin('b.jpg', 'image/jpeg', 1001));
     }
 
     public function test_a_large_file_goes_in_parts(): void
@@ -172,6 +182,23 @@ final class UploadsTest extends FilesTestCase
         $this->head = null;
 
         $this->assertRejected(FileRejected::MISSING_OBJECT, fn () => $this->uploads()->complete($file));
+    }
+
+    public function test_two_completions_racing_start_one_job(): void
+    {
+        $file = $this->uploads()->begin('a.jpg', 'image/jpeg', 1000)->file;
+        StoredFile::query()->whereKey($file->id)->update(['status' => StoredFile::STATUS_PROCESSING]);
+
+        $this->assertRejected(FileRejected::NOT_PENDING, fn () => $this->uploads()->complete($file));
+        Bus::assertNotDispatched(ProcessFile::class);
+    }
+
+    public function test_the_job_is_told_which_bytes_were_checked(): void
+    {
+        $file = $this->uploads()->begin('a.jpg', 'image/jpeg', 1000)->file;
+        $this->uploads()->complete($file);
+
+        Bus::assertDispatched(ProcessFile::class, fn (ProcessFile $job): bool => $job->expectedEtag === 'e');
     }
 
     public function test_an_upload_completes_once(): void

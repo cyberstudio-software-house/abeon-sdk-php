@@ -147,28 +147,31 @@ final class Files
         $orphans = [];
         $deleted = 0;
         $cutoff = Carbon::now()->subDays($orphanDays);
-        $cursor = null;
 
-        do {
-            $page = $this->store->list("{$service}/", $cursor);
+        foreach (self::modulePrefixes($service) as $prefix) {
+            $cursor = null;
 
-            foreach ($page['objects'] as $object) {
-                $stored[$object['key']] = true;
+            do {
+                $page = $this->store->list($prefix, $cursor);
 
-                if (isset($known[$object['key']])) {
-                    continue;
+                foreach ($page['objects'] as $object) {
+                    $stored[$object['key']] = true;
+
+                    if (isset($known[$object['key']])) {
+                        continue;
+                    }
+
+                    $orphans[] = $object['key'];
+
+                    if (Carbon::parse($object['last_modified'])->lt($cutoff)) {
+                        $this->store->delete(ObjectPath::fromKey($object['key']));
+                        $deleted++;
+                    }
                 }
 
-                $orphans[] = $object['key'];
-
-                if (Carbon::parse($object['last_modified'])->lt($cutoff)) {
-                    $this->store->delete(ObjectPath::fromKey($object['key']));
-                    $deleted++;
-                }
-            }
-
-            $cursor = $page['next_cursor'];
-        } while ($cursor !== null);
+                $cursor = $page['next_cursor'];
+            } while ($cursor !== null);
+        }
 
         $expected = StoredFile::query()->where('status', StoredFile::STATUS_READY)->pluck('object_key')
             ->merge(FileVariant::query()->pluck('object_key'))
@@ -183,6 +186,23 @@ final class Files
     }
 
     /**
+     * Where this module writes, and so the only places `reconcile` may call something an orphan:
+     * an application's other objects under `{service}/` belong to code this module knows nothing of.
+     *
+     * @return list<string>
+     */
+    public static function modulePrefixes(string $service): array
+    {
+        return [
+            "{$service}/public/files/",
+            "{$service}/private/files/",
+            "{$service}/public/thumbnails/",
+            "{$service}/private/thumbnails/",
+            "{$service}/private/uploads/",
+        ];
+    }
+
+    /**
      * Uploads begun and never completed, and uploads that failed. The bytes, if any arrived,
      * sit under a private staging key, so removing them loses nothing anybody could reach.
      */
@@ -191,7 +211,7 @@ final class Files
         $count = 0;
 
         /** @var \Illuminate\Support\LazyCollection<int, StoredFile> $abandoned */
-        $abandoned = StoredFile::query()
+        $abandoned = StoredFile::withTrashed()
             ->whereIn('status', [StoredFile::STATUS_PENDING, StoredFile::STATUS_FAILED])
             ->where('created_at', '<', Carbon::now()->subHours($this->policy->pendingHours))
             ->lazyById();

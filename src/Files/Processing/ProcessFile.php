@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Abeon\SDK\Files\Processing;
 
 use Abeon\SDK\Config\AbeonConfig;
+use Abeon\SDK\Files\FilePolicy;
 use Abeon\SDK\Files\FileReady;
 use Abeon\SDK\Files\FileRejected;
 use Abeon\SDK\Files\FileVariant;
@@ -33,17 +34,26 @@ final class ProcessFile implements ShouldQueue
 
     public int $tries = 3;
 
+    /** Seconds: a 100 MB download and the parsers' own limits fit, a stuck job does not. */
+    public int $timeout = 900;
+
     /** @var list<int> */
     public array $backoff = [10, 60];
 
-    public function __construct(public readonly int $fileId, public readonly bool $variantsOnly = false)
-    {
+    /**
+     * @param  string|null  $expectedEtag  what `complete` saw at the staging key; the bytes processed must be those
+     */
+    public function __construct(
+        public readonly int $fileId,
+        public readonly bool $variantsOnly = false,
+        public readonly ?string $expectedEtag = null,
+    ) {
         $this->onQueue((string) config('abeon.files.queue', 'files'));
     }
 
-    public function handle(ObjectStore $store, AbeonConfig $config, HttpFactory $http, ImageProcessor $images, PdfProcessor $pdfs): void
+    public function handle(ObjectStore $store, AbeonConfig $config, HttpFactory $http, ImageProcessor $images, PdfProcessor $pdfs, FilePolicy $policy): void
     {
-        $file = StoredFile::query()->find($this->fileId);
+        $file = StoredFile::withTrashed()->find($this->fileId);
         $expected = $this->variantsOnly ? StoredFile::STATUS_READY : StoredFile::STATUS_PROCESSING;
 
         if ($file === null || $file->status !== $expected) {
@@ -62,7 +72,20 @@ final class ProcessFile implements ShouldQueue
 
         try {
             $input = "{$workDir}/source";
+
+            if (! $this->variantsOnly && ! $this->unchanged($store, $source, $file)) {
+                $file->forceFill(['status' => StoredFile::STATUS_FAILED, 'failure_reason' => FileRejected::CONTENT_MISMATCH])->save();
+
+                return;
+            }
+
             $http->timeout(300)->sink($input)->get($this->readUrl($store, $source))->throw();
+
+            if (! $this->variantsOnly && ! $this->stillMatches($policy, $file, $input)) {
+                $file->forceFill(['status' => StoredFile::STATUS_FAILED, 'failure_reason' => FileRejected::CONTENT_MISMATCH])->save();
+
+                return;
+            }
 
             /** @var array<string, array{width: int, height?: int|null, fit?: string}> $presets */
             $presets = (array) config('abeon.files.presets', []);
@@ -86,6 +109,12 @@ final class ProcessFile implements ShouldQueue
                 }
             } catch (FileRejected $e) {
                 $file->forceFill(['status' => StoredFile::STATUS_FAILED, 'failure_reason' => $e->reason])->save();
+
+                return;
+            } catch (ToolFailed) {
+                if (! $this->variantsOnly) {
+                    $file->forceFill(['status' => StoredFile::STATUS_FAILED, 'failure_reason' => FileRejected::PROCESSING_FAILED])->save();
+                }
 
                 return;
             }
@@ -141,8 +170,15 @@ final class ProcessFile implements ShouldQueue
             }
 
             if (! $this->variantsOnly) {
-                $store->delete($file->stagingPath($service));
                 Event::dispatch(new FileReady($file));
+
+                try {
+                    $store->delete($file->stagingPath($service));
+                } catch (\Throwable $e) {
+                    // The file is ready either way; a staging object left behind is what
+                    // `abeon:files:reconcile` exists for.
+                    report($e);
+                }
             }
         } finally {
             self::removeDirectory($workDir);
@@ -157,6 +193,28 @@ final class ProcessFile implements ShouldQueue
 
         StoredFile::query()->whereKey($this->fileId)->where('status', StoredFile::STATUS_PROCESSING)
             ->update(['status' => StoredFile::STATUS_FAILED, 'failure_reason' => FileRejected::PROCESSING_FAILED]);
+    }
+
+    /**
+     * The staging address stays signed for minutes after `complete`; the object processed has to be
+     * the one that was checked, not one written over it since.
+     */
+    private function unchanged(ObjectStore $store, ObjectPath $source, StoredFile $file): bool
+    {
+        if ($this->expectedEtag === null) {
+            return true;
+        }
+
+        $object = $store->head($source);
+
+        return $object !== null && $object['etag'] === $this->expectedEtag && $object['size'] === $file->size;
+    }
+
+    private function stillMatches(FilePolicy $policy, StoredFile $file, string $input): bool
+    {
+        $sniffed = (string) (new \finfo(FILEINFO_MIME_TYPE))->file($input);
+
+        return filesize($input) === $file->size && $policy->contentMatches($file->mime, $sniffed);
     }
 
     private static function removeDirectory(string $dir): void

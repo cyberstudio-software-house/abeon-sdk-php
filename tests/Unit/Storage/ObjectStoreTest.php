@@ -152,6 +152,22 @@ final class ObjectStoreTest extends TestCase
             $config,
         );
     }
+
+    /**
+     * The container grants anonymous reads on every key with a `public` segment after any prefix
+     * (its wildcard spans slashes), so a `public` segment below the visibility would publish a private object.
+     */
+    public function test_a_public_segment_below_the_visibility_is_refused(): void
+    {
+        foreach (['public/page.html', 'a/public/page.html'] as $path) {
+            try {
+                ObjectPath::privatePath('cms', $path);
+                $this->fail("Accepted {$path}");
+            } catch (InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
 }
 
 final class StubTokenProvider extends ServiceTokenProvider

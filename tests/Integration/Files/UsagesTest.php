@@ -40,7 +40,12 @@ final class UsagesTest extends FilesTestCase
 
         Http::fake(function (Request $request) {
             if (str_ends_with($request->url(), '/storage/list')) {
-                return Http::response(['data' => ['objects' => $this->listed, 'next_cursor' => null]]);
+                $prefix = (string) $request->data()['prefix'];
+
+                return Http::response(['data' => [
+                    'objects'     => array_values(array_filter($this->listed, static fn (array $o): bool => str_starts_with($o['key'], $prefix))),
+                    'next_cursor' => null,
+                ]]);
             }
 
             return Http::response(null, 204);
@@ -115,6 +120,7 @@ final class UsagesTest extends FilesTestCase
             ['key' => (string) $present->object_key, 'size' => 1, 'etag' => 'e', 'last_modified' => $old],
             ['key' => 'cms/public/files/old-orphan/a.jpg', 'size' => 1, 'etag' => 'e', 'last_modified' => $old],
             ['key' => 'cms/private/uploads/still-arriving', 'size' => 1, 'etag' => 'e', 'last_modified' => $recent],
+            ['key' => 'cms/public/avatars/someone-else-s.png', 'size' => 1, 'etag' => 'e', 'last_modified' => $old],
         ];
 
         $report = app(Files::class)->reconcile('cms');
@@ -125,6 +131,7 @@ final class UsagesTest extends FilesTestCase
         Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/storage/delete')
             && $request->data() === ['key' => 'cms/public/files/old-orphan/a.jpg']);
         Http::assertNotSent(fn (Request $request): bool => ($request->data()['key'] ?? null) === 'cms/private/uploads/still-arriving');
+        Http::assertNotSent(fn (Request $request): bool => ($request->data()['key'] ?? null) === 'cms/public/avatars/someone-else-s.png');
 
         $this->artisan('abeon:files:reconcile')->assertFailed();
     }

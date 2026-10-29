@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Abeon\SDK\Files;
 
+use Abeon\SDK\Client\ServiceCallException;
 use Abeon\SDK\Config\AbeonConfig;
 use Abeon\SDK\Files\Processing\ProcessFile;
 use Abeon\SDK\Storage\ObjectPath;
@@ -109,10 +110,25 @@ final class Uploads
     public function complete(StoredFile $file, array $parts = []): StoredFile
     {
         $this->assertPending($file);
+
+        // Claimed before anything is checked: two `complete` calls racing would otherwise both
+        // pass the check above and start two jobs on one upload.
+        $claimed = StoredFile::query()->whereKey($file->id)->where('status', StoredFile::STATUS_PENDING)
+            ->update(['status' => StoredFile::STATUS_PROCESSING]);
+
+        if ($claimed === 0) {
+            throw new FileRejected(FileRejected::NOT_PENDING, "File {$file->uuid} is already being completed.");
+        }
+
+        $file->status = StoredFile::STATUS_PROCESSING;
         $staging = $file->stagingPath($this->config->serviceName());
 
         if ($file->upload_id !== null) {
-            $this->store->completeMultipart($staging, $file->upload_id, $parts);
+            try {
+                $this->store->completeMultipart($staging, $file->upload_id, $parts);
+            } catch (ServiceCallException) {
+                $this->fail($file, FileRejected::MISSING_OBJECT, 'The parts could not be assembled.');
+            }
         }
 
         $object = $this->store->head($staging);
@@ -132,7 +148,7 @@ final class Uploads
         }
 
         $file->forceFill(['status' => StoredFile::STATUS_PROCESSING, 'upload_id' => null])->save();
-        Bus::dispatch(new ProcessFile($file->id));
+        Bus::dispatch(new ProcessFile($file->id, expectedEtag: $object['etag']));
 
         return $file;
     }
@@ -176,12 +192,15 @@ final class Uploads
     private function assertWithinQuota(int $size): void
     {
         $usage = $this->store->usage();
+        $inFlight = (int) StoredFile::query()
+            ->whereIn('status', [StoredFile::STATUS_PENDING, StoredFile::STATUS_PROCESSING])
+            ->sum('size');
 
-        if ($usage['used_bytes'] + $size > $usage['quota_bytes']) {
+        if ($usage['used_bytes'] + $inFlight + $size > $usage['quota_bytes']) {
             throw new FileRejected(FileRejected::QUOTA_EXCEEDED, 'The organisation has used its storage quota.');
         }
 
-        $after = $usage['used_bytes'] + $size;
+        $after = $usage['used_bytes'] + $inFlight + $size;
 
         if ($after >= StorageQuotaWarning::THRESHOLD * $usage['quota_bytes'] && Cache::add('abeon-files:quota-warning', true, 86400)) {
             Event::dispatch(new StorageQuotaWarning($after, $usage['quota_bytes']));

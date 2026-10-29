@@ -53,6 +53,14 @@ final class ProcessFileTest extends FilesTestCase
                 ]]);
             }
 
+            if (str_ends_with($path, '/storage/head')) {
+                $bytes = $this->objects[$request->data()['key']] ?? null;
+
+                return $bytes === null
+                    ? Http::response(['type' => 'about:blank', 'title' => 'Not Found', 'status' => 404], 404)
+                    : Http::response(['data' => ['size' => strlen($bytes), 'etag' => md5($bytes), 'content_type' => '', 'last_modified' => '']]);
+            }
+
             if (str_ends_with($path, '/storage/delete')) {
                 unset($this->objects[$request->data()['key']]);
 
@@ -184,6 +192,31 @@ final class ProcessFileTest extends FilesTestCase
         $this->assertSame(8, $file->variants()->count());
     }
 
+    public function test_bytes_written_over_the_staging_key_after_the_check_are_not_processed(): void
+    {
+        $photo = $this->gradientPng(100, 100);
+        $file = $this->staged($photo, 'image/png', 'a.png');
+        $checked = md5($photo);
+        $this->objects["cms/private/uploads/{$file->uuid}"] = str_pad('<html><script>alert(1)</script></html>', strlen($photo));
+
+        app()->call([new ProcessFile($file->id, expectedEtag: $checked), 'handle']);
+
+        $this->assertSame(StoredFile::STATUS_FAILED, $file->fresh()?->status);
+        $this->assertSame(FileRejected::CONTENT_MISMATCH, $file->fresh()?->failure_reason);
+        $this->assertSame([], array_values(array_filter(array_keys($this->objects), static fn (string $k): bool => str_contains($k, '/public/'))));
+    }
+
+    public function test_a_file_the_parser_cannot_read_fails_at_once_instead_of_being_retried(): void
+    {
+        $broken = substr($this->jpegWithGpsAndOrientation(400, 300), 0, 200);
+        $file = $this->staged($broken, 'image/jpeg', 'broken.jpg');
+
+        $this->process($file);
+
+        $this->assertSame(StoredFile::STATUS_FAILED, $file->fresh()?->status);
+        $this->assertSame(FileRejected::PROCESSING_FAILED, $file->fresh()?->failure_reason);
+    }
+
     public function test_a_parser_sees_nothing_of_the_application_s_environment(): void
     {
         putenv('ABEON_SERVICE_JWT_PRIVATE_KEY=very-secret');
@@ -200,6 +233,7 @@ final class ProcessFileTest extends FilesTestCase
         $this->assertStringNotContainsString('secret', $env);
         $this->assertStringContainsString('VIPS_BLOCK_UNTRUSTED=1', $env);
         $this->assertStringContainsString('PATH=', $env);
+        $this->assertStringContainsString('HOME='.$this->fixtures, $env);
     }
 
     private function process(StoredFile $file): void
