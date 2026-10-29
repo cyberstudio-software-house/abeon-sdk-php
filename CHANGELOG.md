@@ -3,6 +3,25 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [Unreleased]
+
+### Added
+
+**Files module, core (ADR-0037, Files PRD §5.1).**
+
+- `Files\Uploads`: `begin()` records a pending file and signs an upload to a private staging key, or opens a
+  multipart upload above `abeon.files.multipart_threshold`; `partUrl()`; `complete()` checks the stored size
+  and the type by content (first 64 KiB, `finfo`) before the file moves to `processing`. A mismatch marks it
+  `failed` and deletes the staged object.
+- `Files\FilePolicy` (`abeon.files.types`: type => maximum bytes), organisation quota checked at `begin()`,
+  `duplicateOf` when the caller sends a SHA-256 of a ready file.
+- `Files\Files`: `find`, `publicUrl`, `readUrl`, `trash`, `restore`, `purge`; commands
+  `abeon:files:prune-pending` and `abeon:files:purge-trash`.
+- Migrations `files`, `file_variants`, `file_usages`, `folders`, `tags`, `file_tag`, published with
+  `vendor:publish --tag=abeon-files-migrations` and not loaded by default.
+- `Storage\ObjectStore`: `head`, `list`, `usage`, `beginMultipart`, `partUrl`, `completeMultipart`,
+  `abortMultipart` (Unified endpoints added 2026-10-29).
+
 ## [0.13.0] — 2026-10-29
 
 ### Changed

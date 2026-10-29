@@ -41,6 +41,11 @@ use Abeon\SDK\Http\VersionHeadersMiddleware;
 use Abeon\SDK\Logging\CorrelationContext;
 use Abeon\SDK\Logging\JsonFormatter;
 use Abeon\SDK\Storage\ObjectStore;
+use Abeon\SDK\Files\Console\PrunePendingCommand;
+use Abeon\SDK\Files\Console\PurgeTrashCommand;
+use Abeon\SDK\Files\FilePolicy;
+use Abeon\SDK\Files\Files;
+use Abeon\SDK\Files\Uploads;
 use Abeon\SDK\Support\PathPrefix;
 use Abeon\SDK\Tenancy\TenantContext;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
@@ -102,6 +107,10 @@ class AbeonServiceProvider extends ServiceProvider
             __DIR__.'/../database/migrations/' => $this->databasePath('migrations'),
         ], 'abeon-migrations');
 
+        $this->publishes([
+            __DIR__.'/../database/files-migrations/' => $this->databasePath('migrations'),
+        ], 'abeon-files-migrations');
+
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         $this->loadRoutesFrom(__DIR__.'/../routes/health.php');
@@ -122,6 +131,8 @@ class AbeonServiceProvider extends ServiceProvider
                 DeadLetterCommand::class,
                 PruneEventsCommand::class,
                 ConsumeCommand::class,
+                PrunePendingCommand::class,
+                PurgeTrashCommand::class,
             ]);
         }
     }
@@ -220,6 +231,11 @@ class AbeonServiceProvider extends ServiceProvider
     {
         $this->app->singleton(PathPrefix::class);
         $this->app->singleton(ObjectStore::class);
+        $this->app->singleton(FilePolicy::class, fn ($app): FilePolicy => FilePolicy::fromConfig(
+            (array) $app->make('config')->get('abeon.files', []),
+        ));
+        $this->app->singleton(Uploads::class);
+        $this->app->singleton(Files::class);
     }
 
     private function registerEvents(): void

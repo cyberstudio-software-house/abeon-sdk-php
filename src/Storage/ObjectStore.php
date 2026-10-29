@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Abeon\SDK\Storage;
 
+use Abeon\SDK\Client\ServiceCallException;
 use Abeon\SDK\Client\ServiceClient;
 use Abeon\SDK\Config\AbeonConfig;
 use DateTimeImmutable;
@@ -91,6 +92,100 @@ final class ObjectStore
             ->post('/api/v1/internal/storage/delete', ['key' => $path->key()]);
     }
 
+    /**
+     * What the storage holds at this key, or null when nothing is there. How an upload is
+     * checked before it is believed: the browser said it sent the bytes, this says whether it did.
+     *
+     * @return array{size: int, etag: string, content_type: string, last_modified: string}|null
+     */
+    public function head(ObjectPath $path): ?array
+    {
+        try {
+            $response = $this->client->service('unified')
+                ->post('/api/v1/internal/storage/head', ['key' => $path->key()]);
+        } catch (ServiceCallException $e) {
+            if ($e->problem->status === 404) {
+                return null;
+            }
+
+            throw $e;
+        }
+
+        /** @var array{size: int, etag: string, content_type: string, last_modified: string} $object */
+        $object = $response->json('data');
+
+        return $object;
+    }
+
+    /**
+     * One page of this service's objects under `$prefix` (its own `{service}/` by default).
+     *
+     * @return array{objects: list<array{key: string, size: int, etag: string, last_modified: string}>, next_cursor: string|null}
+     */
+    public function list(?string $prefix = null, ?string $cursor = null, int $limit = 1000): array
+    {
+        /** @var array{objects: list<array{key: string, size: int, etag: string, last_modified: string}>, next_cursor: string|null} $page */
+        $page = $this->client->service('unified')->post('/api/v1/internal/storage/list', array_filter([
+            'prefix' => $prefix,
+            'cursor' => $cursor,
+            'limit'  => $limit,
+        ], static fn (mixed $value): bool => $value !== null))->json('data');
+
+        return $page;
+    }
+
+    /**
+     * Bytes the organisation stores across every application, and how many it may.
+     *
+     * @return array{used_bytes: int, quota_bytes: int}
+     */
+    public function usage(): array
+    {
+        /** @var array{used_bytes: int, quota_bytes: int} $usage */
+        $usage = $this->client->service('unified')->get('/api/v1/internal/storage/usage')->json('data');
+
+        return $usage;
+    }
+
+    public function beginMultipart(ObjectPath $path, string $contentType): string
+    {
+        return (string) $this->client->service('unified')->post('/api/v1/internal/storage/multipart/create', [
+            'key'          => $path->key(),
+            'content_type' => $contentType,
+        ])->json('data.upload_id');
+    }
+
+    public function partUrl(ObjectPath $path, string $uploadId, int $partNumber): SignedUrl
+    {
+        $signed = $this->client->service('unified')->post('/api/v1/internal/storage/multipart/part', [
+            'key'         => $path->key(),
+            'upload_id'   => $uploadId,
+            'part_number' => $partNumber,
+        ])->json('data');
+
+        return $this->signedUrlFrom($signed);
+    }
+
+    /**
+     * @param  list<array{part_number: int, etag: string}>  $parts
+     */
+    public function completeMultipart(ObjectPath $path, string $uploadId, array $parts): void
+    {
+        $this->client->service('unified')->post('/api/v1/internal/storage/multipart/complete', [
+            'key'       => $path->key(),
+            'upload_id' => $uploadId,
+            'parts'     => $parts,
+        ]);
+    }
+
+    public function abortMultipart(ObjectPath $path, string $uploadId): void
+    {
+        $this->client->service('unified')->post('/api/v1/internal/storage/multipart/abort', [
+            'key'       => $path->key(),
+            'upload_id' => $uploadId,
+        ]);
+    }
+
     private function sign(ObjectPath $path, string $operation, ?string $contentType = null): SignedUrl
     {
         $response = $this->client->service('unified')->post('/api/v1/internal/storage/sign', array_filter([
@@ -99,9 +194,12 @@ final class ObjectStore
             'content_type' => $contentType,
         ], static fn (mixed $value): bool => $value !== null));
 
-        /** @var array{url: string, expires_at: string, headers?: array<string, string>} $signed */
-        $signed = $response->json('data');
+        return $this->signedUrlFrom($response->json('data'));
+    }
 
+    private function signedUrlFrom(mixed $signed): SignedUrl
+    {
+        /** @var array{url: string, expires_at: string, headers?: array<string, string>} $signed */
         return new SignedUrl(
             $signed['url'],
             new DateTimeImmutable($signed['expires_at']),

@@ -105,6 +105,26 @@ return [
         'public_base_url' => env('ABEON_STORAGE_PUBLIC_BASE_URL'),
     ],
 
+    /*
+     | The files module (ADR-0037): what this application accepts, with a size limit per type.
+     | An application that keeps other kinds of files lists them in its own copy of this file.
+     | Types a browser would run are refused under `public/` by Unified whatever is listed here.
+     */
+    'files' => [
+        'types' => [
+            'image/jpeg'      => 20 * 1024 ** 2,
+            'image/png'       => 20 * 1024 ** 2,
+            'image/webp'      => 20 * 1024 ** 2,
+            'image/gif'       => 20 * 1024 ** 2,
+            'image/avif'      => 20 * 1024 ** 2,
+            'application/pdf' => 100 * 1024 ** 2,
+        ],
+        'multipart_threshold' => (int) env('ABEON_FILES_MULTIPART_THRESHOLD', 64 * 1024 ** 2),
+        'part_size'           => (int) env('ABEON_FILES_PART_SIZE', 16 * 1024 ** 2),
+        'pending_hours'       => 24,
+        'trash_days'          => 30,
+    ],
+
     'http' => [
         /*
          | Which proxies this service believes about `X-Forwarded-*`.
