@@ -80,6 +80,14 @@ class StoredFile extends Model
         return $this->hasMany(FileVariant::class, 'file_id');
     }
 
+    /**
+     * @return HasMany<FileUsage, $this>
+     */
+    public function usages(): HasMany
+    {
+        return $this->hasMany(FileUsage::class, 'file_id');
+    }
+
     public function path(): ?ObjectPath
     {
         return $this->object_key === null ? null : ObjectPath::fromKey($this->object_key);

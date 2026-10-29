@@ -199,6 +199,24 @@ final class SchemaContractTest extends TestCase
         ]));
     }
 
+    public function test_the_object_endpoints_accept_what_the_sdk_sends_and_nothing_naming_a_container(): void
+    {
+        $this->assertValid('http/storage-objects.json#/$defs/head-request', ['key' => 'cms/private/uploads/a']);
+        $this->assertValid('http/storage-objects.json#/$defs/list-request', ['prefix' => 'cms/', 'limit' => 1000]);
+        $this->assertValid('http/storage-objects.json#/$defs/usage-response', ['used_bytes' => 0, 'quota_bytes' => 10]);
+        $this->assertValid('http/storage-objects.json#/$defs/multipart-complete-request', [
+            'key'       => 'cms/private/uploads/a',
+            'upload_id' => 'up-1',
+            'parts'     => [['part_number' => 1, 'etag' => 'e']],
+        ]);
+
+        $this->assertFalse($this->validate('http/storage-objects.json#/$defs/head-request', ['key' => 'cms/private/a', 'org_id' => 2]));
+        $this->assertFalse($this->validate('http/storage-objects.json#/$defs/list-request', ['limit' => 5000]));
+        $this->assertFalse($this->validate('http/storage-objects.json#/$defs/multipart-part-request', [
+            'key' => 'cms/private/uploads/a', 'upload_id' => 'up-1', 'part_number' => 10001,
+        ]));
+    }
+
     public function test_organisation_member_fixture_matches_schema(): void
     {
         $this->assertValid('dto/organisation-member.json', $this->fixture('organisation-member.json'));

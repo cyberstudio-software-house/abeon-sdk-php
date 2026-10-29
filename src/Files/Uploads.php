@@ -12,6 +12,8 @@ use Abeon\SDK\Storage\SignedUrl;
 use finfo;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 
 /**
@@ -177,6 +179,12 @@ final class Uploads
 
         if ($usage['used_bytes'] + $size > $usage['quota_bytes']) {
             throw new FileRejected(FileRejected::QUOTA_EXCEEDED, 'The organisation has used its storage quota.');
+        }
+
+        $after = $usage['used_bytes'] + $size;
+
+        if ($after >= StorageQuotaWarning::THRESHOLD * $usage['quota_bytes'] && Cache::add('abeon-files:quota-warning', true, 86400)) {
+            Event::dispatch(new StorageQuotaWarning($after, $usage['quota_bytes']));
         }
     }
 }

@@ -9,11 +9,13 @@ use Abeon\SDK\Files\FileRejected;
 use Abeon\SDK\Files\Files;
 use Abeon\SDK\Files\FileVariant;
 use Abeon\SDK\Files\Processing\ProcessFile;
+use Abeon\SDK\Files\StorageQuotaWarning;
 use Abeon\SDK\Files\StoredFile;
 use Abeon\SDK\Files\Uploads;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -91,6 +93,22 @@ final class UploadsTest extends FilesTestCase
 
         $this->assertRejected(FileRejected::QUOTA_EXCEEDED, fn () => $this->uploads()->begin('a.jpg', 'image/jpeg', 1000));
         $this->assertSame(0, StoredFile::query()->count());
+    }
+
+    public function test_crossing_eighty_percent_of_the_quota_warns_once_a_day(): void
+    {
+        Event::fake([StorageQuotaWarning::class]);
+
+        $this->used = 7000;
+        $this->uploads()->begin('a.jpg', 'image/jpeg', 900);
+        Event::assertNotDispatched(StorageQuotaWarning::class);
+
+        $this->used = 7900;
+        $this->uploads()->begin('b.jpg', 'image/jpeg', 200);
+        $this->uploads()->begin('c.jpg', 'image/jpeg', 200);
+
+        Event::assertDispatchedTimes(StorageQuotaWarning::class, 1);
+        Event::assertDispatched(StorageQuotaWarning::class, fn (StorageQuotaWarning $e): bool => $e->usedBytes === 8100 && $e->quotaBytes === 10000);
     }
 
     public function test_a_large_file_goes_in_parts(): void

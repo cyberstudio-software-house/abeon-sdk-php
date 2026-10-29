@@ -43,6 +43,7 @@ use Abeon\SDK\Logging\JsonFormatter;
 use Abeon\SDK\Storage\ObjectStore;
 use Abeon\SDK\Files\Console\PrunePendingCommand;
 use Abeon\SDK\Files\Console\PurgeTrashCommand;
+use Abeon\SDK\Files\Console\ReconcileCommand;
 use Abeon\SDK\Files\FilePolicy;
 use Abeon\SDK\Files\Files;
 use Abeon\SDK\Files\Processing\ImageProcessor;
@@ -135,6 +136,7 @@ class AbeonServiceProvider extends ServiceProvider
                 ConsumeCommand::class,
                 PrunePendingCommand::class,
                 PurgeTrashCommand::class,
+                ReconcileCommand::class,
             ]);
         }
     }

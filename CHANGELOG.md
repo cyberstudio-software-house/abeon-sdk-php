@@ -3,7 +3,7 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
-## [Unreleased]
+## [0.14.0] — 2026-10-29
 
 ### Added
 
@@ -28,7 +28,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
   application's environment, `VIPS_BLOCK_UNTRUSTED=1`, `prlimit` on address space and a timeout; images
   over `abeon.files.processing.max_pixels` fail with `too_many_pixels`. Requires `libvips-tools`,
   `poppler-utils` and `util-linux` in the image.
-- Requires `illuminate/bus`, `illuminate/queue` and `symfony/process` directly.
+- `Files\UsesFiles` trait: a model lists the file uuids it uses (`usedFileUuids()`, optional
+  `fileUsageLabel()`/`fileUsageUrl()`) and `file_usages` follows every save; a force delete removes the rows,
+  a soft delete keeps them. `Files::trash()` refuses a file in use with `FileRejected::IN_USE` and the list in
+  `$usages`; `Files::purge()` (erasure) removes it with its usages.
+- `Files::reconcile()` and `abeon:files:reconcile`: records against the objects under `{service}/`, reports
+  missing objects (exit code 1) and orphans, deletes orphans older than `--orphan-days` (7).
+- `Files\StorageQuotaWarning`: raised at most once a day when an upload would take the organisation past
+  80% of its quota.
+- Schema `http/storage-objects.json` for the storage endpoints beside `sign`.
+- Requires `illuminate/bus`, `illuminate/queue`, `illuminate/cache`, `illuminate/events` and
+  `symfony/process` directly.
 - `Storage\ObjectStore`: `head`, `list`, `usage`, `beginMultipart`, `partUrl`, `completeMultipart`,
   `abortMultipart` (Unified endpoints added 2026-10-29).
 

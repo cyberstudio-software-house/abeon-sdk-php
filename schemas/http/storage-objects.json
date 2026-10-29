@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/http/storage-objects.json",
+  "title": "Abeon Storage Objects",
+  "description": "The rest of `/api/v1/internal/storage` in AbeonUnified beside `sign` and `delete` (ADR-0037): inspecting an object, listing the caller's own prefix, the organisation's usage, and multipart uploads. As with `sign`, the container comes from the organisation in the service token and the prefix from the service name in it.",
+  "$defs": {
+    "key": { "$ref": "https://schemas.abeon.pl/dto/stored-object.json#/properties/key" },
+    "head-request": {
+      "description": "`POST head`. Answers 404 when nothing is stored at the key.",
+      "type": "object",
+      "required": ["key"],
+      "properties": { "key": { "$ref": "#/$defs/key" } },
+      "additionalProperties": false
+    },
+    "head-response": {
+      "type": "object",
+      "required": ["size", "etag", "content_type", "last_modified"],
+      "properties": {
+        "size": { "type": "integer", "minimum": 0 },
+        "etag": { "type": "string", "description": "Without the surrounding quotes S3 sends." },
+        "content_type": { "type": "string" },
+        "last_modified": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "list-request": {
+      "description": "`POST list`. The prefix must lie inside the caller's own `{service}/`; it defaults to exactly that.",
+      "type": "object",
+      "properties": {
+        "prefix": { "type": ["string", "null"], "maxLength": 1024 },
+        "cursor": { "type": ["string", "null"], "maxLength": 2048 },
+        "limit": { "type": ["integer", "null"], "minimum": 1, "maximum": 1000 }
+      },
+      "additionalProperties": false
+    },
+    "list-response": {
+      "type": "object",
+      "required": ["objects", "next_cursor"],
+      "properties": {
+        "objects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "size", "etag", "last_modified"],
+            "properties": {
+              "key": { "$ref": "#/$defs/key" },
+              "size": { "type": "integer", "minimum": 0 },
+              "etag": { "type": "string" },
+              "last_modified": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "next_cursor": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "usage-response": {
+      "description": "`GET usage`. Bytes in the organisation's container across every application, and the quota the operator assigned.",
+      "type": "object",
+      "required": ["used_bytes", "quota_bytes"],
+      "properties": {
+        "used_bytes": { "type": "integer", "minimum": 0 },
+        "quota_bytes": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "multipart-create-request": {
+      "description": "`POST multipart/create`. The type is fixed for the whole upload, and refused under `public/` when a browser would run it.",
+      "type": "object",
+      "required": ["key", "content_type"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "content_type": { "type": "string", "maxLength": 255 }
+      },
+      "additionalProperties": false
+    },
+    "multipart-create-response": {
+      "type": "object",
+      "required": ["upload_id"],
+      "properties": { "upload_id": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "multipart-part-request": {
+      "description": "`POST multipart/part`. Answers with a signature in the shape of `storage-sign.json#/$defs/response`.",
+      "type": "object",
+      "required": ["key", "upload_id", "part_number"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "upload_id": { "type": "string", "maxLength": 1024 },
+        "part_number": { "type": "integer", "minimum": 1, "maximum": 10000 }
+      },
+      "additionalProperties": false
+    },
+    "multipart-complete-request": {
+      "description": "`POST multipart/complete`. Answers 204.",
+      "type": "object",
+      "required": ["key", "upload_id", "parts"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "upload_id": { "type": "string", "maxLength": 1024 },
+        "parts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "required": ["part_number", "etag"],
+            "properties": {
+              "part_number": { "type": "integer", "minimum": 1, "maximum": 10000 },
+              "etag": { "type": "string", "maxLength": 255 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "multipart-abort-request": {
+      "description": "`POST multipart/abort`. Answers 204.",
+      "type": "object",
+      "required": ["key", "upload_id"],
+      "properties": {
+        "key": { "$ref": "#/$defs/key" },
+        "upload_id": { "type": "string", "maxLength": 1024 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

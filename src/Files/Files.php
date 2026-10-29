@@ -66,8 +66,25 @@ final class Files
         }
     }
 
+    /**
+     * A file something still uses stays where it is; the refusal carries the list for
+     * "where used" (Files PRD §6).
+     */
     public function trash(StoredFile $file): void
     {
+        $usages = $file->usages()->orderBy('entity_type')->orderBy('entity_id')
+            ->get(['entity_type', 'entity_id', 'label', 'admin_url'])
+            ->map(static fn ($usage): array => [
+                'entity_type' => (string) $usage->entity_type,
+                'entity_id'   => (string) $usage->entity_id,
+                'label'       => $usage->label === null ? null : (string) $usage->label,
+                'admin_url'   => $usage->admin_url === null ? null : (string) $usage->admin_url,
+            ])->values()->all();
+
+        if ($usages !== []) {
+            throw new FileRejected(FileRejected::IN_USE, "File {$file->uuid} is used in ".count($usages).' places.', $usages);
+        }
+
         $file->delete();
     }
 
@@ -76,6 +93,10 @@ final class Files
         $file->restore();
     }
 
+    /**
+     * Objects and record gone at once, usages included — the erasure path, which a file in use
+     * does not stop (Files PRD §11a). The trash empties through here too, where nothing uses a file.
+     */
     public function purge(StoredFile $file): void
     {
         foreach ($file->variants()->pluck('object_key') as $key) {
@@ -87,6 +108,7 @@ final class Files
             $this->store->delete($path);
         }
 
+        $file->usages()->delete();
         $file->forceDelete();
     }
 
@@ -104,6 +126,60 @@ final class Files
         }
 
         return $count;
+    }
+
+    /**
+     * What the records say against what the storage holds (Files PRD §5.1). A record whose object
+     * is missing is reported; an object no record knows is reported and, once older than
+     * `$orphanDays`, deleted — the age keeps an upload that is still arriving out of it.
+     *
+     * ponytail: keeps every known key in memory, fine to a few hundred thousand files; page the
+     * comparison by key prefix when an application holds more.
+     *
+     * @return array{missing: list<string>, orphans: list<string>, deleted: int}
+     */
+    public function reconcile(string $service, int $orphanDays = 7): array
+    {
+        $known = array_fill_keys(StoredFile::withTrashed()->whereNotNull('object_key')->pluck('object_key')->all(), true)
+            + array_fill_keys(FileVariant::query()->pluck('object_key')->all(), true);
+
+        $stored = [];
+        $orphans = [];
+        $deleted = 0;
+        $cutoff = Carbon::now()->subDays($orphanDays);
+        $cursor = null;
+
+        do {
+            $page = $this->store->list("{$service}/", $cursor);
+
+            foreach ($page['objects'] as $object) {
+                $stored[$object['key']] = true;
+
+                if (isset($known[$object['key']])) {
+                    continue;
+                }
+
+                $orphans[] = $object['key'];
+
+                if (Carbon::parse($object['last_modified'])->lt($cutoff)) {
+                    $this->store->delete(ObjectPath::fromKey($object['key']));
+                    $deleted++;
+                }
+            }
+
+            $cursor = $page['next_cursor'];
+        } while ($cursor !== null);
+
+        $expected = StoredFile::query()->where('status', StoredFile::STATUS_READY)->pluck('object_key')
+            ->merge(FileVariant::query()->pluck('object_key'))
+            ->filter()
+            ->map(static fn (mixed $key): string => (string) $key);
+
+        return [
+            'missing' => $expected->reject(static fn (string $key): bool => isset($stored[$key]))->values()->all(),
+            'orphans' => $orphans,
+            'deleted' => $deleted,
+        ];
     }
 
     /**

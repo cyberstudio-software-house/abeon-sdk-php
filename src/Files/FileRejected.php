@@ -30,9 +30,14 @@ final class FileRejected extends RuntimeException
 
     public const TOO_MANY_PIXELS = 'too_many_pixels';
 
+    public const IN_USE = 'in_use';
+
     public const PROCESSING_FAILED = 'processing_failed';
 
-    public function __construct(public readonly string $reason, string $message)
+    /**
+     * @param  list<array{entity_type: string, entity_id: string, label: string|null, admin_url: string|null}>  $usages
+     */
+    public function __construct(public readonly string $reason, string $message, public readonly array $usages = [])
     {
         parent::__construct($message);
     }
