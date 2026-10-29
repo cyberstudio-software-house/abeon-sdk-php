@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Abeon\SDK\Files;
 
 use Abeon\SDK\Config\AbeonConfig;
+use Abeon\SDK\Files\Processing\ProcessFile;
 use Abeon\SDK\Storage\ObjectPath;
 use Abeon\SDK\Storage\ObjectStore;
 use Abeon\SDK\Storage\SignedUrl;
 use finfo;
 use Illuminate\Http\Client\Factory as HttpFactory;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Str;
 
 /**
@@ -128,6 +130,7 @@ final class Uploads
         }
 
         $file->forceFill(['status' => StoredFile::STATUS_PROCESSING, 'upload_id' => null])->save();
+        Bus::dispatch(new ProcessFile($file->id));
 
         return $file;
     }

@@ -19,6 +19,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
   `abeon:files:prune-pending` and `abeon:files:purge-trash`.
 - Migrations `files`, `file_variants`, `file_usages`, `folders`, `tags`, `file_tag`, published with
   `vendor:publish --tag=abeon-files-migrations` and not loaded by default.
+- `Files\Processing\ProcessFile` (queue `abeon.files.queue`, default `files`), dispatched by `complete()`:
+  the original rotated upright and re-encoded without EXIF/XMP/IPTC (colour profile kept), WebP and fallback
+  variants from `abeon.files.presets` (`inside`, or `cover` around the focal point), PDF page count and a
+  first-page preview, real SHA-256, then status `ready` and the Laravel event `Files\FileReady`.
+  `Files::setFocalPoint()` remakes the variants.
+- Parsers run through `Files\Processing\Toolbox`: libvips and poppler as separate processes with none of the
+  application's environment, `VIPS_BLOCK_UNTRUSTED=1`, `prlimit` on address space and a timeout; images
+  over `abeon.files.processing.max_pixels` fail with `too_many_pixels`. Requires `libvips-tools`,
+  `poppler-utils` and `util-linux` in the image.
+- Requires `illuminate/bus`, `illuminate/queue` and `symfony/process` directly.
 - `Storage\ObjectStore`: `head`, `list`, `usage`, `beginMultipart`, `partUrl`, `completeMultipart`,
   `abortMultipart` (Unified endpoints added 2026-10-29).
 

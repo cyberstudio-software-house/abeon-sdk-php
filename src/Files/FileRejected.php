@@ -28,6 +28,10 @@ final class FileRejected extends RuntimeException
 
     public const NOT_MULTIPART = 'not_multipart';
 
+    public const TOO_MANY_PIXELS = 'too_many_pixels';
+
+    public const PROCESSING_FAILED = 'processing_failed';
+
     public function __construct(public readonly string $reason, string $message)
     {
         parent::__construct($message);

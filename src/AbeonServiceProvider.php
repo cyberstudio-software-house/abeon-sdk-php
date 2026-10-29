@@ -45,6 +45,8 @@ use Abeon\SDK\Files\Console\PrunePendingCommand;
 use Abeon\SDK\Files\Console\PurgeTrashCommand;
 use Abeon\SDK\Files\FilePolicy;
 use Abeon\SDK\Files\Files;
+use Abeon\SDK\Files\Processing\ImageProcessor;
+use Abeon\SDK\Files\Processing\Toolbox;
 use Abeon\SDK\Files\Uploads;
 use Abeon\SDK\Support\PathPrefix;
 use Abeon\SDK\Tenancy\TenantContext;
@@ -235,6 +237,14 @@ class AbeonServiceProvider extends ServiceProvider
             (array) $app->make('config')->get('abeon.files', []),
         ));
         $this->app->singleton(Uploads::class);
+        $this->app->singleton(Toolbox::class, fn ($app): Toolbox => new Toolbox(
+            (int) $app->make('config')->get('abeon.files.processing.timeout', 60),
+            (int) $app->make('config')->get('abeon.files.processing.memory_bytes', 1024 ** 3),
+        ));
+        $this->app->singleton(ImageProcessor::class, fn ($app): ImageProcessor => new ImageProcessor(
+            $app->make(Toolbox::class),
+            (int) $app->make('config')->get('abeon.files.processing.max_pixels', 50_000_000),
+        ));
         $this->app->singleton(Files::class);
     }
 

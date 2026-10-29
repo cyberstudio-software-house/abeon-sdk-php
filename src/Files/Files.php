@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Abeon\SDK\Files;
 
+use Abeon\SDK\Files\Processing\ProcessFile;
 use Abeon\SDK\Storage\ObjectPath;
 use Abeon\SDK\Storage\ObjectStore;
 use Abeon\SDK\Storage\SignedUrl;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Bus;
 
 /**
  * A file once it exists: where to read it, and the trash. A trashed file keeps its objects for
@@ -45,6 +47,23 @@ final class Files
         }
 
         return $this->store->readUrl($path);
+    }
+
+    /**
+     * Where the subject of the picture is, as fractions of its width and height. Cropped variants
+     * are made again around it.
+     */
+    public function setFocalPoint(StoredFile $file, float $x, float $y): void
+    {
+        if ($x < 0 || $x > 1 || $y < 0 || $y > 1) {
+            throw new \InvalidArgumentException('A focal point is two fractions between 0 and 1.');
+        }
+
+        $file->forceFill(['focal_x' => round($x, 4), 'focal_y' => round($y, 4)])->save();
+
+        if ($file->status === StoredFile::STATUS_READY) {
+            Bus::dispatch(new ProcessFile($file->id, variantsOnly: true));
+        }
     }
 
     public function trash(StoredFile $file): void

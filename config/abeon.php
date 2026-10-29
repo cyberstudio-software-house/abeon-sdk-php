@@ -123,6 +123,24 @@ return [
         'part_size'           => (int) env('ABEON_FILES_PART_SIZE', 16 * 1024 ** 2),
         'pending_hours'       => 24,
         'trash_days'          => 30,
+        'queue'               => env('ABEON_FILES_QUEUE', 'files'),
+
+        // Parsers run on bytes from strangers, so they get a ceiling on time, memory and
+        // input size (Files PRD §11a). 50 megapixels is a 50 MP camera's full frame.
+        'processing' => [
+            'timeout'      => 60,
+            'memory_bytes' => 1024 ** 3,
+            'max_pixels'   => 50_000_000,
+        ],
+
+        // Variants of every image: `inside` keeps the proportions, `cover` fills the box around
+        // the focal point. Keys are predictable, `{service}/{visibility}/thumbnails/{uuid}/{preset}.{ext}`.
+        'presets' => [
+            'thumb' => ['width' => 320],
+            'md'    => ['width' => 960],
+            'lg'    => ['width' => 1920],
+            'og'    => ['width' => 1200, 'height' => 630, 'fit' => 'cover'],
+        ],
     ],
 
     'http' => [

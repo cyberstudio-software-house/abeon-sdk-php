@@ -4,25 +4,24 @@ declare(strict_types=1);
 
 namespace Abeon\SDK\Tests\Integration\Files;
 
-use Abeon\SDK\AbeonServiceProvider;
-use Abeon\SDK\Client\ServiceTokenProvider;
 use Abeon\SDK\Files\FilePolicy;
 use Abeon\SDK\Files\FileRejected;
 use Abeon\SDK\Files\Files;
 use Abeon\SDK\Files\FileVariant;
+use Abeon\SDK\Files\Processing\ProcessFile;
 use Abeon\SDK\Files\StoredFile;
 use Abeon\SDK\Files\Uploads;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
-use Orchestra\Testbench\TestCase;
 
 /**
  * The files module against a real database and a faked AbeonUnified. What matters is that
  * nothing the browser claims is believed: the size and the type are checked against what the
  * storage holds before a file leaves `pending`.
  */
-final class UploadsTest extends TestCase
+final class UploadsTest extends FilesTestCase
 {
     private const JPEG = "\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00";
 
@@ -33,57 +32,10 @@ final class UploadsTest extends TestCase
 
     private int $used = 0;
 
-    protected function getPackageProviders($app): array
-    {
-        return [AbeonServiceProvider::class];
-    }
-
-    protected function defineEnvironment($app): void
-    {
-        $setting = static fn (string $name, string $default): string => (string) (getenv('ABEON_TEST_DB_'.$name) ?: $default);
-
-        $app['config']->set('database.default', 'mariadb');
-        $app['config']->set('database.connections.mariadb', [
-            'driver'    => 'mariadb',
-            'host'      => $setting('HOST', '127.0.0.1'),
-            'port'      => $setting('PORT', '3306'),
-            'database'  => $setting('DATABASE', 'abeon_sdk_test'),
-            'username'  => $setting('USERNAME', 'abeon_sdk'),
-            'password'  => $setting('PASSWORD', 'abeon_sdk'),
-            'charset'   => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix'    => '',
-            'strict'    => true,
-        ]);
-        $app['config']->set('abeon.service.name', 'cms');
-        $app['config']->set('abeon.services.unified.url', 'http://unified.test');
-        $app['config']->set('abeon.client.max_retries', 0);
-        $app['config']->set('abeon.storage.public_base_url', 'http://storage.test/abeon-org-1');
-        $app['config']->set('abeon.files.multipart_threshold', 5000);
-        $app['config']->set('abeon.files.part_size', 2000);
-
-        $app->instance(ServiceTokenProvider::class, new class extends ServiceTokenProvider
-        {
-            public function __construct()
-            {
-            }
-
-            public function token(?int $orgId = null): string
-            {
-                return 'fake-service-token';
-            }
-        });
-    }
-
-    protected function defineDatabaseMigrations(): void
-    {
-        $this->app['db']->connection()->getSchemaBuilder()->dropAllTables();
-        $this->loadMigrationsFrom(__DIR__.'/../../../database/files-migrations');
-    }
-
     protected function setUp(): void
     {
         parent::setUp();
+        Bus::fake([ProcessFile::class]);
 
         Http::fake(function (Request $request) {
             $path = (string) parse_url($request->url(), PHP_URL_PATH);
@@ -170,6 +122,7 @@ final class UploadsTest extends TestCase
         $file = $this->uploads()->begin('a.jpg', 'image/jpeg', 1000)->file;
 
         $this->assertSame(StoredFile::STATUS_PROCESSING, $this->uploads()->complete($file)->fresh()?->status);
+        Bus::assertDispatched(ProcessFile::class, fn (ProcessFile $job): bool => $job->fileId === $file->id && ! $job->variantsOnly);
 
         Http::assertSent(fn (Request $request): bool => $request->hasHeader('Range', 'bytes=0-65535'));
     }
