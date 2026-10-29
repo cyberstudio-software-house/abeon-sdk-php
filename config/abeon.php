@@ -21,6 +21,9 @@ return [
         'url'      => env('ABEON_AUTH_URL', 'http://auth-service.abeon.svc.cluster.local'),
         'jwks_url' => env('ABEON_AUTH_JWKS_URL'),
         'issuer'   => env('ABEON_AUTH_ISSUER', 'abeon-auth'),
+        // ADR-0039: only these services may sign service tokens with a key that is not bound
+        // to an organisation. A business-application instance's key always carries one.
+        'unbound_services' => env('ABEON_UNBOUND_SERVICES', 'auth,unified,auth-ui,provisioner'),
         'audience' => env('ABEON_AUTH_AUDIENCE', 'abeon'),
         // Clock-skew tolerance for exp/nbf, in seconds (ADR-0001 validation rule 5).
         // Zero tolerance means a validator one second ahead of the issuer rejects a

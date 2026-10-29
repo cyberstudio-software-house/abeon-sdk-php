@@ -19,6 +19,8 @@ class JwtValidator
      */
     public const JWK_OWNER = 'abeon_owner';
 
+    public const JWK_ORG = 'abeon_org_id';
+
     public function __construct(
         private readonly JwksClient $jwks,
         private readonly AbeonConfig $config,
@@ -187,6 +189,8 @@ class JwtValidator
                 );
             }
 
+            $this->assertKeyOwnsOrganisation($jwk, $kid, $owner, $claims);
+
             return;
         }
 
@@ -197,6 +201,39 @@ class JwtValidator
         if ($owner !== $this->config->authIssuer()) {
             throw AuthException::unauthenticated(
                 "Signing key {$kid} belongs to '{$owner}' and may not sign user tokens",
+            );
+        }
+    }
+
+    /**
+     * A business-application instance signs with a key bound to its organisation, so the
+     * `org_id` it claims has to be that organisation (ADR-0039). Only the platform services
+     * that legitimately act for many organisations may sign with an unbound key.
+     *
+     * @param  array<string, mixed>  $jwk
+     * @param  array<string, mixed>  $claims
+     */
+    private function assertKeyOwnsOrganisation(array $jwk, string $kid, string $owner, array $claims): void
+    {
+        if (array_key_exists(self::JWK_ORG, $jwk)) {
+            $bound = $jwk[self::JWK_ORG];
+            $claimed = $claims['org_id'] ?? null;
+
+            if (! is_int($bound) || $claimed !== $bound) {
+                throw AuthException::unauthenticated(sprintf(
+                    'Signing key %s is bound to organisation %s, but the token claims %s',
+                    $kid,
+                    is_scalar($bound) ? (string) $bound : '?',
+                    is_scalar($claimed) ? (string) $claimed : 'none',
+                ));
+            }
+
+            return;
+        }
+
+        if (! in_array($owner, $this->config->unboundServices(), true)) {
+            throw AuthException::unauthenticated(
+                "Signing key {$kid} of '{$owner}' is not bound to an organisation, and only platform services may sign with an unbound key",
             );
         }
     }

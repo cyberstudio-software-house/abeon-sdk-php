@@ -72,6 +72,7 @@ final class JwtValidatorTest extends TestCase
             'n'   => $this->b64u($serviceDetails['rsa']['n']),
             'e'   => $this->b64u($serviceDetails['rsa']['e']),
             JwtValidator::JWK_OWNER => 'crm',
+            JwtValidator::JWK_ORG   => 7,
         ];
 
         $this->config = new AbeonConfig(new Repository([
@@ -316,6 +317,39 @@ final class JwtValidatorTest extends TestCase
         $this->expectExceptionMessage('may not sign user tokens');
 
         $this->validator()->decodeUser($token);
+    }
+
+    public function test_a_bound_service_key_signs_only_for_its_organisation(): void
+    {
+        $this->assertSame(7, $this->validator()->decode($this->serviceToken(['org_id' => 7]))['org_id']);
+
+        foreach ([['org_id' => 8], ['org_id' => '7'], ['org_id' => null]] as $overrides) {
+            try {
+                $this->validator()->decode($this->serviceToken($overrides));
+                $this->fail('A bound key signed for another organisation.');
+            } catch (AuthException $e) {
+                $this->assertStringContainsString('is bound to organisation 7', $e->getMessage());
+            }
+        }
+    }
+
+    public function test_an_unbound_key_of_a_business_application_is_refused(): void
+    {
+        unset($this->serviceJwk[JwtValidator::JWK_ORG]);
+
+        $this->expectException(AuthException::class);
+        $this->expectExceptionMessage('is not bound to an organisation');
+
+        $this->validator()->decode($this->serviceToken());
+    }
+
+    public function test_an_unbound_key_of_a_platform_service_may_act_for_any_organisation(): void
+    {
+        unset($this->serviceJwk[JwtValidator::JWK_ORG]);
+        $this->serviceJwk[JwtValidator::JWK_OWNER] = 'unified';
+        $token = JWT::encode($this->claims(['iss' => 'unified', 'sub' => 'unified', 'type' => 'service', 'service_name' => 'unified', 'org_id' => 99]), $this->servicePrivateKey, 'RS256', self::SERVICE_KID);
+
+        $this->assertSame(99, $this->validator()->decode($token)['org_id']);
     }
 
     public function test_a_service_key_cannot_sign_another_services_token(): void

@@ -49,6 +49,7 @@ final class ServiceAuthMiddlewareTest extends TestCase
             // The key belongs to `crm`, which is the only service whose tokens it may
             // sign. Identity comes from the key set, not from a field of the token.
             JwtValidator::JWK_OWNER => 'crm',
+            JwtValidator::JWK_ORG   => 7,
         ];
     }
 
@@ -214,6 +215,7 @@ final class ServiceAuthMiddlewareTest extends TestCase
             'sub'          => 'crm',
             'type'         => 'service',
             'service_name' => 'crm',
+            'org_id'       => 7,
             'iat'          => time() - 60,
             'exp'          => time() + 600,
             'jti'          => 'svc-jti-1',

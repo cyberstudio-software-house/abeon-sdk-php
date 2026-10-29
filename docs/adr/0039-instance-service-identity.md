@@ -1,6 +1,6 @@
 # ADR-0039: Each instance signs with its own key, bound to its organisation
 
-**Status:** Proposed
+**Status:** Accepted (implemented 2026-10-29, see the note at the end)
 **Date:** 2026-10-28
 **Amends:** ADR-0005 (service keys), ADR-0031 §6 (closes the deferred item)
 
@@ -107,3 +107,26 @@ instance therefore affects only that client.
 - Must be implemented before CMS stage 7b (the vault in use) and should be before the first client pilot
   (`abeon-cms-prd-2026-10-27.md`, chapter 9).
 - Not implemented on 2026-10-28.
+
+## Implementation note (2026-10-29)
+
+§2 was built without the database registry. The ConfigMap that ADR-0005 already mounts carries the
+binding in the file name, which nothing inside the file can override:
+
+- `{service}.json` is an unbound platform key; `{service}@{orgId}.json` binds every key in that
+  document to one organisation. `abeon-auth`'s `ServiceKeyDirectory` reads the binding from the name,
+  refuses a name whose organisation is not a positive integer, and drops any `abeon_org_id` written
+  inside the document.
+- The published JWKS members are `abeon_owner` (the existing name, not `abeon_service`) and
+  `abeon_org_id` (`JwtValidator::JWK_OWNER`, `JwtValidator::JWK_ORG`).
+- `JwtValidator` refuses a service token whose `org_id` differs from the key's `abeon_org_id`, and a
+  token from an unbound key unless its service is in `abeon.auth.unbound_services` (default
+  `auth,unified,auth-ui,provisioner`, env `ABEON_UNBOUND_SERVICES`). Released in `abeon/sdk` 0.13.0.
+- `tools/provisioner.py` writes `{app}@{org_id}.json` with `kid` `{app}-org{org_id}-dev`, one key pair
+  per instance. The `kid` is free-form; the file name is the identity.
+- Rotation is a second key in the same document; revocation is removing the key or the file. The
+  `active`/`retiring`/`revoked` states and the registration endpoint stay unbuilt until a cluster
+  needs keys managed outside the ConfigMap.
+
+Rollout order matters: Auth must publish the bound keys before any service runs SDK 0.13.0, otherwise
+instance tokens are refused for lacking a binding.

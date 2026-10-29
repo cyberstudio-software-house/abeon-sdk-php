@@ -3,6 +3,20 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [0.13.0] — 2026-10-29
+
+### Changed
+
+**A business application's service key signs for one organisation only (ADR-0039).**
+
+- `JwtValidator` refuses a service token when the key's `abeon_org_id` (`JwtValidator::JWK_ORG`)
+  differs from the token's `org_id`, or when the key has no organisation and the service is not a
+  platform service.
+- Platform services are listed in `abeon.auth.unbound_services` (env `ABEON_UNBOUND_SERVICES`, default
+  `auth,unified,auth-ui,provisioner`); `AbeonConfig::unboundServices()` reads it.
+- **Breaking for deployments:** Auth must publish bound keys (`{service}@{orgId}.json`) before services
+  upgrade, or instance tokens are refused.
+
 ## [0.12.0] — 2026-09-30
 
 ### Removed

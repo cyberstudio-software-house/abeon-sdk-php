@@ -67,6 +67,20 @@ class AbeonConfig
     }
 
     /**
+     * Services whose keys may sign without an organisation binding (ADR-0039): the
+     * platform services that act for many organisations. Every other key must be bound.
+     *
+     * @return list<string>
+     */
+    public function unboundServices(): array
+    {
+        $value = $this->config->get('abeon.auth.unbound_services', ['auth', 'unified', 'auth-ui', 'provisioner']);
+        $list = is_string($value) ? explode(',', $value) : (array) $value;
+
+        return array_values(array_filter(array_map(fn ($name) => trim((string) $name), $list), fn ($name) => $name !== ''));
+    }
+
+    /**
      * Backstop against a token that never expires or expires in a decade. Not a TTL
      * policy — issuers set their own, far shorter (ADR-0001: 15 minutes for users,
      * ADR-0005: 5 for services). This only bounds what a *validator* will believe.
