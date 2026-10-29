@@ -157,6 +157,15 @@ return [
         'trusted_proxies' => env('ABEON_TRUSTED_PROXIES', '*'),
     ],
 
+    /*
+     | Calls to addresses clients type in (ADR-0041). Private, loopback, link-local and other
+     | non-public ranges are always refused; add the cluster's pod and service CIDRs here, since
+     | those are private only by convention of the cluster. Comma-separated.
+     */
+    'outbound' => [
+        'denied_cidrs' => env('ABEON_OUTBOUND_DENIED_CIDRS', ''),
+    ],
+
     'logging' => [
         'correlation_field' => env('ABEON_LOG_CORRELATION_FIELD', 'correlation_id'),
     ],

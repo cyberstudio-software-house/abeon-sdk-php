@@ -1,6 +1,6 @@
 # ADR-0041: Calls to client-supplied URLs go through one hardened client
 
-**Status:** Proposed
+**Status:** Accepted (implemented 2026-10-30, see the note at the end)
 **Date:** 2026-10-28
 **Amends:** ADR-0036 §3 (webhooks), ADR-0038 (where webhook secrets live)
 
@@ -104,3 +104,13 @@ read. It keeps a per-host rate limit, so content cannot turn the platform into a
 - Product document: `abeon-cms-prd-2026-10-27.md` (integrations, stage 7b; revalidation webhooks,
   stage 6; link checker, stage 4).
 - Not implemented on 2026-10-28.
+
+## Implementation note (2026-10-30)
+
+- `Abeon\SDK\Http\Outbound\OutboundClient` with `AddressPolicy`; the cluster's pod and service ranges come from
+  `abeon.outbound.denied_cidrs` (`ABEON_OUTBOUND_DENIED_CIDRS`).
+- **Amendment to §1.1:** the link checker (§5) may call `http://` addresses. Links in content are often plain
+  HTTP, and a check sends no secret and reads no body worth keeping, so the HTTPS rule protects nothing there.
+  Every other rule still applies to it: public addresses only, pinned, no redirects, the same limits. Webhooks and
+  form actions stay HTTPS only.
+

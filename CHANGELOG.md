@@ -3,6 +3,17 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [Unreleased]
+
+### Added
+
+- `Http\Outbound\OutboundClient` (ADR-0041): the one way to call an address a client typed in. HTTPS only (plain
+  HTTP only when a caller asks for it to check whether a link answers), host resolved once and the connection
+  pinned to the checked address, every resolved address must be public (`AddressPolicy`: private, loopback,
+  link-local with the metadata address, carrier NAT, multicast, IPv4-mapped IPv6, plus `abeon.outbound.denied_cidrs`
+  for the cluster's ranges), no redirects (a 3xx is `OutboundResponse::REDIRECT`), connect 3 s, total 10 s, at most
+  64 KB read and 1 KB kept. `refusal()` validates a URL when it is saved.
+
 ## [0.14.2] — 2026-10-30
 
 ### Fixed

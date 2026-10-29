@@ -41,6 +41,8 @@ use Abeon\SDK\Http\VersionHeadersMiddleware;
 use Abeon\SDK\Logging\CorrelationContext;
 use Abeon\SDK\Logging\JsonFormatter;
 use Abeon\SDK\Storage\ObjectStore;
+use Abeon\SDK\Http\Outbound\AddressPolicy;
+use Abeon\SDK\Http\Outbound\OutboundClient;
 use Abeon\SDK\Files\Console\PrunePendingCommand;
 use Abeon\SDK\Files\Console\PurgeTrashCommand;
 use Abeon\SDK\Files\Console\ReconcileCommand;
@@ -237,6 +239,10 @@ class AbeonServiceProvider extends ServiceProvider
     {
         $this->app->singleton(PathPrefix::class);
         $this->app->singleton(ObjectStore::class);
+        $this->app->singleton(AddressPolicy::class, fn ($app): AddressPolicy => new AddressPolicy(
+            explode(',', (string) $app->make('config')->get('abeon.outbound.denied_cidrs', '')),
+        ));
+        $this->app->bind(OutboundClient::class);
         $this->app->singleton(FilePolicy::class, fn ($app): FilePolicy => FilePolicy::fromConfig(
             (array) $app->make('config')->get('abeon.files', []),
         ));
