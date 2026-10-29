@@ -132,3 +132,9 @@ API. Supporting many hosts on one instance's public surface would need a new ADR
 - Template code to change: `abeon-boilerplate-inertia/bootstrap/app.php` (route groups).
 - Product document: `abeon-cms-prd-2026-10-27.md` chapters 7 and 14.
 - Not implemented on 2026-10-28.
+- **Implementation notes, 2026-10-29 (abeon-cms stage 2):** inside an instance the API lives under
+  `/content/v1` (the router maps `content.abeon.pl/v1/*` there). A preview link carries only a
+  single-use code valid for two minutes; the front exchanges it server-to-server at
+  `POST /v1/preview/exchange` for the header token, so no token ever appears in a URL. A redirect is
+  answered as `301` with `X-Abeon-Redirect-Location` and **no** `Location` header, so a front's HTTP
+  client cannot follow it to a path on the API host by itself.
