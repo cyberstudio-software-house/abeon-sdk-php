@@ -3,6 +3,16 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [Unreleased]
+
+### Fixed
+
+- **The Gate bridge checked permissions against the first request's user.** `PermissionsServiceProvider` is a
+  singleton attached to the Gate once and held the `AuthContext` it was built with, while `AuthContext` is
+  scoped to a request. Under Octane, or any process serving more than one request, `can:` middleware answered
+  for whoever the first request belonged to. It now resolves the current `AuthContext` on every check; the
+  constructor takes a `Closure(): AuthContext`. php-fpm deployments were not affected, one request per process.
+
 ## [0.14.1] — 2026-10-29
 
 ### Fixed (review of the files module, 2026-10-29)

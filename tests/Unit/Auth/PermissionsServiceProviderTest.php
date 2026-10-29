@@ -67,6 +67,34 @@ final class PermissionsServiceProviderTest extends TestCase
     }
 
     /**
+     * The Gate lives as long as the process, a request's `AuthContext` only as long as the
+     * request. Under Octane, or in a test application serving two users in a row, the bridge
+     * must answer for the request being served, never for the first one it saw.
+     */
+    public function test_each_check_reads_the_context_of_the_request_being_served(): void
+    {
+        $container = new Container();
+        $container->scoped(AuthContext::class);
+        $gate = new Gate($container, static fn () => null);
+        (new PermissionsServiceProvider(static fn (): AuthContext => $container->make(AuthContext::class)))->attach($gate);
+
+        $container->make(AuthContext::class)->set($this->user(['crm.contacts.read']));
+        $this->assertTrue($gate->forUser(null)->allows('crm.contacts.read'));
+
+        $container->forgetScopedInstances();
+        $container->make(AuthContext::class)->set($this->user([]));
+        $this->assertFalse($gate->forUser(null)->allows('crm.contacts.read'), 'The second request kept the first user\'s permission.');
+    }
+
+    /**
+     * @param  list<string>  $permissions
+     */
+    private function user(array $permissions): User
+    {
+        return new User(id: '2', email: 'b@abeon.dev', name: 'B', roles: [], permissions: $permissions, orgId: 1);
+    }
+
+    /**
      * @param  list<string>  $permissions
      */
     private function gateFor(array $permissions): Gate
@@ -89,7 +117,7 @@ final class PermissionsServiceProviderTest extends TestCase
         $container = new Container();
         $gate = new Gate($container, static fn () => null);
 
-        (new PermissionsServiceProvider($context))->attach($gate);
+        (new PermissionsServiceProvider(static fn (): AuthContext => $context))->attach($gate);
 
         return $gate;
     }

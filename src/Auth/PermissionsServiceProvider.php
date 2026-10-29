@@ -17,7 +17,15 @@ use Illuminate\Contracts\Auth\Access\Gate as GateContract;
  */
 class PermissionsServiceProvider
 {
-    public function __construct(private readonly AuthContext $context)
+    /**
+     * A resolver, not the context itself: this bridge is a singleton attached to the Gate once,
+     * while `AuthContext` is scoped to a request. Holding the object kept the first request's
+     * user for the life of the process — under Octane or a long-lived test application the next
+     * request's permissions were checked against somebody else's.
+     *
+     * @param  \Closure(): AuthContext  $context
+     */
+    public function __construct(private readonly \Closure $context)
     {
     }
 
@@ -42,7 +50,7 @@ class PermissionsServiceProvider
     public function attach(GateContract $gate): void
     {
         $gate->before(function (?object $user, string $ability): ?bool {
-            return $this->context->hasPermission($ability) ? true : null;
+            return ($this->context)()->hasPermission($ability) ? true : null;
         });
     }
 }

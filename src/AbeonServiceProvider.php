@@ -191,7 +191,9 @@ class AbeonServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(JwtValidator::class);
-        $this->app->singleton(PermissionsBridge::class);
+        $this->app->singleton(PermissionsBridge::class, fn ($app): PermissionsBridge => new PermissionsBridge(
+            static fn (): AuthContext => $app->make(AuthContext::class),
+        ));
 
         // Endpoint base controllers — used directly by Auth service and as
         // reference implementations elsewhere.
