@@ -98,6 +98,8 @@ class JwtValidator
             'roles'       => $claims['roles'] ?? [],
             'permissions' => $claims['permissions'] ?? [],
             'org_id'      => $claims['org_id'],
+            // ADR-0001: an impersonated token names the person really acting in `act` (RFC 8693).
+            'actor_id'    => isset($claims['act']) && (is_array($claims['act']) || is_object($claims['act'])) ? (((array) $claims['act'])['sub'] ?? null) : null,
         ]);
     }
 

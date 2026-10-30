@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Abeon\SDK;
 
+use Abeon\SDK\Audit\AuditLog;
+use Abeon\SDK\Audit\Console\CheckAuditCommand;
+use Abeon\SDK\Audit\Console\PruneAuditCommand;
 use Abeon\SDK\Auth\AuthContext;
 use Abeon\SDK\Auth\AuthMiddleware;
 use Abeon\SDK\Auth\Endpoints\PreferencesController as AuthPreferencesController;
@@ -116,6 +119,10 @@ class AbeonServiceProvider extends ServiceProvider
             __DIR__.'/../database/files-migrations/' => $this->databasePath('migrations'),
         ], 'abeon-files-migrations');
 
+        $this->publishes([
+            __DIR__.'/../database/audit-migrations/' => $this->databasePath('migrations'),
+        ], 'abeon-audit-migrations');
+
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         $this->loadRoutesFrom(__DIR__.'/../routes/health.php');
@@ -139,6 +146,8 @@ class AbeonServiceProvider extends ServiceProvider
                 PrunePendingCommand::class,
                 PurgeTrashCommand::class,
                 ReconcileCommand::class,
+                PruneAuditCommand::class,
+                CheckAuditCommand::class,
             ]);
         }
     }
@@ -256,6 +265,7 @@ class AbeonServiceProvider extends ServiceProvider
             (int) $app->make('config')->get('abeon.files.processing.max_pixels', 50_000_000),
         ));
         $this->app->singleton(Files::class);
+        $this->app->singleton(AuditLog::class);
     }
 
     private function registerEvents(): void

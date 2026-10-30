@@ -162,6 +162,12 @@ return [
      | non-public ranges are always refused; add the cluster's pod and service CIDRs here, since
      | those are private only by convention of the cluster. Comma-separated.
      */
+    // The service's audit log (ADR-0042). Entries younger than 365 days cannot be deleted; the
+    // database refuses, whatever is set here.
+    'audit' => [
+        'retention_days' => (int) env('ABEON_AUDIT_RETENTION_DAYS', 730),
+    ],
+
     'outbound' => [
         'denied_cidrs' => env('ABEON_OUTBOUND_DENIED_CIDRS', ''),
     ],

@@ -3,6 +3,16 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [Unreleased]
+
+### Added
+
+- Audit log (ADR-0042): `Audit\AuditLog::record()`, the `Audit\Audited` trait for Eloquent models, the
+  `abeon_audit_log` table (`vendor:publish --tag=abeon-audit-migrations`) kept append-only by database
+  triggers, `abeon:audit:check` and `abeon:audit:prune` (`abeon.audit.retention_days`, 730 by default,
+  never below 365).
+- `User::$actorId`: the person really acting when a token is impersonated (`act.sub`, ADR-0001).
+
 ## [0.15.1] — 2026-10-30
 
 ### Added

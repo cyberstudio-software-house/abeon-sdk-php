@@ -18,6 +18,8 @@ final readonly class User
         public array $permissions,
         public ?int $orgId,
         public bool $emailVerified = false,
+        /** Who really acts, when the token is impersonated (ADR-0001 `act`). Read from the token, not part of the wire shape. */
+        public ?string $actorId = null,
     ) {
     }
 
@@ -34,6 +36,7 @@ final readonly class User
             permissions: self::stringList($data['permissions'] ?? []),
             orgId:       isset($data['org_id']) ? (int) $data['org_id'] : null,
             emailVerified: (bool) ($data['email_verified'] ?? false),
+            actorId:     isset($data['actor_id']) && $data['actor_id'] !== '' ? (string) $data['actor_id'] : null,
         );
     }
 

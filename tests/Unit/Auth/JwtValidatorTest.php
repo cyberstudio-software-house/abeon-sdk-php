@@ -102,6 +102,15 @@ final class JwtValidatorTest extends TestCase
         $this->assertSame(7, $user->orgId);
     }
 
+    public function test_an_impersonated_token_names_the_person_really_acting(): void
+    {
+        $this->assertNull($this->validator()->decodeUser($this->token())->actorId);
+
+        $user = $this->validator()->decodeUser($this->token(['act' => ['sub' => '9']]));
+
+        $this->assertSame(['42', '9'], [$user->id, $user->actorId]);
+    }
+
     public function test_decodes_a_service_token_but_rejects_it_as_a_user(): void
     {
         $token = $this->serviceToken();
