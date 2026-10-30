@@ -75,6 +75,22 @@ final class MessagesTest extends TestCase
         $this->assertSame('auth.invitation:1842', $this->publisher->published[0]['data']['idempotency_key']);
     }
 
+    public function test_a_reply_address_travels_only_when_given_and_fits_the_schema(): void
+    {
+        $messages = $this->messages('cms');
+
+        $messages->send(new MessageRequest('cms.form_submission', 'biuro@acme.pl', 'cms.form_submission:1:0', data: ['form' => 'Kontakt'], replyToEmail: 'anna@example.com', replyToName: 'Anna'));
+        $messages->send($this->request());
+
+        $validator = new Validator();
+        $validator->resolver()?->registerPrefix(self::SCHEMA_NS, (string) realpath(__DIR__.'/../../../schemas'));
+        $withReply = json_decode((string) json_encode($this->publisher->published[0]['data']));
+
+        $this->assertSame(['email' => 'anna@example.com', 'name' => 'Anna'], $this->publisher->published[0]['data']['reply_to']);
+        $this->assertTrue($validator->validate($withReply, self::SCHEMA_NS.'events/cms.message.requested.json')->isValid());
+        $this->assertArrayNotHasKey('reply_to', $this->publisher->published[1]['data']);
+    }
+
     public function test_empty_data_is_still_an_object(): void
     {
         $messages = $this->messages();
@@ -110,6 +126,7 @@ final class MessagesTest extends TestCase
         yield 'unknown locale' => [fn () => new MessageRequest('auth.invitation', 'a@b.pl', 'k', locale: 'de')];
         yield 'user id zero' => [fn () => new MessageRequest('auth.invitation', 'a@b.pl', 'k', userId: 0)];
         yield 'data as a list' => [fn () => new MessageRequest('auth.invitation', 'a@b.pl', 'k', data: ['x'])];
+        yield 'reply to not an address' => [fn () => new MessageRequest('cms.form_submission', 'a@b.pl', 'k', replyToEmail: 'anna')];
     }
 
     /**

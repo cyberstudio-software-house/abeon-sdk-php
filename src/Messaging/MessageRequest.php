@@ -28,6 +28,8 @@ final readonly class MessageRequest
         public ?int $userId = null,
         public string $locale = 'pl',
         public array $data = [],
+        public ?string $replyToEmail = null,
+        public ?string $replyToName = null,
     ) {
         if (preg_match(self::TEMPLATE_PATTERN, $template) !== 1) {
             throw new InvalidArgumentException("template must look like service.name, got {$template}");
@@ -35,6 +37,10 @@ final readonly class MessageRequest
 
         if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             throw new InvalidArgumentException('email is not an address');
+        }
+
+        if ($replyToEmail !== null && filter_var($replyToEmail, FILTER_VALIDATE_EMAIL) === false) {
+            throw new InvalidArgumentException('replyToEmail is not an address');
         }
 
         if ($idempotencyKey === '') {
@@ -66,6 +72,7 @@ final readonly class MessageRequest
                 'name'    => $this->name,
                 'user_id' => $this->userId,
             ],
+            ...($this->replyToEmail === null ? [] : ['reply_to' => ['email' => $this->replyToEmail, 'name' => $this->replyToName]]),
             'locale'          => $this->locale,
             'data'            => (object) $this->data,
             'idempotency_key' => $this->idempotencyKey,

@@ -45,6 +45,31 @@
       },
       "additionalProperties": false
     },
+    "reply_to": {
+      "description": "Where an answer goes, when not to the platform: the reader of a CMS form, so its recipients can answer them directly.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "email"
+      ],
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 320
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 255
+        }
+      },
+      "additionalProperties": false
+    },
     "locale": {
       "type": "string",
       "enum": [

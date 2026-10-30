@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 ### Added
 
 - Event schemas `cms.page.published` and `cms.page.unpublished` (Abeon CMS, etap 6).
+- Event schemas `cms.form.submitted`, `cms.submission.erased` and `cms.message.requested` (Abeon CMS, etap 7).
+- `MessageRequest` takes an optional reply address (`replyToEmail`, `replyToName`), sent as `reply_to` and only when
+  given; `message-requested.json` describes it. AbeonUnified sets it as the mail's `Reply-To`.
 
 ## [0.15.0] — 2026-10-30
 

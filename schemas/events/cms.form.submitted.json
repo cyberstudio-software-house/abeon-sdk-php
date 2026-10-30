@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/cms.form.submitted.json",
+  "title": "cms.form.submitted payload",
+  "description": "Published by Abeon CMS when a reader's form submission is accepted. It carries the minimum: no answers, no files, no address. A consumer that needs the answers (Abeon CRM, etap 7b) is given them through its own integration, and every consumer must handle `cms.submission.erased`.\n\nThe file name is the routing key.",
+  "type": "object",
+  "required": [
+    "site_id",
+    "form_id",
+    "submission_id",
+    "form_version",
+    "locale",
+    "submitted_at"
+  ],
+  "properties": {
+    "site_id": {
+      "type": "integer",
+      "description": "The CMS site inside the organisation's instance."
+    },
+    "form_id": {
+      "type": "integer",
+      "description": "The form, the same in every language."
+    },
+    "submission_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The submission's public id; the same in the panel's address and in the erasure event."
+    },
+    "form_version": {
+      "type": "integer",
+      "description": "The published revision of the form the reader saw."
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+    },
+    "context": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "page"
+          ]
+        },
+        "id": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Where the reader submitted from, e.g. the page of the offer they asked about."
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

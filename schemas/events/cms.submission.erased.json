@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.abeon.pl/events/cms.submission.erased.json",
+  "title": "cms.submission.erased payload",
+  "description": "Published by Abeon CMS when a submission is erased: at the reader's request or when the form's retention ran out. Every consumer of `cms.form.submitted` deletes what it derived from that submission.\n\nThe file name is the routing key.",
+  "type": "object",
+  "required": [
+    "site_id",
+    "form_id",
+    "submission_id",
+    "reason",
+    "erased_at"
+  ],
+  "properties": {
+    "site_id": {
+      "type": "integer",
+      "description": "The CMS site inside the organisation's instance."
+    },
+    "form_id": {
+      "type": "integer",
+      "description": "The form, the same in every language."
+    },
+    "submission_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The submission's public id; the same in the panel's address and in the erasure event."
+    },
+    "reason": {
+      "enum": [
+        "request",
+        "retention"
+      ]
+    },
+    "erased_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

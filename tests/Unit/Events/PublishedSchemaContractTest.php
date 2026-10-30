@@ -52,6 +52,9 @@ final class PublishedSchemaContractTest extends TestCase
         'unified.app.registered'       => 'ADR-0022, no publisher yet',
         'cms.page.published'           => 'abeon-cms/app/Pages/PagePublisher.php',
         'cms.page.unpublished'         => 'abeon-cms/app/Pages/PagePublisher.php',
+        'cms.message.requested'        => 'abeon-cms/app/Forms/SubmissionMail.php',
+        'cms.form.submitted'           => 'abeon-cms/app/Http/Controllers/ContentApi/FormsController.php',
+        'cms.submission.erased'        => 'abeon-cms/app/Forms/SubmissionEraser.php',
     ];
 
     /**
