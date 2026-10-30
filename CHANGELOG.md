@@ -3,6 +3,12 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [Unreleased]
+
+### Changed
+
+- `cms.form.submitted`: `context.type` may also be `collection_item` (Abeon CMS, etap 5).
+
 ## [0.16.0] — 2026-10-30
 
 ### Added
