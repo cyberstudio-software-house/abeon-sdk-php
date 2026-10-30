@@ -3,6 +3,13 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [Unreleased]
+
+### Added
+
+- `Integrations\Secrets` (ADR-0038): `get($provider)` reads the organisation's key from the vault in AbeonUnified,
+  cached in the process for five minutes only; `reportTest($provider, $ok)`.
+
 ## [0.16.1] — 2026-10-30
 
 ### Changed

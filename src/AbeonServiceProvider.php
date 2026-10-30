@@ -8,6 +8,7 @@ use Abeon\SDK\Audit\AuditLog;
 use Abeon\SDK\Audit\Console\CheckAuditCommand;
 use Abeon\SDK\Audit\Console\PruneAuditCommand;
 use Abeon\SDK\Auth\AuthContext;
+use Abeon\SDK\Integrations\Secrets;
 use Abeon\SDK\Auth\AuthMiddleware;
 use Abeon\SDK\Auth\Endpoints\PreferencesController as AuthPreferencesController;
 use Abeon\SDK\Auth\Endpoints\UserController as AuthUserController;
@@ -266,6 +267,7 @@ class AbeonServiceProvider extends ServiceProvider
         ));
         $this->app->singleton(Files::class);
         $this->app->singleton(AuditLog::class);
+        $this->app->singleton(Secrets::class);
     }
 
     private function registerEvents(): void

@@ -125,3 +125,14 @@ Unified, called through `ServiceClient`, with a cache per NIP. It replaces the f
   client secrets" means *third-party credentials*; secrets the platform generates for its own webhooks are
   stored encrypted in the application's database. **Depends on [ADR-0039](0039-instance-service-identity.md):**
   the vault's "each application reads only its own" holds only once tokens are bound to their instance.
+
+## Amendment 2026-10-30: the cache stays in the process
+
+Implemented in AbeonUnified (`integration_secrets`, `/api/v1/admin/integrations`, `/api/v1/internal/secrets/{provider}`)
+and in the SDK (`Integrations\Secrets`). The CMS PRD §14 is stricter than §2 above: what an application read is
+cached **in its own process memory only**, five minutes, never in Redis. A shared store would keep a secret past its
+rotation and expose it to every application sharing the store. A worker that starts during an outage in Unified
+therefore cannot use the key until Unified answers; a request already holding it can.
+
+"Test connection" is the application's own call: it tries the key and reports the result with
+`POST /api/v1/internal/secrets/{provider}/tested`, which sets `status` and `last_tested_at`. No event is needed.
