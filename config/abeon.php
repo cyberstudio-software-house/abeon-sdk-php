@@ -198,6 +198,12 @@ return [
         'unified' => ['url' => env('ABEON_UNIFIED_URL')],
     ],
 
+    // The AI gateway (ADR-0020): which service runs it, and how long a completion may take.
+    'ai' => [
+        'service' => env('ABEON_AI_SERVICE', 'unified'),
+        'timeout' => (int) env('ABEON_AI_TIMEOUT', 90),
+    ],
+
     // Permissions DECLARED by this service (M5).
     // SDK publishes service.permissions.declared event on bootstrap.
     'permissions' => [

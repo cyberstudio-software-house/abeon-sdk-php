@@ -70,6 +70,30 @@ them later is not a redesign.
 - The concept graph's arrow from Abeon AI CMS directly to OpenRouter is **wrong** and should be
   redrawn through Unified.
 
+## Amendment — 2026-11-05: settings at two levels, status, feature names
+
+Built for Abeon CMS etap 9. What the decision above left open, now settled:
+
+1. **Organisation level — the operator's, in the gateway.** `ai_settings` per organisation: `enabled`
+   (off by default), `monthly_cap_usd` and `apps`, the applications allowed to call. Set only with
+   `abeon:ai:org {org} --enable|--disable --cap= --apps=`, like the storage quota; the client cannot change
+   them. `abeon:ai:usage {org} --month=` shows the spend by application and feature.
+2. **Application level — the application's own.** Which features a CMS site uses, its tone and its brand
+   glossary live in the application and go into the prompt. The gateway does not know them.
+3. **The application names a feature, never a model.** `feature` is `{service}.{name}` (`cms.alt`,
+   `cms.translate`); the gateway maps it to a model and a token ceiling in its configuration, so a model
+   changes without a release of any application. A feature of another service is refused.
+4. **Refusals, in this order, as Problem Details:** `403 ai-disabled`, `403 ai-app-not-enabled`,
+   `402 ai-cap-reached`, `422 ai-unknown-feature`; a provider failure is `502 ai-provider-error` and costs
+   nothing. The cap is checked before a call, so the last call of a month may overshoot it by its own cost.
+5. **`GET /api/v1/internal/ai/status`** tells an application whether it may use AI, the cap and what is
+   used this month, so its screens can say why a button is off.
+6. **Nothing of the content is kept.** `ai_usage` holds the organisation, service, feature, model, tokens and
+   cost. OpenRouter is asked for providers that keep no data (`data_collection: deny`, `zdr: true`).
+7. **SDK:** `Abeon\SDK\Ai\Ai::complete($feature, $messages, $options)` and `status()` (kept for a minute in
+   the process). The service is `abeon.ai.service` (default `unified`): moving the gateway out of
+   AbeonUnified is configuration.
+
 ## References
 
 - Depends on: ADR-0019 (AbeonUnified — the doctrine and the owning service), ADR-0016 (organisation is

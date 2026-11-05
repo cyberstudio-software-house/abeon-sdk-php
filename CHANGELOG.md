@@ -3,6 +3,14 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [0.18.0] — 2026-11-05
+
+### Added
+
+- `Ai\Ai` (ADR-0020): `complete($feature, $messages, $options)` calls the AI gateway; `status()` says
+  whether the organisation and this application may use AI, with the cap and what is used. Config
+  `abeon.ai.service` (default `unified`) and `abeon.ai.timeout` (90 s).
+
 ## [0.17.0] — 2026-10-30
 
 ### Added
