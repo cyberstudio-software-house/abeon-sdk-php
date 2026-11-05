@@ -9,7 +9,8 @@ use Illuminate\Http\Client\PendingRequest;
 
 /**
  * The AI gateway (ADR-0020), for an application: name a feature, send the messages, get the
- * answer. The model, the limits and the cost are the gateway's. The service that runs the gateway
+ * answer. A completion is tried once: the gateway charges every call it forwards, so a retry after
+ * a timeout could pay twice for one answer. The model, the limits and the cost are the gateway's. The service that runs the gateway
  * is configuration (`abeon.ai.service`), so moving it out of AbeonUnified changes no caller.
  */
 final class Ai
@@ -31,7 +32,7 @@ final class Ai
     public function complete(string $feature, array $messages, array $options = []): array
     {
         /** @var array{content: string, finish_reason: string|null, model: string, usage: array{input_tokens: int, output_tokens: int, cost_usd: float}} $answer */
-        $answer = $this->gateway()->timeout((int) config('abeon.ai.timeout', 90))
+        $answer = $this->gateway()->timeout((int) config('abeon.ai.timeout', 90))->retry(1, 0, throw: false)
             ->post('/api/v1/ai/completions', ['feature' => $feature, 'messages' => $messages, ...$options])
             ->json('data');
 

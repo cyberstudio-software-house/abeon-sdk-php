@@ -76,4 +76,17 @@ final class AiTest extends TestCase
 
         Http::assertSentCount(1);
     }
+
+    public function test_a_completion_is_never_retried(): void
+    {
+        $this->app['config']->set('abeon.client.max_retries', 2);
+        Http::fake(['unified.test/*' => Http::response(['type' => 'https://api.abeon.pl/errors/ai-provider-error', 'title' => 'AI provider failed', 'status' => 502], 502)]);
+
+        try {
+            app(Ai::class)->complete('cms.seo', [['role' => 'user', 'content' => 'x']]);
+        } catch (ServiceCallException) {
+        }
+
+        Http::assertSentCount(1);
+    }
 }
