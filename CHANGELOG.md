@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this package is 
 - `Ai\Ai` (ADR-0020): `complete($feature, $messages, $options)` calls the AI gateway; `status()` says
   whether the organisation and this application may use AI, with the cap and what is used. Config
   `abeon.ai.service` (default `unified`) and `abeon.ai.timeout` (90 s).
+- A completion is sent once, never retried: the gateway charges every call it forwards.
 
 ## [0.17.0] — 2026-10-30
 
