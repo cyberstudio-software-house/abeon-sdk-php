@@ -118,6 +118,17 @@ services — creates the database, the deployment, the ingress route and the cer
 Disabling an application stops the instance and keeps the database; deleting data is a separate,
 explicit operation.
 
+*Implementation note (2026-11-13).* Disabling an assignment that has an instance publishes
+`unified.app_instance.disabled`; the provisioner removes the containers and routes and reports the new
+state `stopped`. Enabling a `stopped` (or still stopping) assignment orders the instance again, and the
+provisioner builds it over the same database with the same application key, which it now keeps per
+instance instead of drawing a new one per build. Deleting data is `tools/app-purge.py` locally: it
+refuses unless the instance is stopped, then drops the database and keys, removes the assignment
+(`abeon:app:forget` in Unified) and takes the application's grants off the organisation's roles
+(`abeon:permissions:revoke` in Auth). An application added after an organisation exists is grantable
+there because every organisation's `owner` receives what the application declares to the permission
+catalogue. Verified end to end with the agent next to the Veno-Med CMS.
+
 ### 6. Events and service identity are per instance
 
 - An instance's queues are prefixed `{app}-org{org_id}` by default once `ABEON_ORG_ID` is set, so two
