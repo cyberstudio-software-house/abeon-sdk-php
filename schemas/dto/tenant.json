@@ -26,8 +26,8 @@
     },
     "accent": {
       "type": ["string", "null"],
-      "enum": ["indigo", "blue", "emerald", "violet", "rose", "orange", null],
-      "description": "The organisation's chrome accent; null is the platform default (indigo). A user's own `chrome.accent` preference wins over it (ADR-0009 amendment)."
+      "enum": ["cyberstudio", "indigo", "blue", "emerald", "violet", "rose", "orange", null],
+      "description": "The organisation's chrome accent; null is the platform default (cyberstudio). A user's own `chrome.accent` preference wins over it (ADR-0009 amendment)."
     },
     "current": {
       "type": ["boolean", "null"],

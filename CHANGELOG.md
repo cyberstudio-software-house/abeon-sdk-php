@@ -3,6 +3,12 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [0.21.0] — 2026-11-16
+
+### Changed
+
+- `Theme\Accent`: `cyberstudio` (Cyberstudio's brand: ultramarine and cyan) is the default; `indigo` stays as a choice.
+
 ## [0.20.1] — 2026-11-16
 
 ### Fixed

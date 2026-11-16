@@ -161,10 +161,10 @@ No row is created until the first `PATCH`.
 ## Amendment 2026-11-16: accent colour
 
 - `chrome.accent` joins the chrome namespace: one of `Abeon\SDK\Theme\Accent::NAMES`
-  (`indigo`, `blue`, `emerald`, `violet`, `rose`, `orange`) or `null`. Anything else is refused.
+  (`cyberstudio` — the default, Cyberstudio's brand — `indigo`, `blue`, `emerald`, `violet`, `rose`, `orange`) or `null`. Anything else is refused.
 - `null` (the default) means "as my organisation". The organisation's own accent lives in Auth
   (`organisations.accent`, set by `core.organisation.manage` through `PATCH admin/organisation`)
-  and travels with the tenant list, so the chrome resolves `user ?? organisation ?? indigo` on
+  and travels with the tenant list, so the chrome resolves `user ?? organisation ?? cyberstudio` on
   every page without another request.
 - Only palette names, never free colours: each name is a set of tokens in `@abeon/ui`
   (`tokens.css`, `[data-accent=…]`) checked for contrast in light and dark, applied with

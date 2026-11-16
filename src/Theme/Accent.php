@@ -11,10 +11,10 @@ namespace Abeon\SDK\Theme;
  */
 final class Accent
 {
-    public const DEFAULT = 'indigo';
+    public const DEFAULT = 'cyberstudio';
 
     /** @var list<string> */
-    public const NAMES = ['indigo', 'blue', 'emerald', 'violet', 'rose', 'orange'];
+    public const NAMES = ['cyberstudio', 'indigo', 'blue', 'emerald', 'violet', 'rose', 'orange'];
 
     public static function isKnown(mixed $value): bool
     {
