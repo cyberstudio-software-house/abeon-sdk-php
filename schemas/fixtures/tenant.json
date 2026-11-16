@@ -1,8 +1,9 @@
 {
-    "id": 1,
-    "name": "Acme Sp. z o.o.",
-    "slug": "acme",
+  "id": 1,
+  "name": "Acme Sp. z o.o.",
+  "slug": "acme",
   "host": "acme.abeon.pl",
-    "logo_url": null,
-    "current": true
+  "logo_url": null,
+  "current": true,
+  "accent": null
 }
