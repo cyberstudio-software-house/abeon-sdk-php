@@ -25,6 +25,7 @@ final readonly class Tenant
         public ?bool $current = null,
         /** Where this organisation's applications are served (ADR-0031 §2). */
         public ?string $host = null,
+        public ?string $accent = null,
     ) {
     }
 
@@ -40,6 +41,7 @@ final readonly class Tenant
             logoUrl: isset($data['logo_url']) ? (string) $data['logo_url'] : null,
             current: isset($data['current']) ? (bool) $data['current'] : null,
             host:    isset($data['host']) ? (string) $data['host'] : null,
+            accent:  isset($data['accent']) ? (string) $data['accent'] : null,
         );
     }
 
@@ -55,6 +57,7 @@ final readonly class Tenant
             'logo_url' => $this->logoUrl,
             'current'  => $this->current,
             'host'     => $this->host,
+            'accent'   => $this->accent,
         ];
     }
 }

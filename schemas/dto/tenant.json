@@ -24,6 +24,11 @@
       "type": ["string", "null"],
       "description": "Optional organisation logo for the switcher."
     },
+    "accent": {
+      "type": ["string", "null"],
+      "enum": ["indigo", "blue", "emerald", "violet", "rose", "orange", null],
+      "description": "The organisation's chrome accent; null is the platform default (indigo). A user's own `chrome.accent` preference wins over it (ADR-0009 amendment)."
+    },
     "current": {
       "type": ["boolean", "null"],
       "description": "True for the organisation the caller's token is currently scoped to. Populated by Auth on the list response; ignored on input."

@@ -3,6 +3,12 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [0.20.0] — 2026-11-16
+
+### Added
+
+- `DTO\Tenant::$accent` and `accent` in `dto/tenant.json`: the organisation's chrome accent, null for the default.
+
 ## [0.19.0] — 2026-11-16
 
 ### Added
