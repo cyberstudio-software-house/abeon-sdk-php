@@ -178,4 +178,17 @@ final class PreferencesControllerTest extends TestCase
 
         $this->assertSame(['lastBoard' => 7], $merged['crm']);
     }
+
+    public function test_an_accent_from_the_palette_or_null_is_stored(): void
+    {
+        $this->assertSame('emerald', $this->patch($this->controller(1), ['chrome' => ['accent' => 'emerald']])['chrome']['accent']);
+        $this->assertNull($this->patch($this->controller(1), ['chrome' => ['accent' => null]])['chrome']['accent']);
+    }
+
+    public function test_an_accent_outside_the_palette_is_refused(): void
+    {
+        $this->expectException(InvalidQueryException::class);
+
+        $this->patch($this->controller(1), ['chrome' => ['accent' => '#ff00ff']]);
+    }
 }

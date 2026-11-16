@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Abeon\SDK\Auth\Endpoints;
 
+use Abeon\SDK\Theme\Accent;
 use Abeon\SDK\Auth\AuthContext;
 use Abeon\SDK\Exceptions\AuthException;
 use Abeon\SDK\Exceptions\InvalidQueryException;
@@ -166,6 +167,7 @@ class PreferencesController
                 'pinned'           => [],
                 'pinnedSections'   => [],
                 'theme'            => 'system',
+                'accent'           => null,
                 'sidebarCollapsed' => false,
                 'recents'          => [],
             ],
@@ -198,6 +200,13 @@ class PreferencesController
                     static fn (string $key): string => "Unknown chrome preference: {$key}.",
                     array_values($unknown),
                 ),
+            ]);
+        }
+
+        // `null` means "as my organisation"; anything else must be a palette entry.
+        if (array_key_exists('accent', $chrome) && $chrome['accent'] !== null && ! Accent::isKnown($chrome['accent'])) {
+            throw InvalidQueryException::withErrors([
+                'chrome.accent' => ['Unknown accent. Use one of: '.implode(', ', Accent::NAMES).'.'],
             ]);
         }
     }

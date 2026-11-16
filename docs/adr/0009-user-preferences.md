@@ -156,3 +156,16 @@ No row is created until the first `PATCH`.
   `(user_id, org_id)`, and ADR-0017's tenant switch must re-fetch them. MVP precedent:
   `unified-shell-spec.md` FR-3.
 - **Amended 2026-09-23 by [ADR-0032](0032-redis-shared-ephemeral-store.md):** the Redis cache this ADR assumed now exists (cache, locks and rate limits on one shared instance).
+
+
+## Amendment 2026-11-16: accent colour
+
+- `chrome.accent` joins the chrome namespace: one of `Abeon\SDK\Theme\Accent::NAMES`
+  (`indigo`, `blue`, `emerald`, `violet`, `rose`, `orange`) or `null`. Anything else is refused.
+- `null` (the default) means "as my organisation". The organisation's own accent lives in Auth
+  (`organisations.accent`, set by `core.organisation.manage` through `PATCH admin/organisation`)
+  and travels with the tenant list, so the chrome resolves `user ?? organisation ?? indigo` on
+  every page without another request.
+- Only palette names, never free colours: each name is a set of tokens in `@abeon/ui`
+  (`tokens.css`, `[data-accent=…]`) checked for contrast in light and dark, applied with
+  `applyAccent()`.

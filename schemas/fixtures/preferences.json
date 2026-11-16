@@ -26,6 +26,7 @@
       { "id": "section-9f1c2d7e-3b4a-4c8e-a1f0-2d6b7c8e9a01", "label": "Sprzedaż", "order": 1 }
     ],
     "theme": "system",
+    "accent": null,
     "sidebarCollapsed": false,
     "recents": []
   }

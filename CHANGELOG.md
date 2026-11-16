@@ -3,6 +3,14 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [0.19.0] — 2026-11-16
+
+### Added
+
+- `Theme\Accent`: the chrome's accent palette (`indigo` default, `blue`, `emerald`, `violet`, `rose`, `orange`).
+- Preferences: `chrome.accent` (null = as the organisation), refused when outside the palette; schema and
+  fixture updated (ADR-0009 amendment).
+
 ## [0.18.0] — 2026-11-05
 
 ### Added

@@ -51,6 +51,11 @@
           "type": "string",
           "enum": ["light", "dark", "system"]
         },
+        "accent": {
+          "description": "The user's accent; null follows the organisation's. Palette of @abeon/ui (ADR-0009 amendment).",
+          "type": ["string", "null"],
+          "enum": ["indigo", "blue", "emerald", "violet", "rose", "orange", null]
+        },
         "sidebarCollapsed": { "type": "boolean" },
         "recents": {
           "type": "array",
