@@ -3,6 +3,12 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [0.22.0] — 2026-11-18
+
+### Added
+
+- `Theme\Accent`: `graphite` and `light` theme profiles. Each name is now a profile pairing a sidebar, an accent and a primary colour in `@abeon/ui` 1.10.0.
+
 ## [0.21.0] — 2026-11-16
 
 ### Changed
