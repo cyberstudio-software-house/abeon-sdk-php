@@ -92,7 +92,7 @@ Analytics, the AI assistant); it is built with the first of those that needs it.
 **Negative**
 
 - **Every block and every collection type costs one implementation per site technology.** This is the
-  price of interchangeability. It is kept bounded on purpose: v1 has eleven block types and four
+  price of interchangeability. It is kept bounded on purpose: v1 has twelve block types (`items` added) and four
   collection types, and the schemas are published so a site can be checked against them.
 - Preview needs a site. Until one exists for a client, an editor has no visual preview — only the draft
   in the panel. The CMS PRD lists a reference site before the first pilot as an open question.
@@ -121,7 +121,8 @@ Analytics, the AI assistant); it is built with the first of those that needs it.
   locks).
 - Product documents: `abeon-cms-prd-2026-10-27.md` (scope, data model, API endpoints),
   `abeon-cms-files-podsumowanie-2026-10-28.html` (summary).
-- Not implemented yet: no `abeon-cms` repository exists on 2026-10-28.
+- Not implemented yet: no `abeon-cms` repository exists on 2026-10-28. **Implemented since** (note
+  2026-11-18): `abeon-cms` serves the panel and the Content API, `GET redirects` included.
 - **Amended 2026-10-28 by [ADR-0040](0040-content-api-addressing-and-site-keys.md):** the Content API is
   served at `https://content.abeon.pl/v1` with key-based routing, not under `{basePath}`; a site key is
   bound to one site and environment and carries `read`, `submit` and (staging only) `collect_phrases`

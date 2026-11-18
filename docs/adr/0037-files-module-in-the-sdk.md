@@ -159,4 +159,5 @@ would be a new ADR, not an amendment of this one.
 - Product documents: `abeon-files-prd-2026-10-27.md` (scope, interfaces, stages),
   `abeon-cms-prd-2026-10-27.md` §6.2.
 - Not implemented yet on 2026-10-28: `Abeon\SDK\Files`, the template's library screen, and the four
-  Unified operations.
+  Unified operations. **Implemented since** (note 2026-11-18): `Abeon\SDK\Files` ships in the SDK and
+  abeon-cms uses its library screen and Unified's operations.

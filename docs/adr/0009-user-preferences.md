@@ -169,3 +169,7 @@ No row is created until the first `PATCH`.
 - Only palette names, never free colours: each name is a set of tokens in `@abeon/ui`
   (`tokens.css`, `[data-accent=…]`) checked for contrast in light and dark, applied with
   `applyAccent()`.
+
+- **Note 2026-11-18:** the accent names are theme profiles: each sets the sidebar, the accent and the
+  primary colour together, not the accent alone. `graphite` and `light` were added with them. Shipped in
+  `@abeon/ui` 1.10.0 and SDK 0.22.0.

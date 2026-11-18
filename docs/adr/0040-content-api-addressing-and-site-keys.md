@@ -1,6 +1,6 @@
 # ADR-0040: The Content API has its own host, site keys and a stateless surface
 
-**Status:** Proposed
+**Status:** Accepted (implemented in abeon-cms, see the notes at the end; 2026-11-18)
 **Date:** 2026-10-28
 **Amends:** ADR-0036 §1, §4; ADR-0033 (narrows the public surface for multi-site clients)
 
@@ -93,8 +93,8 @@ ADR-0004 applies:
 - `GET v1/meta` reports the instance's CMS version and the API versions it serves, so an agency can see
   which wave a client is on.
 
-The documented exceptions to the `{data}` envelope are the flat `translations` map, the XML sitemap and
-the feed.
+The documented exceptions to the `{data}` envelope are the flat `translations` map and the feed. The
+sitemap is JSON in `{data}`; the front renders `sitemap.xml` from it.
 
 ### 7. The instance's public surface is for single-site clients
 
@@ -131,10 +131,18 @@ API. Supporting many hosts on one instance's public surface would need a new ADR
   module (owned files) and ADR-0039 (instance identity) for the instance's own calls.
 - Template code to change: `abeon-boilerplate-inertia/bootstrap/app.php` (route groups).
 - Product document: `abeon-cms-prd-2026-10-27.md` chapters 7 and 14.
-- Not implemented on 2026-10-28.
+- Not implemented on 2026-10-28; implemented in abeon-cms stages 2–9 (see below).
 - **Implementation notes, 2026-10-29 (abeon-cms stage 2):** inside an instance the API lives under
   `/content/v1` (the router maps `content.abeon.pl/v1/*` there). A preview link carries only a
   single-use code valid for two minutes; the front exchanges it server-to-server at
   `POST /v1/preview/exchange` for the header token, so no token ever appears in a URL. A redirect is
   answered as `301` with `X-Abeon-Redirect-Location` and **no** `Location` header, so a front's HTTP
   client cannot follow it to a path on the API host by itself.
+- **Implementation notes, 2026-11-18:** the ADR is accepted and implemented. A preview code is bound
+  to the key it was minted for and only that key can exchange it; the token carries the key's id and
+  works only with that key, so revoking the key ends its previews. Unpublishing a page writes a
+  revocation mark (`cms:preview-revoked:page:{id}` with a time) that refuses every token for that page
+  issued before it, instead of a list of `jti`s. Page passwords are hashed with argon2id; bcrypt hashes
+  set earlier still open and are rehashed on the first successful unlock. `POST v1/unlock` is limited
+  to 5 attempts a minute per page and reader IP and 20 per ten minutes per page from any address.
+  `GET v1/redirects` lists a site's redirects for an edge. Protected files are not implemented yet.
