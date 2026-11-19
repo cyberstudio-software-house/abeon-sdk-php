@@ -19,6 +19,8 @@ return [
 
     'auth' => [
         'url'      => env('ABEON_AUTH_URL', 'http://auth-service.abeon.svc.cluster.local'),
+        // The sign-in screen (abeon-auth-ui, ADR-0027) a panel sends a browser to.
+        'ui_url'   => env('ABEON_AUTH_UI_URL'),
         'jwks_url' => env('ABEON_AUTH_JWKS_URL'),
         'issuer'   => env('ABEON_AUTH_ISSUER', 'abeon-auth'),
         // ADR-0039: only these services may sign service tokens with a key that is not bound
@@ -217,4 +219,12 @@ return [
         'path'  => env('ABEON_APP_PATH'),
         'icon'  => env('ABEON_APP_ICON'),
     ],
+
+    // A business application's panel (`Abeon\SDK\Panel`): its public host (ADR-0033), its
+    // address on the platform, the notification relay's upstream and where the token-refresh
+    // single-flight keeps its lock (a shared store, e.g. redis, with more than one replica).
+    'public_host'  => env('ABEON_PUBLIC_HOST'),
+    'platform_url' => env('ABEON_PLATFORM_URL'),
+    'unified'      => ['url' => env('ABEON_UNIFIED_URL')],
+    'refresh'      => ['lock_store' => env('ABEON_REFRESH_LOCK_STORE')],
 ];
