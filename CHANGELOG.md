@@ -3,6 +3,42 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [Unreleased]
+
+### Added
+
+- `Panel` (`Abeon\SDK\Panel\…`): the PHP side of a business application's panel, until now copied into
+  every application. `AbeonWebAuth`, `EnsureAppEntitled`, `EnsurePanelSurface`, `ScopeCookiesToBasePath`,
+  `SendPanelToPlatform`, `RequireSameOrigin`, `SecurityHeaders`, `TokenRefresher`, `RefreshedSession`,
+  `PreferencesReader`, `WrongOrganisation`, `AuthProxyController`, `NotificationProxyController` (over the
+  `ProxiesToService` trait) and `HandoffCallbackController`. Background in `docs/notes/` (token-refresh,
+  service-proxy, web-auth, host-handoff, app-entitlement, path-prefix, public-surface, inertia-shared-props).
+- `Panel::routes()` registers `/auth/callback`, `/broadcasting/auth` and the `/api/v1/auth/*` and
+  `/api/v1/notifications/*` proxies; the proxies run `RequireSameOrigin`. `Panel::WEB_MIDDLEWARE` is the
+  `web` group's prefix (`SecurityHeaders`, `ScopeCookiesToBasePath`, `EnsurePanelSurface`,
+  `SendPanelToPlatform`). `Panel::props($request)` is the `abeon` Inertia prop.
+- `AbeonWebAuth` throws `WrongOrganisation` (a 403 `HttpException` carrying `instanceOrgId`) for a token of
+  another organisation, so an application can render the switch page; other 403s stay `abort(403)`. It
+  answers an Inertia visit without a session with `409` + `X-Inertia-Location` and needs no Inertia package.
+- `Files\FoldersController`: the library's folder tree and tag list over the module's `folders`/`tags`.
+- Config: `auth.ui_url` (`ABEON_AUTH_UI_URL`), `public_host`, `platform_url`, `unified.url`,
+  `refresh.lock_store`.
+
+### Upgrading an application (from a copied panel)
+
+Delete `app/Auth/{PreferencesReader,RefreshedSession,TokenRefresher,WrongOrganisation}.php`,
+`app/Http/Controllers/{AuthProxyController,HandoffCallbackController,NotificationProxyController}.php`,
+`app/Http/Controllers/Concerns/ProxiesToService.php`, `app/Http/Controllers/Files/FoldersController.php`,
+`app/Http/Middleware/{AbeonWebAuth,EnsureAppEntitled,EnsurePanelSurface,ScopeCookiesToBasePath,SendPanelToPlatform,RequireSameOrigin,SecurityHeaders}.php`
+and the matching `docs/notes/*.md`. Then:
+
+- `bootstrap/app.php`: `$middleware->web(prepend: Panel::WEB_MIDDLEWARE)`; any reference to the
+  deleted middleware or `App\Auth\WrongOrganisation` points at `Abeon\SDK\Panel\…`.
+- `routes/web.php`: replace the callback, broadcasting and proxy routes with `Panel::routes()`; use
+  `Abeon\SDK\Panel\AbeonWebAuth`/`EnsureAppEntitled` and `Abeon\SDK\Files\FoldersController`.
+- `HandleInertiaRequests::share()`: `'abeon' => fn () => Panel::props($request)`.
+- Tests that faked `App\Auth\TokenRefresher` use `Abeon\SDK\Panel\TokenRefresher`.
+
 ## [0.22.0] — 2026-11-18
 
 ### Added
