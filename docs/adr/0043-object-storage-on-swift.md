@@ -1,4 +1,4 @@
-# ADR-0043: Object storage speaks Swift, with three containers per organisation
+# ADR-0043: Object storage speaks Swift, with two containers per organisation
 
 **Status:** Accepted
 **Date:** 2026-11-25
@@ -24,11 +24,10 @@ segments), CORS in the proxy, `max_file_size` 5 GiB, and no `dlo`.
    no SDK dependency. Production authenticates with Keystone v3 (`OCS_AUTH=keystone`, user id, password,
    project id). The local SAIO container uses tempauth v1 (`OCS_AUTH=v1`). The token is cached until five
    minutes before it expires, and a 401 drops it once and retries.
-2. **Three containers per organisation.** Swift ACLs act on a whole container, so visibility moves from a
+2. **Two containers per organisation.** Swift ACLs act on a whole container, so visibility moves from a
    prefix to a container:
    - `abeon-org-{id}-pub` with `X-Container-Read: .r:*` (no listings) holds `{service}/public/...`;
-   - `abeon-org-{id}-prv` without an ACL holds `{service}/private/...`;
-   - `abeon-org-{id}-seg` holds SLO segments.
+   - `abeon-org-{id}-prv` without an ACL holds `{service}/private/...`.
 
    Object keys do not change. The container comes from the second segment of the key.
 3. **Addresses are TempURLs** signed with sha256 and a container-level key (`X-Container-Meta-Temp-URL-Key`,
@@ -37,17 +36,21 @@ segments), CORS in the proxy, `max_file_size` 5 GiB, and no `dlo`.
    `Content-Disposition: attachment`. A signature covers one method, one expiry and one object path, so
    `{service}/` is still enforced per object.
 4. **Multipart is SLO.** `createMultipart` returns a UUID and stores the organisation, service, key and
-   type in the cache for seven days. Parts are TempURL PUTs to `-seg` under `{key}/{upload_id}/{part}`.
+   type in the cache for seven days. Parts are TempURL PUTs into the object's own container under
+   `.segments/{key}/{upload_id}/{part}`. They cannot live in a separate container: a TempURL GET of a
+   manifest may only fetch segments from the manifest's container, and Swift answers 409 otherwise. This
+   was found on 2026-11-25 with a 70 MB upload in the Veno-Med CMS. Listings by `{service}/` never show
+   `.segments/`.
    `complete` writes the manifest with the type stored at creation, and checks that the same organisation,
    service and key are completing it. Part numbers are limited to 1–1000. `delete` removes an SLO together
    with its segments.
-5. **`provision()`** PUTs the three containers on every call, and with them the ACL (set on `-pub`, removed
-   on the others), the TempURL key and CORS (`Allow-Origin: *`, `Expose-Headers` including `etag`). It stays
+5. **`provision()`** PUTs both containers on every call, and with them the ACL (set on `-pub`, removed
+   on `-prv`), the TempURL key and CORS (`Allow-Origin: *`, `Expose-Headers` including `etag`). It stays
    idempotent, so drift is repaired on the next projection.
 6. **Public address.** `ABEON_STORAGE_PUBLIC_BASE_URL` in Unified is the account URL
    (`https://ocs-pl.oktawave.com/v1/AUTH_<project>`). An instance gets that URL plus `/abeon-org-{id}-pub`,
    so `ObjectStore::publicUrl()` in the SDK does not change.
-7. **Usage** is the sum of `X-Container-Bytes-Used` over the three containers, cached for five minutes.
+7. **Usage** is the sum of `X-Container-Bytes-Used` over both containers, cached for five minutes.
 
 The HTTP contract of `v1/internal/storage/*`, the SDK `ObjectStore` and the Files module stay as they were.
 
@@ -75,7 +78,7 @@ The HTTP contract of `v1/internal/storage/*`, the SDK `ObjectStore` and the File
 
 ## References
 
-- ADR-0021: layout, one container per organisation (now three).
+- ADR-0021: layout, one container per organisation (now two).
 - ADR-0034: superseded for protocol and public access. Its rule that applications hold no credentials stands.
 - ADR-0037: the Files module, whose multipart API this implements with SLO.
 - `abeon-unified/app/Storage/ObjectStorage.php`, `abeon-unified/tests/Feature/ObjectContainerTest.php`.
