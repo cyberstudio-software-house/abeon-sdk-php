@@ -21,7 +21,7 @@ use Symfony\Component\Process\Process;
 /**
  * Processing with the real tools (libvips, poppler) and a faked storage that keeps every
  * object in memory. Skipped where the tools are not installed, as the storage tests are
- * skipped without MinIO.
+ * skipped without Swift.
  */
 #[Group('processing')]
 final class ProcessFileTest extends FilesTestCase

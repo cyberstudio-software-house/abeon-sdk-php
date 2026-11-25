@@ -1,8 +1,10 @@
 # ADR-0034: Object storage speaks S3, and applications hold no credentials
 
-**Status:** Accepted
+**Status:** Superseded by ADR-0043
 **Date:** 2026-09-24
 **Amends:** ADR-0021
+
+> **Superseded (2026-11-25):** OCS turned out to offer only the old `swift3` layer without bucket policies. Storage now speaks Swift with TempURL and three containers per organisation (ADR-0043). The rule that applications hold no credentials stands.
 
 ## Context
 
