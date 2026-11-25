@@ -51,6 +51,9 @@ jobs:
           extensions: mbstring, openssl, pdo_mysql, sockets, bcmath
           coverage: none
 
+      - name: Install file processing tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libvips-tools poppler-utils
+
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 

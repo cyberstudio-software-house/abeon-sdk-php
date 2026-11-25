@@ -81,10 +81,12 @@ final class ProcessFileTest extends FilesTestCase
 
     protected function tearDown(): void
     {
-        foreach (glob($this->fixtures.'/*') ?: [] as $file) {
-            unlink($file);
+        if ($this->fixtures !== '') {
+            foreach (glob($this->fixtures.'/*') ?: [] as $file) {
+                unlink($file);
+            }
+            @rmdir($this->fixtures);
         }
-        @rmdir($this->fixtures);
 
         parent::tearDown();
     }
