@@ -202,3 +202,6 @@ the data from `@abeon/sdk-ts`, full-page navigation from ADR-0013.
   another organisation refused with 403.
 - **2026-10-28:** the deferred per-instance service identity in §6 is decided in
   [ADR-0039](0039-instance-service-identity.md) (proposed).
+- **2026-11-25:** code of a single client, written by people or by an AI agent, is decided in
+  [ADR-0044](0044-client-extensions.md) (proposed): an extension package in the client's own
+  repository, built into an image from a pinned base. §1's "same image" holds for clients without one.
