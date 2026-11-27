@@ -94,6 +94,44 @@ Built for Abeon CMS etap 9. What the decision above left open, now settled:
    the process). The service is `abeon.ai.service` (default `unified`): moving the gateway out of
    AbeonUnified is configuration.
 
+## Amendment — 2026-11-27: the client chooses the model, free models, markup, usage
+
+Supersedes point 3 of the 2026-11-05 amendment where they differ.
+
+1. **The organisation chooses the model per feature.** The gateway keeps a catalogue of OpenRouter models
+   (`ai_models`, refreshed daily by `abeon:ai:models`): price per million tokens, context, image input,
+   structured output, free. Each feature declares what it needs (`requires`: `image`, `json`); a model is
+   offered and accepted only if it can do the feature. The choice lives in `ai_feature_settings`
+   (organisation, feature, model); without one the platform default from configuration applies. Any
+   suitable model may be chosen; the monthly cap is what limits the cost. A chosen model that leaves the
+   catalogue stops the feature with `409 ai-model-unavailable` instead of silently using another model.
+2. **Free models are an opt-in mode of the organisation.** Free models usually require that the provider
+   may keep and use the content, which the private default (`data_collection: deny`, `zdr: true`) forbids.
+   The mode needs the consent of a named user (`free_consent_by`, `free_consent_at`; `422
+   ai-free-consent-required` without it) and covers every feature, whole-page translations included. In
+   the mode the gateway tries the free models that can do the feature, sends them without the private
+   flags, and puts a model that answers 429 or fails on a short break (60 s / 5 min, shared cache).
+   When none answers, `free_fallback` decides: `paid` calls the feature's model once, privately; `stop`
+   refuses with `503 ai-free-exhausted` and costs nothing. In `stop` mode the cap does not block, since
+   nothing is billed.
+3. **The client is billed with the markup and sees it.** `ai_usage` keeps the provider cost (`cost_usd`)
+   and the billed cost (`billed_usd = cost_usd × ai.markup`, `AI_BILLING_MARKUP`, 1.2). The cap, the status,
+   the answers and every usage screen use the billed cost; the provider cost stays with the operator
+   (`abeon:ai:usage` shows both).
+4. **Usage is the organisation's to see.** `ai_usage` also records the requested model, whether it was
+   free, the attempts, the user who asked (id only) and the latency, never content. `GET /api/v1/ai/usage`
+   returns the month by application, feature, model and day plus the latest calls: an application sees its
+   own (`scope=app`), the platform screen the whole organisation (`scope=organisation`, through Auth
+   `GET /api/v1/auth/ai/usage`).
+5. **Who may change it.** `cms.ai.manage` for the CMS screens (models, free mode, usage) and
+   `core.ai.manage` (owner and admin) for the platform usage screen. The cap, `enabled` and `apps` stay the
+   operator's (`abeon:ai:org`).
+6. **SDK 0.24:** `Ai::models()`, `Ai::settings()`, `Ai::updateSettings()`, `Ai::usage()`; `complete()` takes
+   `user_id` and returns `free` and `attempts`.
+
+Known gap: the Agent fork calls OpenRouter directly with its own key, outside the gateway; it has to move
+to `Ai::complete()` before it serves clients.
+
 ## References
 
 - Depends on: ADR-0019 (AbeonUnified — the doctrine and the owning service), ADR-0016 (organisation is
