@@ -89,4 +89,22 @@ final class AiTest extends TestCase
 
         Http::assertSentCount(1);
     }
+
+    public function test_models_settings_and_usage_go_to_the_gateway(): void
+    {
+        Http::fake([
+            'unified.test/api/v1/ai/models*' => Http::response(['data' => [['id' => 'a/one:free', 'free' => true]]]),
+            'unified.test/api/v1/ai/settings' => Http::response(['data' => ['models' => ['cms.alt' => ['model' => 'm', 'chosen' => true]], 'free_mode' => true, 'free_fallback' => 'paid', 'free_consent_by' => '7', 'free_consent_at' => null, 'markup' => 1.2]]),
+            'unified.test/api/v1/ai/usage*' => Http::response(['data' => ['month' => '2026-11', 'totals' => ['calls' => 3]]]),
+        ]);
+        $ai = app(Ai::class);
+
+        $this->assertSame('a/one:free', $ai->models('cms.alt')[0]['id']);
+        $this->assertTrue($ai->updateSettings(['free_mode' => true, 'consent_by' => '7'])['free_mode']);
+        $this->assertSame(3, $ai->usage('2026-11', 'organisation')['totals']['calls']);
+
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), '/ai/models?feature=cms.alt'));
+        Http::assertSent(fn (Request $r) => $r->method() === 'PUT' && $r['consent_by'] === '7');
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), '/ai/usage?month=2026-11&scope=organisation'));
+    }
 }

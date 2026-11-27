@@ -3,6 +3,20 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [0.24.0] — 2026-11-27
+
+### Added
+
+- `Ai::models(feature)`: models from the gateway's catalogue that can do the feature, with prices per
+  million tokens, image input, structured output and the free flag.
+- `Ai::settings()` / `Ai::updateSettings()`: the organisation's model per feature (or the platform
+  default), free mode with a named consent and what happens when no free model answers
+  (`paid` or `stop`), and the billing markup.
+- `Ai::usage(month, scope)`: the month as billed, by application, feature, model and day, plus the
+  latest calls without content; `scope: organisation` covers every application.
+- `Ai::complete()` takes `user_id` and returns `free` and `attempts`; new refusals `409
+  ai-model-unavailable` and `503 ai-free-exhausted`. `usage.cost_usd` is now the billed cost.
+
 ## [0.23.0] — 2026-11-19
 
 ### Added
