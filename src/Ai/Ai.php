@@ -26,7 +26,8 @@ final class Ai
 
     /**
      * @param  list<array{role: string, content: string|list<array<string, mixed>>}>  $messages
-     * @param  array{max_tokens?: int, temperature?: float, response_format?: array<string, mixed>, user_id?: string|null}  $options
+     * @param  array{max_tokens?: int, temperature?: float, response_format?: array<string, mixed>, user_id?: string|null, model?: string|null, max_cost_usd?: float|null}  $options  `model` picks a model for this call only;
+     *                                                                                                                                                                       `max_cost_usd` refuses (402) a call that could take the month past the limit
      * @return array{content: string, finish_reason: string|null, model: string, free?: bool, attempts?: int, usage: array{input_tokens: int, output_tokens: int, cost_usd: float}}
      *
      * @throws \Abeon\SDK\Client\ServiceCallException  403 ai-disabled / ai-app-not-enabled, 402 ai-cap-reached, 409 ai-model-unavailable,
@@ -48,7 +49,7 @@ final class Ai
      * Whether the organisation and this application may use AI, the cap and what is used, kept in
      * the process for a minute.
      *
-     * @return array{enabled: bool, app_enabled: bool, monthly_cap_usd: float, used_usd: float, month: string, features: list<string>, models?: array<string, array{model: string, chosen: bool}>, free_mode?: bool, free_fallback?: string}
+     * @return array{enabled: bool, app_enabled: bool, monthly_cap_usd: float, used_usd: float, month: string, features: list<string>, models?: array<string, array{model: string, chosen: bool, name?: string, prompt_usd_per_mtok?: float|null, completion_usd_per_mtok?: float|null, free?: bool}>, free_mode?: bool, free_fallback?: string, confirm_above_usd?: float}
      */
     public function status(): array
     {
@@ -87,7 +88,7 @@ final class Ai
     }
 
     /**
-     * @param  array{models?: array<string, string|null>, free_mode?: bool, free_fallback?: 'paid'|'stop', consent_by?: string|null}  $changes
+     * @param  array{models?: array<string, string|null>, free_mode?: bool, free_fallback?: 'paid'|'stop', consent_by?: string|null, confirm_above_usd?: float}  $changes
      * @return array{models: array<string, array{model: string, chosen: bool}>, free_mode: bool, free_fallback: string, free_consent_by: string|null, free_consent_at: string|null, markup: float}
      *
      * @throws \Abeon\SDK\Client\ServiceCallException  422 ai-model-unsupported / ai-free-consent-required

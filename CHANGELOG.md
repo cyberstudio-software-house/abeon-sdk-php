@@ -3,6 +3,16 @@
 All notable changes to `abeon/sdk` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); this package is pre-1.0.
 
+## [0.25.0] — 2026-11-27
+
+### Added
+
+- `Ai::complete()` options `model` (a model for this call only, checked by the gateway against the
+  feature) and `max_cost_usd` (the upper estimate; the gateway refuses with `402 ai-cap-reached` a call
+  that could take the month past the limit).
+- `Ai::status()` gives each feature its model name and prices per million tokens with the markup, and
+  the organisation's `confirm_above_usd`; `Ai::updateSettings()` takes `confirm_above_usd`.
+
 ## [0.24.0] — 2026-11-27
 
 ### Added
